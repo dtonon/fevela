@@ -358,6 +358,7 @@ class ClientService extends EventTarget {
     const totalTimespan = now - timeframeSince
     const totalChunks = Math.ceil(totalTimespan / chunkSizeSeconds)
 
+
     const allEvents = new Map<string, NEvent>()
     let completedChunks = 0
     const shouldStop = false
@@ -381,42 +382,75 @@ class ClientService extends EventTarget {
       const chunkEvents: NEvent[] = []
       const eventIdSet = new Set<string>()
 
-      // Process each sub-request for this chunk
-      const chunkResults = await Promise.all(
-        subRequests.map(async ({ urls, filter }) => {
+
+      // Process each sub-request for this chunk with pagination
+      const subRequestPromises = subRequests.map(async ({ urls, filter }) => {
+        let currentUntil = chunkUntil
+        let hasMore = true
+        let pageCount = 0
+        const maxPages = 20 // Safety limit to prevent infinite loops
+        const subEvents: typeof chunkEvents = []
+
+        while (hasMore && pageCount < maxPages) {
           const chunkFilter = {
             ...filter,
             since: chunkSince,
-            until: chunkUntil,
+            until: currentUntil,
             limit: maxEventsPerChunk
           }
 
           try {
             const events = await this.query(urls, chunkFilter)
-            return events.filter(evt => {
+
+            if (events.length === 0) {
+              hasMore = false
+              pageCount++
+              continue
+            }
+
+            // Filter out duplicates locally for this sub-request
+            const newEvents = events.filter(evt => {
               if (eventIdSet.has(evt.id)) return false
               eventIdSet.add(evt.id)
               return true
             })
-          } catch (error) {
-            console.warn(`Chunk ${chunkIndex + 1} failed for ${urls.join(',')}: ${error}`)
-            return []
-          }
-        })
-      )
 
-      // Merge all chunk results
-      chunkResults.forEach(events => {
-        events.forEach(evt => {
-          if (!allEvents.has(evt.id)) {
-            allEvents.set(evt.id, evt)
-            chunkEvents.push(evt)
+            newEvents.forEach(evt => {
+              if (!allEvents.has(evt.id)) {
+                allEvents.set(evt.id, evt)
+                subEvents.push(evt)
+              }
+            })
+
+            // Check if we need to paginate further
+            if (events.length === maxEventsPerChunk) {
+              const oldestEvent = events[events.length - 1]
+              currentUntil = oldestEvent.created_at - 1
+
+              if (currentUntil <= chunkSince) {
+                hasMore = false
+              }
+            } else {
+              hasMore = false
+            }
+
+            pageCount++
+          } catch (error) {
+            hasMore = false
           }
-        })
+        }
+
+        return subEvents
       })
 
-      // Note: We don't stop early based on chunk size for grouped mode
-      // as we want complete coverage of the timeframe
+      // Wait for all sub-requests to complete (or timeout/fail)
+      const subResults = await Promise.allSettled(subRequestPromises)
+
+      subResults.forEach((result) => {
+        if (result.status === 'fulfilled') {
+          chunkEvents.push(...result.value)
+        }
+      })
 
       return chunkEvents
     }
