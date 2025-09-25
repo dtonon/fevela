@@ -38,7 +38,6 @@ import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
 const ALGO_LIMIT = 500
-const GROUPED_LIMIT = 1000
 const SHOW_COUNT = 10
 
 const NoteList = forwardRef(
@@ -186,7 +185,8 @@ const NoteList = forwardRef(
             filter: {
               kinds: showKinds,
               ...filter,
-              // Don't set limit or since/until - chunked loader will handle this
+              limit: 500, // Will be overridden by chunked loader
+              // Don't set since/until - chunked loader will handle this
             }
           }))
 
@@ -210,7 +210,6 @@ const NoteList = forwardRef(
               }
             },
             {
-              startLogin,
               chunkSizeHours: 6, // 6-hour chunks
               maxEventsPerChunk: 500 // Respect relay limits
             }
@@ -224,7 +223,7 @@ const NoteList = forwardRef(
         }
 
         // Standard timeline subscription for non-grouped mode
-        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : LIMIT
+        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : (groupedMode ? 500 : LIMIT)
 
         const { closer, timelineKey } = await client.subscribeTimeline(
           subRequests.map(({ urls, filter }) => ({
@@ -417,13 +416,13 @@ const NoteList = forwardRef(
           <div className="text-center text-sm text-muted-foreground mt-2">
             {groupedMode ? t('end of grouped results') : t('no more notes')}
           </div>
-        ) : (
+        ) : !loading && !groupedLoadingProgress ? (
           <div className="flex justify-center w-full mt-2">
             <Button size="lg" onClick={() => setRefreshCount((count) => count + 1)}>
               {t('reload notes')}
             </Button>
           </div>
-        )}
+        ) : null}
         {groupedLoadingProgress && (
           <div className="flex flex-col items-center gap-2 mt-4 p-4 bg-muted/30 rounded-lg mx-4">
             <div className="text-sm text-muted-foreground">

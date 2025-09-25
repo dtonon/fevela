@@ -346,11 +346,9 @@ class ClientService extends EventTarget {
       onComplete: () => void
     },
     {
-      startLogin,
       chunkSizeHours = 6,
       maxEventsPerChunk = 500
     }: {
-      startLogin?: () => void
       chunkSizeHours?: number
       maxEventsPerChunk?: number
     } = {}
@@ -362,13 +360,20 @@ class ClientService extends EventTarget {
 
     const allEvents = new Map<string, NEvent>()
     let completedChunks = 0
-    let shouldStop = false
+    const shouldStop = false
 
     const processChunk = async (chunkIndex: number) => {
       if (shouldStop) return []
 
       const chunkUntil = now - (chunkIndex * chunkSizeSeconds)
-      const chunkSince = Math.max(timeframeSince, chunkUntil - chunkSizeSeconds)
+      let chunkSince = chunkUntil - chunkSizeSeconds
+
+      // For the last chunk, make sure we cover exactly to timeframeSince
+      if (chunkIndex === totalChunks - 1) {
+        chunkSince = timeframeSince
+      } else {
+        chunkSince = Math.max(timeframeSince, chunkSince)
+      }
 
       // Skip if chunk is outside our timeframe
       if (chunkSince >= chunkUntil) return []
@@ -410,10 +415,8 @@ class ClientService extends EventTarget {
         })
       })
 
-      // If chunk returned very few events, we might be done with this timeframe
-      if (chunkEvents.length < 50) {
-        shouldStop = true
-      }
+      // Note: We don't stop early based on chunk size for grouped mode
+      // as we want complete coverage of the timeframe
 
       return chunkEvents
     }
