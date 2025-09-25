@@ -14,6 +14,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
+import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
@@ -37,6 +38,7 @@ import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
 const ALGO_LIMIT = 500
+const GROUPED_LIMIT = 1000
 const SHOW_COUNT = 10
 
 const NoteList = forwardRef(
@@ -76,6 +78,7 @@ const NoteList = forwardRef(
     const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
+    const [groupedLoadingProgress, setGroupedLoadingProgress] = useState<{ current: number; total: number } | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -171,13 +174,65 @@ const NoteList = forwardRef(
           return () => {}
         }
 
+        // Use chunked loading for grouped mode to get complete historical data
+        if (groupedMode && groupedNotesSettings.enabled) {
+          const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
+          const timeframeSince = Math.floor((Date.now() - timeframeMs) / 1000)
+
+          setGroupedLoadingProgress({ current: 0, total: 1 })
+
+          const requestsForChunkedLoading = subRequests.map(({ urls, filter }) => ({
+            urls,
+            filter: {
+              kinds: showKinds,
+              ...filter,
+              // Don't set limit or since/until - chunked loader will handle this
+            }
+          }))
+
+          client.loadGroupedTimeframe(
+            requestsForChunkedLoading,
+            timeframeSince,
+            {
+              onEvents: (events) => {
+                setEvents(events)
+                if (events.length > 0) {
+                  setLoading(false)
+                }
+              },
+              onProgress: (current, total) => {
+                setGroupedLoadingProgress({ current, total })
+              },
+              onComplete: () => {
+                setGroupedLoadingProgress(null)
+                setLoading(false)
+                setHasMore(false) // No "load more" for grouped mode
+              }
+            },
+            {
+              startLogin,
+              chunkSizeHours: 6, // 6-hour chunks
+              maxEventsPerChunk: 500 // Respect relay limits
+            }
+          )
+
+          // For grouped mode, we don't use the traditional timeline subscription
+          // but we still need a cleanup function
+          return () => {
+            setGroupedLoadingProgress(null)
+          }
+        }
+
+        // Standard timeline subscription for non-grouped mode
+        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : LIMIT
+
         const { closer, timelineKey } = await client.subscribeTimeline(
           subRequests.map(({ urls, filter }) => ({
             urls,
             filter: {
               kinds: showKinds,
               ...filter,
-              limit: areAlgoRelays ? ALGO_LIMIT : LIMIT
+              limit: groupedLimit
             }
           })),
           {
@@ -237,7 +292,7 @@ const NoteList = forwardRef(
       return () => {
         promise.then((closer) => closer())
       }
-    }, [JSON.stringify(subRequests), refreshCount, showKinds])
+    }, [JSON.stringify(subRequests), refreshCount, showKinds, groupedMode, JSON.stringify(groupedNotesSettings)])
 
     useEffect(() => {
       const options = {
@@ -367,6 +422,19 @@ const NoteList = forwardRef(
             <Button size="lg" onClick={() => setRefreshCount((count) => count + 1)}>
               {t('reload notes')}
             </Button>
+          </div>
+        )}
+        {groupedLoadingProgress && (
+          <div className="flex flex-col items-center gap-2 mt-4 p-4 bg-muted/30 rounded-lg mx-4">
+            <div className="text-sm text-muted-foreground">
+              {t('Loading historical data...')} ({groupedLoadingProgress.current}/{groupedLoadingProgress.total})
+            </div>
+            <div className="w-full bg-muted rounded-full h-2">
+              <div
+                className="bg-primary h-2 rounded-full transition-all duration-300"
+                style={{ width: `${(groupedLoadingProgress.current / groupedLoadingProgress.total) * 100}%` }}
+              />
+            </div>
           </div>
         )}
       </div>

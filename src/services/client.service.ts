@@ -333,6 +333,119 @@ class ClientService extends EventTarget {
     return events.sort((a, b) => b.created_at - a.created_at).slice(0, limit)
   }
 
+  async loadGroupedTimeframe(
+    subRequests: { urls: string[]; filter: TSubRequestFilter }[],
+    timeframeSince: number,
+    {
+      onEvents,
+      onProgress,
+      onComplete
+    }: {
+      onEvents: (events: NEvent[]) => void
+      onProgress: (current: number, total: number) => void
+      onComplete: () => void
+    },
+    {
+      startLogin,
+      chunkSizeHours = 6,
+      maxEventsPerChunk = 500
+    }: {
+      startLogin?: () => void
+      chunkSizeHours?: number
+      maxEventsPerChunk?: number
+    } = {}
+  ) {
+    const now = dayjs().unix()
+    const chunkSizeSeconds = chunkSizeHours * 60 * 60
+    const totalTimespan = now - timeframeSince
+    const totalChunks = Math.ceil(totalTimespan / chunkSizeSeconds)
+
+    const allEvents = new Map<string, NEvent>()
+    let completedChunks = 0
+    let shouldStop = false
+
+    const processChunk = async (chunkIndex: number) => {
+      if (shouldStop) return []
+
+      const chunkUntil = now - (chunkIndex * chunkSizeSeconds)
+      const chunkSince = Math.max(timeframeSince, chunkUntil - chunkSizeSeconds)
+
+      // Skip if chunk is outside our timeframe
+      if (chunkSince >= chunkUntil) return []
+
+      const chunkEvents: NEvent[] = []
+      const eventIdSet = new Set<string>()
+
+      // Process each sub-request for this chunk
+      const chunkResults = await Promise.all(
+        subRequests.map(async ({ urls, filter }) => {
+          const chunkFilter = {
+            ...filter,
+            since: chunkSince,
+            until: chunkUntil,
+            limit: maxEventsPerChunk
+          }
+
+          try {
+            const events = await this.query(urls, chunkFilter)
+            return events.filter(evt => {
+              if (eventIdSet.has(evt.id)) return false
+              eventIdSet.add(evt.id)
+              return true
+            })
+          } catch (error) {
+            console.warn(`Chunk ${chunkIndex + 1} failed for ${urls.join(',')}: ${error}`)
+            return []
+          }
+        })
+      )
+
+      // Merge all chunk results
+      chunkResults.forEach(events => {
+        events.forEach(evt => {
+          if (!allEvents.has(evt.id)) {
+            allEvents.set(evt.id, evt)
+            chunkEvents.push(evt)
+          }
+        })
+      })
+
+      // If chunk returned very few events, we might be done with this timeframe
+      if (chunkEvents.length < 50) {
+        shouldStop = true
+      }
+
+      return chunkEvents
+    }
+
+    // Process chunks sequentially from newest to oldest
+    for (let i = 0; i < totalChunks && !shouldStop; i++) {
+      const chunkEvents = await processChunk(i)
+
+      if (chunkEvents.length > 0) {
+        // Cache events
+        chunkEvents.forEach(evt => this.addEventToCache(evt))
+
+        // Sort all events by timestamp and return the current state
+        const sortedEvents = Array.from(allEvents.values())
+          .sort((a, b) => b.created_at - a.created_at)
+
+        onEvents(sortedEvents)
+      }
+
+      completedChunks++
+      onProgress(completedChunks, totalChunks)
+
+      // Small delay between chunks to prevent overwhelming relays
+      await new Promise(resolve => setTimeout(resolve, 100))
+    }
+
+    onComplete()
+
+    // Return final sorted events
+    return Array.from(allEvents.values()).sort((a, b) => b.created_at - a.created_at)
+  }
+
   subscribe(
     urls: string[],
     filter: Filter | Filter[],
