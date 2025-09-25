@@ -9,30 +9,31 @@ import { useEffect, useMemo, useState } from 'react'
 import Collapsible from '../Collapsible'
 import ClientTag from '../ClientTag'
 import { FormattedTimestamp } from '../FormattedTimestamp'
-import GroupedNotesIndicator from '../GroupedNotesIndicator'
 import Nip05 from '../Nip05'
-import Note from '../Note'
-import NoteOptions from '../NoteOptions'
-import NoteStats from '../NoteStats'
-import TranslateButton from '../TranslateButton'
 import UserAvatar from '../UserAvatar'
 import Username from '../Username'
+import { useSecondaryPage } from '@/PageManager'
+import { toNote, toProfile } from '@/lib/link'
 
 export default function CompactedRepostCard({
   event,
   className,
   totalNotesInTimeframe,
-  filterMutedNotes = true
+  filterMutedNotes = true,
+  isSelected = false,
+  onSelect
 }: {
   event: Event
   className?: string
   totalNotesInTimeframe: number
   filterMutedNotes?: boolean
+  isSelected?: boolean
+  onSelect?: () => void
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const [targetEvent, setTargetEvent] = useState<Event | null>(null)
-  const [expanded, setExpanded] = useState(false)
+  const { push } = useSecondaryPage()
 
   const shouldHide = useMemo(() => {
     if (!targetEvent) return true
@@ -93,8 +94,19 @@ export default function CompactedRepostCard({
 
     if (!isInteractiveElement) {
       e.stopPropagation()
-      setExpanded(!expanded)
+      onSelect?.() // Mark as selected
+      push(toNote(event))
     }
+  }
+
+  const handleAuthorClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    push(toNote(event))
+  }
+
+  const handleCounterClick = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    push(toProfile(event.pubkey))
   }
 
   if (!targetEvent || shouldHide) return null
@@ -104,7 +116,7 @@ export default function CompactedRepostCard({
       <Collapsible alwaysExpand={false}>
         {/* Main clickable area - includes header and content when expanded */}
         <div
-          className="clickable py-3"
+          className={`clickable py-3 ${isSelected ? 'bg-muted/50' : ''}`}
           onClick={handleTopRowClick}
         >
           {/* Top row - always visible - shows reposter info */}
@@ -116,8 +128,9 @@ export default function CompactedRepostCard({
                   <div className="flex gap-2 items-center">
                     <Username
                       userId={event.pubkey}
-                      className="font-semibold flex truncate"
+                      className="font-semibold flex truncate cursor-pointer hover:text-primary"
                       skeletonClassName="h-4"
+                      onClick={handleAuthorClick}
                     />
                     <ClientTag event={event} />
                     <span className="text-sm text-muted-foreground">reposted</span>
@@ -133,41 +146,18 @@ export default function CompactedRepostCard({
               </div>
               {/* Show counter badge when collapsed, NoteOptions when expanded */}
               <div className="flex items-center">
-                {!expanded ? (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-medium text-primary">
-                    {totalNotesInTimeframe}
-                  </div>
-                ) : (
-                  <>
-                    <TranslateButton event={targetEvent} />
-                    <NoteOptions event={targetEvent} className="py-1 shrink-0 [&_svg]:size-5" />
-                  </>
-                )}
+                <div
+                  className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-medium text-primary cursor-pointer hover:bg-primary/20"
+                  onClick={handleCounterClick}
+                >
+                  {totalNotesInTimeframe}
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Expandable content - shows original note with full header */}
-          {expanded && (
-            <>
-              <Note
-                className="px-4 mt-2"
-                size="normal"
-                event={targetEvent}
-                hideHeader={false}
-              />
-              <NoteStats className="mt-3 px-4" event={targetEvent} />
-            </>
-          )}
         </div>
 
-        {/* Separate hover area for grouped notes indicator */}
-        {expanded && (
-          <GroupedNotesIndicator
-            event={event}
-            totalNotesInTimeframe={totalNotesInTimeframe}
-          />
-        )}
       </Collapsible>
       <Separator />
     </div>

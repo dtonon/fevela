@@ -77,6 +77,7 @@ const NoteList = forwardRef(
     const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
+    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
     const [groupedLoadingProgress, setGroupedLoadingProgress] = useState<{
       current: number
       total: number
@@ -397,6 +398,8 @@ const NoteList = forwardRef(
                   event={event}
                   totalNotesInTimeframe={totalNotesCount}
                   filterMutedNotes={filterMutedNotes}
+                  isSelected={selectedNoteId === event.id}
+                  onSelect={() => setSelectedNoteId(event.id)}
                 />
               )
             }
@@ -406,6 +409,8 @@ const NoteList = forwardRef(
                 className="w-full"
                 event={event}
                 totalNotesInTimeframe={totalNotesCount}
+                isSelected={selectedNoteId === event.id}
+                onSelect={() => setSelectedNoteId(event.id)}
               />
             )
           }
