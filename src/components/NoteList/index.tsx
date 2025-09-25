@@ -17,7 +17,7 @@ import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event } from 'nostr-tools'
+import { Event, kinds } from 'nostr-tools'
 import {
   forwardRef,
   useCallback,
@@ -32,6 +32,7 @@ import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
 import CompactedNoteCard from '../CompactedNoteCard'
+import CompactedRepostCard from '../CompactedRepostCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
@@ -320,6 +321,18 @@ const NoteList = forwardRef(
 
           // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
           if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
+            // Use CompactedRepostCard for repost events to maintain compacted layout
+            if (event.kind === kinds.Repost) {
+              return (
+                <CompactedRepostCard
+                  key={`compact-repost-${event.id}`}
+                  className="w-full"
+                  event={event}
+                  totalNotesInTimeframe={totalNotesCount}
+                  filterMutedNotes={filterMutedNotes}
+                />
+              )
+            }
             return (
               <CompactedNoteCard
                 key={event.id}
