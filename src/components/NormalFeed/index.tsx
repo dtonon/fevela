@@ -3,10 +3,12 @@ import Tabs from '@/components/Tabs'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
+import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import storage from '@/services/local-storage.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useMemo, useRef, useState } from 'react'
 import KindFilter from '../KindFilter'
+import GroupedNotesFilter from '../GroupedNotesFilter'
 import { RefreshButton } from '../RefreshButton'
 
 export default function NormalFeed({
@@ -22,6 +24,7 @@ export default function NormalFeed({
 }) {
   const { hideUntrustedNotes } = useUserTrust()
   const { showKinds } = useKindFilter()
+  const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
   const supportTouch = useMemo(() => isTouchDevice(), [])
@@ -40,21 +43,30 @@ export default function NormalFeed({
     noteListRef.current?.scrollToTop()
   }
 
+  // In grouped mode, force 'posts' mode and disable replies tab
+  const effectiveListMode = groupedNotesSettings.enabled ? 'posts' : listMode
+  const availableTabs = groupedNotesSettings.enabled
+    ? [{ value: 'posts', label: 'Notes' }]
+    : [
+        { value: 'posts', label: 'Notes' },
+        { value: 'postsAndReplies', label: 'Replies' }
+      ]
+
   return (
     <>
       <Tabs
-        value={listMode}
-        tabs={[
-          { value: 'posts', label: 'Notes' },
-          { value: 'postsAndReplies', label: 'Replies' }
-        ]}
+        value={effectiveListMode}
+        tabs={availableTabs}
         onTabChange={(listMode) => {
-          handleListModeChange(listMode as TNoteListMode)
+          if (!groupedNotesSettings.enabled) {
+            handleListModeChange(listMode as TNoteListMode)
+          }
         }}
         options={
           <>
             {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
             <KindFilter showKinds={temporaryShowKinds} onShowKindsChange={handleShowKindsChange} />
+            <GroupedNotesFilter />
           </>
         }
       />
@@ -62,10 +74,11 @@ export default function NormalFeed({
         ref={noteListRef}
         showKinds={temporaryShowKinds}
         subRequests={subRequests}
-        hideReplies={listMode === 'posts'}
+        hideReplies={effectiveListMode === 'posts'}
         hideUntrustedNotes={hideUntrustedNotes}
         areAlgoRelays={areAlgoRelays}
         showRelayCloseReason={showRelayCloseReason}
+        groupedMode={groupedNotesSettings.enabled}
       />
     </>
   )

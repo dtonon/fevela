@@ -3,6 +3,7 @@ import { toNote } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
 import { Event } from 'nostr-tools'
 import Collapsible from '../Collapsible'
+import GroupedNotesIndicator from '../GroupedNotesIndicator'
 import Note from '../Note'
 import NoteStats from '../NoteStats'
 import RepostDescription from './RepostDescription'
@@ -12,13 +13,15 @@ export default function MainNoteCard({
   className,
   reposter,
   embedded,
-  originalNoteId
+  originalNoteId,
+  groupedNotesTotalCount
 }: {
   event: Event
   className?: string
   reposter?: string
   embedded?: boolean
   originalNoteId?: string
+  groupedNotesTotalCount?: number
 }) {
   const { push } = useSecondaryPage()
 
@@ -41,6 +44,12 @@ export default function MainNoteCard({
           />
         </Collapsible>
         {!embedded && <NoteStats className="mt-3 px-4" event={event} />}
+        {!embedded && groupedNotesTotalCount && (
+          <GroupedNotesIndicator
+            event={event}
+            totalNotesInTimeframe={groupedNotesTotalCount}
+          />
+        )}
       </div>
       {!embedded && <Separator />}
     </div>

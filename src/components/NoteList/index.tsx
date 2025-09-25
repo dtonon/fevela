@@ -12,6 +12,8 @@ import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
+import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
+import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
@@ -29,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
 const ALGO_LIMIT = 500
@@ -43,7 +46,8 @@ const NoteList = forwardRef(
       hideReplies = false,
       hideUntrustedNotes = false,
       areAlgoRelays = false,
-      showRelayCloseReason = false
+      showRelayCloseReason = false,
+      groupedMode = false
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -52,6 +56,7 @@ const NoteList = forwardRef(
       hideUntrustedNotes?: boolean
       areAlgoRelays?: boolean
       showRelayCloseReason?: boolean
+      groupedMode?: boolean
     },
     ref
   ) => {
@@ -61,6 +66,7 @@ const NoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
+    const { resetSettings } = useGroupedNotes()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
@@ -71,6 +77,16 @@ const NoteList = forwardRef(
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
+
+    // Process grouped notes
+    const {
+      processedEvents: groupedEvents,
+      groupedNotesData,
+      hasNoResults: groupedHasNoResults
+    } = useGroupedNotesProcessing(events, showKinds)
+
+    // Use either grouped or normal events
+    const eventsToProcess = groupedMode ? groupedEvents : events
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
@@ -94,7 +110,7 @@ const NoteList = forwardRef(
     const filteredEvents = useMemo(() => {
       const idSet = new Set<string>()
 
-      return events.slice(0, showCount).filter((evt) => {
+      return eventsToProcess.slice(0, groupedMode ? eventsToProcess.length : showCount).filter((evt) => {
         if (shouldHideEvent(evt)) return false
 
         const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
@@ -104,7 +120,7 @@ const NoteList = forwardRef(
         idSet.add(id)
         return true
       })
-    }, [events, showCount, shouldHideEvent])
+    }, [eventsToProcess, showCount, shouldHideEvent, groupedMode])
 
     const filteredNewEvents = useMemo(() => {
       const idSet = new Set<string>()
@@ -279,6 +295,23 @@ const NoteList = forwardRef(
       }, 0)
     }
 
+    // Removed unused groupedSettingsOpen state - settings are managed in GroupedNotesFilter
+
+    // In grouped mode, check for no results
+    if (groupedMode && groupedHasNoResults) {
+      return (
+        <div>
+          <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
+          <GroupedNotesEmptyState
+            onOpenSettings={() => {
+              // Settings will be handled by the GroupedNotesFilter component
+            }}
+            onReset={resetSettings}
+          />
+        </div>
+      )
+    }
+
     const list = (
       <div className="min-h-screen">
         {filteredEvents.map((event) => (
@@ -287,14 +320,19 @@ const NoteList = forwardRef(
             className="w-full"
             event={event}
             filterMutedNotes={filterMutedNotes}
+            groupedNotesTotalCount={
+              groupedMode ? groupedNotesData.get(event.id)?.totalNotesInTimeframe : undefined
+            }
           />
         ))}
-        {hasMore || loading ? (
+        {!groupedMode && (hasMore || loading) ? (
           <div ref={bottomRef}>
             <NoteCardLoadingSkeleton />
           </div>
         ) : events.length ? (
-          <div className="text-center text-sm text-muted-foreground mt-2">{t('no more notes')}</div>
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            {groupedMode ? t('end of grouped results') : t('no more notes')}
+          </div>
         ) : (
           <div className="flex justify-center w-full mt-2">
             <Button size="lg" onClick={() => setRefreshCount((count) => count + 1)}>

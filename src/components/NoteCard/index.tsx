@@ -10,11 +10,13 @@ import RepostNoteCard from './RepostNoteCard'
 export default function NoteCard({
   event,
   className,
-  filterMutedNotes = true
+  filterMutedNotes = true,
+  groupedNotesTotalCount
 }: {
   event: Event
   className?: string
   filterMutedNotes?: boolean
+  groupedNotesTotalCount?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -34,7 +36,13 @@ export default function NoteCard({
       <RepostNoteCard event={event} className={className} filterMutedNotes={filterMutedNotes} />
     )
   }
-  return <MainNoteCard event={event} className={className} />
+  return (
+    <MainNoteCard
+      event={event}
+      className={className}
+      groupedNotesTotalCount={groupedNotesTotalCount}
+    />
+  )
 }
 
 export function NoteCardLoadingSkeleton() {
