@@ -77,7 +77,10 @@ const NoteList = forwardRef(
     const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
-    const [groupedLoadingProgress, setGroupedLoadingProgress] = useState<{ current: number; total: number } | null>(null)
+    const [groupedLoadingProgress, setGroupedLoadingProgress] = useState<{
+      current: number
+      total: number
+    } | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -114,16 +117,18 @@ const NoteList = forwardRef(
     const filteredEvents = useMemo(() => {
       const idSet = new Set<string>()
 
-      return eventsToProcess.slice(0, groupedMode ? eventsToProcess.length : showCount).filter((evt) => {
-        if (shouldHideEvent(evt)) return false
+      return eventsToProcess
+        .slice(0, groupedMode ? eventsToProcess.length : showCount)
+        .filter((evt) => {
+          if (shouldHideEvent(evt)) return false
 
-        const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
-        if (idSet.has(id)) {
-          return false
-        }
-        idSet.add(id)
-        return true
-      })
+          const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
+          if (idSet.has(id)) {
+            return false
+          }
+          idSet.add(id)
+          return true
+        })
     }, [eventsToProcess, showCount, shouldHideEvent, groupedMode])
 
     const filteredNewEvents = useMemo(() => {
@@ -185,7 +190,7 @@ const NoteList = forwardRef(
             filter: {
               kinds: showKinds,
               ...filter,
-              limit: 500, // Will be overridden by chunked loader
+              limit: 500 // Will be overridden by chunked loader
               // Don't set since/until - chunked loader will handle this
             }
           }))
@@ -210,7 +215,7 @@ const NoteList = forwardRef(
               }
             },
             {
-              chunkSizeHours: 6, // 6-hour chunks
+              chunkSizeHours: 6, // 6-hour chunks for faster loading
               maxEventsPerChunk: 500 // Respect relay limits
             }
           )
@@ -223,7 +228,7 @@ const NoteList = forwardRef(
         }
 
         // Standard timeline subscription for non-grouped mode
-        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : (groupedMode ? 500 : LIMIT)
+        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : groupedMode ? 500 : LIMIT
 
         const { closer, timelineKey } = await client.subscribeTimeline(
           subRequests.map(({ urls, filter }) => ({
@@ -291,7 +296,13 @@ const NoteList = forwardRef(
       return () => {
         promise.then((closer) => closer())
       }
-    }, [JSON.stringify(subRequests), refreshCount, showKinds, groupedMode, JSON.stringify(groupedNotesSettings)])
+    }, [
+      JSON.stringify(subRequests),
+      refreshCount,
+      showKinds,
+      groupedMode,
+      JSON.stringify(groupedNotesSettings)
+    ])
 
     useEffect(() => {
       const options = {
@@ -371,7 +382,9 @@ const NoteList = forwardRef(
     const list = (
       <div className="min-h-screen">
         {filteredEvents.map((event) => {
-          const totalNotesCount = groupedMode ? groupedNotesData.get(event.id)?.totalNotesInTimeframe : undefined
+          const totalNotesCount = groupedMode
+            ? groupedNotesData.get(event.id)?.totalNotesInTimeframe
+            : undefined
 
           // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
           if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
@@ -426,12 +439,15 @@ const NoteList = forwardRef(
         {groupedLoadingProgress && (
           <div className="flex flex-col items-center gap-2 mt-4 p-4 bg-muted/30 rounded-lg mx-4">
             <div className="text-sm text-muted-foreground">
-              {t('Loading historical data...')} ({groupedLoadingProgress.current}/{groupedLoadingProgress.total})
+              {t('Loading historical data...')} ({groupedLoadingProgress.current}/
+              {groupedLoadingProgress.total})
             </div>
             <div className="w-full bg-muted rounded-full h-2">
               <div
                 className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{ width: `${(groupedLoadingProgress.current / groupedLoadingProgress.total) * 100}%` }}
+                style={{
+                  width: `${(groupedLoadingProgress.current / groupedLoadingProgress.total) * 100}%`
+                }}
               />
             </div>
           </div>

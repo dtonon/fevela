@@ -380,8 +380,6 @@ class ClientService extends EventTarget {
       if (chunkSince >= chunkUntil) return []
 
       const chunkEvents: NEvent[] = []
-      const eventIdSet = new Set<string>()
-
 
       // Process each sub-request for this chunk with pagination
       const subRequestPromises = subRequests.map(async ({ urls, filter }) => {
@@ -389,7 +387,8 @@ class ClientService extends EventTarget {
         let hasMore = true
         let pageCount = 0
         const maxPages = 20 // Safety limit to prevent infinite loops
-        const subEvents: typeof chunkEvents = []
+        const subEvents: NEvent[] = []
+        const localEventIds = new Set<string>()
 
         while (hasMore && pageCount < maxPages) {
           const chunkFilter = {
@@ -408,25 +407,21 @@ class ClientService extends EventTarget {
               continue
             }
 
-            // Filter out duplicates locally for this sub-request
+            // Filter out duplicates locally for this sub-request only
             const newEvents = events.filter(evt => {
-              if (eventIdSet.has(evt.id)) return false
-              eventIdSet.add(evt.id)
+              if (localEventIds.has(evt.id)) return false
+              localEventIds.add(evt.id)
               return true
             })
 
-            newEvents.forEach(evt => {
-              if (!allEvents.has(evt.id)) {
-                allEvents.set(evt.id, evt)
-                subEvents.push(evt)
-              }
-            })
+            subEvents.push(...newEvents)
 
             // Check if we need to paginate further
-            if (events.length === maxEventsPerChunk) {
+            if (events.length > 0) {
               const oldestEvent = events[events.length - 1]
               currentUntil = oldestEvent.created_at - 1
 
+              // Stop if we would go beyond chunk boundary
               if (currentUntil <= chunkSince) {
                 hasMore = false
               }
@@ -435,7 +430,7 @@ class ClientService extends EventTarget {
             }
 
             pageCount++
-          } catch (error) {
+          } catch {
             hasMore = false
           }
         }
@@ -443,12 +438,28 @@ class ClientService extends EventTarget {
         return subEvents
       })
 
-      // Wait for all sub-requests to complete (or timeout/fail)
+      // Wait for all sub-requests to complete in parallel
       const subResults = await Promise.allSettled(subRequestPromises)
 
+      // Collect all events from all sub-requests
+      const allChunkEvents: NEvent[] = []
       subResults.forEach((result) => {
         if (result.status === 'fulfilled') {
-          chunkEvents.push(...result.value)
+          allChunkEvents.push(...result.value)
+        }
+      })
+
+      // Now deduplicate only once, after all parallel requests are done
+      const chunkEventIds = new Set<string>()
+      allChunkEvents.forEach(evt => {
+        // Deduplicate within this chunk
+        if (!chunkEventIds.has(evt.id)) {
+          chunkEventIds.add(evt.id)
+          // Deduplicate globally across all chunks
+          if (!allEvents.has(evt.id)) {
+            allEvents.set(evt.id, evt)
+            chunkEvents.push(evt)
+          }
         }
       })
 
@@ -479,8 +490,12 @@ class ClientService extends EventTarget {
 
     onComplete()
 
-    // Return final sorted events
-    return Array.from(allEvents.values()).sort((a, b) => b.created_at - a.created_at)
+    // Return final sorted events, filtered to the exact timeframe
+    const finalEvents = Array.from(allEvents.values())
+      .filter(evt => evt.created_at >= timeframeSince) // Remove events older than selected timeframe
+      .sort((a, b) => b.created_at - a.created_at)
+
+    return finalEvents
   }
 
   subscribe(
