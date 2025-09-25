@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import CompactedNoteCard from '../CompactedNoteCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
@@ -66,7 +67,7 @@ const NoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
-    const { resetSettings } = useGroupedNotes()
+    const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
@@ -314,17 +315,32 @@ const NoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen">
-        {filteredEvents.map((event) => (
-          <NoteCard
-            key={event.id}
-            className="w-full"
-            event={event}
-            filterMutedNotes={filterMutedNotes}
-            groupedNotesTotalCount={
-              groupedMode ? groupedNotesData.get(event.id)?.totalNotesInTimeframe : undefined
-            }
-          />
-        ))}
+        {filteredEvents.map((event) => {
+          const totalNotesCount = groupedMode ? groupedNotesData.get(event.id)?.totalNotesInTimeframe : undefined
+
+          // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
+          if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
+            return (
+              <CompactedNoteCard
+                key={event.id}
+                className="w-full"
+                event={event}
+                totalNotesInTimeframe={totalNotesCount}
+              />
+            )
+          }
+
+          // Use regular NoteCard
+          return (
+            <NoteCard
+              key={event.id}
+              className="w-full"
+              event={event}
+              filterMutedNotes={filterMutedNotes}
+              groupedNotesTotalCount={totalNotesCount}
+            />
+          )
+        })}
         {!groupedMode && (hasMore || loading) ? (
           <div ref={bottomRef}>
             <NoteCardLoadingSkeleton />

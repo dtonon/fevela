@@ -23,11 +23,11 @@ export default function GroupedNotesIndicator({
   const otherNotesCount = totalNotesInTimeframe - 1
 
   return (
-    <div className={`${className} border-t border-border/50 mt-4`}>
+    <div className={`${className} border-t border-border/50`}>
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-center text-base text-primary hover:text-foreground py-2 h-auto mt-2"
+        className="w-full justify-center text-base text-primary hover:text-foreground py-2 h-auto"
         onClick={(e) => {
           e.stopPropagation()
           push(toProfile(event.pubkey))

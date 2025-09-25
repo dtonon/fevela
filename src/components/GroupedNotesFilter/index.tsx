@@ -36,7 +36,7 @@ export default function GroupedNotesFilter() {
 
   const handleReset = () => {
     resetSettings()
-    setTempSettings({ enabled: false, timeFrame: TIME_FRAME_OPTIONS[23], maxNotesFilter: 0 })
+    setTempSettings({ enabled: false, timeFrame: TIME_FRAME_OPTIONS[23], maxNotesFilter: 0, compactedView: false })
   }
 
   const trigger = (
@@ -127,6 +127,17 @@ export default function GroupedNotesFilter() {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="flex items-center justify-between pt-2">
+            <Label htmlFor="compacted-view" className="text-sm font-medium">
+              {t('Use a compacted view showing only the authors')}
+            </Label>
+            <Switch
+              id="compacted-view"
+              checked={tempSettings.compactedView}
+              onCheckedChange={(checked) => setTempSettings(prev => ({ ...prev, compactedView: checked }))}
+            />
           </div>
         </>
       )}
