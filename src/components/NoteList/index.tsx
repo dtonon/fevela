@@ -78,10 +78,7 @@ const NoteList = forwardRef(
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
-    const [groupedLoadingProgress, setGroupedLoadingProgress] = useState<{
-      current: number
-      total: number
-    } | null>(null)
+    const [groupedLoadingMore, setGroupedLoadingMore] = useState(false)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -179,57 +176,15 @@ const NoteList = forwardRef(
           return () => {}
         }
 
-        // Use chunked loading for grouped mode to get complete historical data
+        // For grouped mode, use standard timeline subscription then load back in time
+        let timeframeSince: number | undefined
         if (groupedMode && groupedNotesSettings.enabled) {
           const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
-          const timeframeSince = Math.floor((Date.now() - timeframeMs) / 1000)
-
-          setGroupedLoadingProgress({ current: 0, total: 1 })
-
-          const requestsForChunkedLoading = subRequests.map(({ urls, filter }) => ({
-            urls,
-            filter: {
-              kinds: showKinds,
-              ...filter,
-              limit: 500 // Will be overridden by chunked loader
-              // Don't set since/until - chunked loader will handle this
-            }
-          }))
-
-          client.loadGroupedTimeframe(
-            requestsForChunkedLoading,
-            timeframeSince,
-            {
-              onEvents: (events) => {
-                setEvents(events)
-                if (events.length > 0) {
-                  setLoading(false)
-                }
-              },
-              onProgress: (current, total) => {
-                setGroupedLoadingProgress({ current, total })
-              },
-              onComplete: () => {
-                setGroupedLoadingProgress(null)
-                setLoading(false)
-                setHasMore(false) // No "load more" for grouped mode
-              }
-            },
-            {
-              chunkSizeHours: 6, // 6-hour chunks for faster loading
-              maxEventsPerChunk: 500 // Respect relay limits
-            }
-          )
-
-          // For grouped mode, we don't use the traditional timeline subscription
-          // but we still need a cleanup function
-          return () => {
-            setGroupedLoadingProgress(null)
-          }
+          timeframeSince = Math.floor((Date.now() - timeframeMs) / 1000)
         }
 
-        // Standard timeline subscription for non-grouped mode
-        const groupedLimit = areAlgoRelays ? ALGO_LIMIT : groupedMode ? 500 : LIMIT
+        // Standard timeline subscription
+        const limit = areAlgoRelays ? ALGO_LIMIT : groupedMode ? 500 : LIMIT
 
         const { closer, timelineKey } = await client.subscribeTimeline(
           subRequests.map(({ urls, filter }) => ({
@@ -237,11 +192,11 @@ const NoteList = forwardRef(
             filter: {
               kinds: showKinds,
               ...filter,
-              limit: groupedLimit
+              limit
             }
           })),
           {
-            onEvents: (events, eosed) => {
+            onEvents: async (events, eosed) => {
               if (events.length > 0) {
                 setEvents(events)
               }
@@ -251,6 +206,18 @@ const NoteList = forwardRef(
               if (eosed) {
                 setLoading(false)
                 setHasMore(events.length > 0)
+
+                // For grouped mode, automatically load more until we reach timeframe boundary
+                if (groupedMode && timeframeSince && events.length > 0) {
+                  const oldestEvent = events[events.length - 1]
+                  if (oldestEvent.created_at > timeframeSince) {
+                    // Start loading more data back in time
+                    loadMoreGroupedData(timelineKey, oldestEvent.created_at - 1, timeframeSince)
+                  } else {
+                    // We've reached the time boundary, no more loading needed
+                    setHasMore(false)
+                  }
+                }
               }
             },
             onNew: (event) => {
@@ -290,6 +257,36 @@ const NoteList = forwardRef(
           }
         )
         setTimelineKey(timelineKey)
+
+        // Function to load more data for grouped mode
+        const loadMoreGroupedData = async (key: string, until: number, timeframeSince: number) => {
+          setGroupedLoadingMore(true)
+          try {
+            const moreEvents = await client.loadMoreTimeline(key, until, limit)
+            if (moreEvents.length === 0) {
+              setHasMore(false)
+              setGroupedLoadingMore(false)
+              return
+            }
+
+            setEvents(prevEvents => [...prevEvents, ...moreEvents])
+
+            // Check if we need to load even more
+            const oldestNewEvent = moreEvents[moreEvents.length - 1]
+            if (oldestNewEvent.created_at > timeframeSince) {
+              // Recursively load more until we reach the time boundary
+              await loadMoreGroupedData(key, oldestNewEvent.created_at - 1, timeframeSince)
+            } else {
+              setHasMore(false)
+              setGroupedLoadingMore(false)
+            }
+          } catch (error) {
+            console.error('Error loading more grouped data:', error)
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+          }
+        }
+
         return closer
       }
 
@@ -426,37 +423,31 @@ const NoteList = forwardRef(
             />
           )
         })}
-        {!groupedMode && (hasMore || loading) ? (
+        {/* Loading states */}
+        {loading && !events.length ? (
           <div ref={bottomRef}>
             <NoteCardLoadingSkeleton />
           </div>
-        ) : events.length ? (
+        ) : groupedMode && groupedLoadingMore ? (
+          <div className="flex justify-center items-center gap-2 mt-4 p-4">
+            <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <div className="text-sm text-muted-foreground">{t('Loading more notes...')}</div>
+          </div>
+        ) : !groupedMode && (hasMore || loading) ? (
+          <div ref={bottomRef}>
+            <NoteCardLoadingSkeleton />
+          </div>
+        ) : events.length && !hasMore ? (
           <div className="text-center text-sm text-muted-foreground mt-2">
             {groupedMode ? t('end of grouped results') : t('no more notes')}
           </div>
-        ) : !loading && !groupedLoadingProgress ? (
+        ) : !loading && !events.length ? (
           <div className="flex justify-center w-full mt-2">
             <Button size="lg" onClick={() => setRefreshCount((count) => count + 1)}>
               {t('reload notes')}
             </Button>
           </div>
         ) : null}
-        {groupedLoadingProgress && (
-          <div className="flex flex-col items-center gap-2 mt-4 p-4 bg-muted/30 rounded-lg mx-4">
-            <div className="text-sm text-muted-foreground">
-              {t('Loading historical data...')} ({groupedLoadingProgress.current}/
-              {groupedLoadingProgress.total})
-            </div>
-            <div className="w-full bg-muted rounded-full h-2">
-              <div
-                className="bg-primary h-2 rounded-full transition-all duration-300"
-                style={{
-                  width: `${(groupedLoadingProgress.current / groupedLoadingProgress.total) * 100}%`
-                }}
-              />
-            </div>
-          </div>
-        )}
       </div>
     )
 
