@@ -68,7 +68,7 @@ export default function GroupedNotesFilter() {
 
   const content = (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-4 border-b-2 pb-4">
         <Label htmlFor="grouped-mode" className="text-sm font-medium">
           {t('Enable grouped notes mode')}
         </Label>
@@ -81,8 +81,21 @@ export default function GroupedNotesFilter() {
 
       {tempSettings.enabled && (
         <>
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="compacted-view" className="text-sm font-medium">
+              {t('Compact view: show only authors')}
+            </Label>
+            <Switch
+              id="compacted-view"
+              checked={tempSettings.compactedView}
+              onCheckedChange={(checked) =>
+                setTempSettings((prev) => ({ ...prev, compactedView: checked }))
+              }
+            />
+          </div>
+
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
+            <Label className="text-sm font-medium leading-4">
               {t('Show me a summary for single users of what happened in the last')}
             </Label>
             <Select
@@ -111,8 +124,8 @@ export default function GroupedNotesFilter() {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-sm font-medium">
-              {t('Filter out who have published more than X notes')}
+            <Label className="text-sm font-medium leading-4">
+              {t('Filter out users who have published more than X notes in the timeframe')}
             </Label>
             <Select
               value={tempSettings.maxNotesFilter.toString()}
@@ -132,19 +145,6 @@ export default function GroupedNotesFilter() {
                 ))}
               </SelectContent>
             </Select>
-          </div>
-
-          <div className="flex items-center justify-between pt-2">
-            <Label htmlFor="compacted-view" className="text-sm font-medium">
-              {t('Use a compact view showing only the authors')}
-            </Label>
-            <Switch
-              id="compacted-view"
-              checked={tempSettings.compactedView}
-              onCheckedChange={(checked) =>
-                setTempSettings((prev) => ({ ...prev, compactedView: checked }))
-              }
-            />
           </div>
         </>
       )}

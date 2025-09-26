@@ -33,7 +33,7 @@ export default function MainNoteCard({
         push(toNote(originalNoteId ?? event))
       }}
     >
-      <div className={`clickable ${embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3'}`}>
+      <div className={`clickable ${embedded ? 'p-2 sm:p-3 border rounded-lg' : 'pt-3'}`}>
         <Collapsible alwaysExpand={embedded}>
           <RepostDescription className={embedded ? '' : 'px-4'} reposter={reposter} />
           <Note
@@ -43,12 +43,9 @@ export default function MainNoteCard({
             originalNoteId={originalNoteId}
           />
         </Collapsible>
-        {!embedded && <NoteStats className="mt-3 px-4" event={event} />}
+        {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}
         {!embedded && groupedNotesTotalCount && (
-          <GroupedNotesIndicator
-            event={event}
-            totalNotesInTimeframe={groupedNotesTotalCount}
-          />
+          <GroupedNotesIndicator event={event} totalNotesInTimeframe={groupedNotesTotalCount} />
         )}
       </div>
       {!embedded && <Separator />}
