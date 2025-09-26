@@ -424,6 +424,15 @@ export default {
     'Write relays and {{count}} other relays': '쓰기 릴레이 및 기타 {{count}}개 릴레이',
     '{{count}} relays': '{{count}}개 릴레이',
     'Republishing...': '다시 게시 중...',
-    'Trending Notes': '트렌딩 노트'
+    'Trending Notes': '트렌딩 노트',
+    Grouped: '그룹화됨',
+    GroupedNotesEnable: '그룹화된 노트 모드 활성화',
+    GroupedNotesCompact: '컴팩트 뷰: 작성자만 표시',
+    GroupedNotesTimeframe: '개별 사용자가 지난 기간에 일어난 일들의 요약을 보여주세요',
+    GroupedNotesFilterMore:
+      '기간 내에 X개 이상의 노트를 게시한 사용자 필터링',
+    GroupedNotesDays: '일',
+    GroupedNotesHours: '시간',
+    GroupedNotesDisabled: '비활성화'
   }
 }

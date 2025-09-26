@@ -421,6 +421,15 @@ export default {
     'Write relays and {{count}} other relays': 'مرحلات الكتابة و {{count}} مرحل آخر',
     '{{count}} relays': '{{count}} ريلايات',
     'Republishing...': 'جارٍ إعادة النشر...',
-    'Trending Notes': 'الملاحظات الرائجة'
+    'Trending Notes': 'الملاحظات الرائجة',
+    Grouped: 'مجمعة',
+    GroupedNotesEnable: 'تفعيل وضع الملاحظات المجمعة',
+    GroupedNotesCompact: 'عرض مضغوط: إظهار المؤلفين فقط',
+    GroupedNotesTimeframe: 'أظهر لي ملخصاً للمستخدمين المنفردين عما حدث في آخر',
+    GroupedNotesFilterMore:
+      'تصفية المستخدمين الذين نشروا أكثر من X ملاحظة في الفترة الزمنية',
+    GroupedNotesDays: 'أيام',
+    GroupedNotesHours: 'ساعات',
+    GroupedNotesDisabled: 'معطل'
   }
 }

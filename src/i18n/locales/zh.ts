@@ -417,6 +417,15 @@ export default {
     'Write relays and {{count}} other relays': '写服务器和其他 {{count}} 个服务器',
     '{{count}} relays': '{{count}} 个服务器',
     'Republishing...': '正在重新发布...',
-    'Trending Notes': '热门笔记'
+    'Trending Notes': '热门笔记',
+    Grouped: '分组',
+    GroupedNotesEnable: '启用分组笔记模式',
+    GroupedNotesCompact: '紧凑视图：仅显示作者',
+    GroupedNotesTimeframe: '显示单个用户在过去期间发生事情的摘要',
+    GroupedNotesFilterMore:
+      '过滤在时间范围内发布超过 X 条笔记的用户',
+    GroupedNotesDays: '天',
+    GroupedNotesHours: '小时',
+    GroupedNotesDisabled: '已禁用'
   }
 }

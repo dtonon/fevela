@@ -430,6 +430,15 @@ export default {
       'Ретрансляторы записи и {{count}} других ретрансляторов',
     '{{count}} relays': '{{count}} ретрансляторов',
     'Republishing...': 'Ретрансляция...',
-    'Trending Notes': 'Популярные заметки'
+    'Trending Notes': 'Популярные заметки',
+    Grouped: 'Группированные',
+    GroupedNotesEnable: 'Включить режим группированных заметок',
+    GroupedNotesCompact: 'Компактный вид: показывать только авторов',
+    GroupedNotesTimeframe: 'Показать сводку для отдельных пользователей о том, что происходило за последние',
+    GroupedNotesFilterMore:
+      'Отфильтровать пользователей, которые опубликовали больше X заметок в течение периода',
+    GroupedNotesDays: 'Дни',
+    GroupedNotesHours: 'Часы',
+    GroupedNotesDisabled: 'Отключено'
   }
 }

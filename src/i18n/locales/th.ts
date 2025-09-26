@@ -419,6 +419,15 @@ export default {
     'Write relays and {{count}} other relays': 'รีเลย์เขียนและรีเลย์อื่น ๆ {{count}} ตัว',
     '{{count}} relays': 'รีเลย์ {{count}} ตัว',
     'Republishing...': 'กำลังเผยแพร่ซ้ำ...',
-    'Trending Notes': 'โน้ตยอดนิยม'
+    'Trending Notes': 'โน้ตยอดนิยม',
+    Grouped: 'จัดกลุ่ม',
+    GroupedNotesEnable: 'เปิดใช้โหมดโน้ตแบบจัดกลุ่ม',
+    GroupedNotesCompact: 'มุมมองแบบกะทัดรัด: แสดงเฉพาะผู้เขียน',
+    GroupedNotesTimeframe: 'แสดงสรุปสำหรับผู้ใช้แต่ละคนเกี่ยวกับสิ่งที่เกิดขึ้นใน',
+    GroupedNotesFilterMore:
+      'กรองผู้ใช้ที่เผยแพร่โน้ตมากกว่า X บันทึกในช่วงเวลา',
+    GroupedNotesDays: 'วัน',
+    GroupedNotesHours: 'ชั่วโมง',
+    GroupedNotesDisabled: 'ปิดการใช้งาน'
   }
 }

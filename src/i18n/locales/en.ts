@@ -420,6 +420,15 @@ export default {
     'Write relays and {{count}} other relays': 'Write relays and {{count}} other relays',
     '{{count}} relays': '{{count}} relays',
     'Republishing...': 'Republishing...',
-    'Trending Notes': 'Trending Notes'
+    'Trending Notes': 'Trending Notes',
+    Grouped: 'Grouped',
+    GroupedNotesEnable: 'Enable grouped notes mode',
+    GroupedNotesCompact: 'Compact view: show only authors',
+    GroupedNotesTimeframe: 'Show me a summary for single users of what happened in the last',
+    GroupedNotesFilterMore:
+      'Filter out users who have published more than X notes in the timeframe',
+    GroupedNotesDays: 'Days',
+    GroupedNotesHours: 'Hours',
+    GroupedNotesDisabled: 'Disabled'
   }
 }

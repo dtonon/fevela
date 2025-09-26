@@ -425,6 +425,15 @@ export default {
     'Write relays and {{count}} other relays': 'राइट रिले और {{count}} अन्य रिले',
     '{{count}} relays': '{{count}} रिले',
     'Republishing...': 'पुनः प्रकाशित कर रहे हैं...',
-    'Trending Notes': 'ट्रेंडिंग नोट्स'
+    'Trending Notes': 'ट्रेंडिंग नोट्स',
+    Grouped: 'ग्रुप्ड',
+    GroupedNotesEnable: 'ग्रुप्ड नोट्स मोड सक्षम करें',
+    GroupedNotesCompact: 'कॉम्पैक्ट व्यू: केवल लेखकों को दिखाएं',
+    GroupedNotesTimeframe: 'मुझे व्यक्तिगत उपयोगकर्ताओं के लिए पिछले कई समय में क्या हुआ का सारांश दिखाएं',
+    GroupedNotesFilterMore:
+      'उन उपयोगकर्ताओं को फिल्टर करें जिन्होंने समयावधि में X से अधिक नोट्स प्रकाशित किए हैं',
+    GroupedNotesDays: 'दिन',
+    GroupedNotesHours: 'घंटे',
+    GroupedNotesDisabled: 'अक्षम'
   }
 }

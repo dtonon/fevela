@@ -423,6 +423,15 @@ export default {
     'Write relays and {{count}} other relays': 'رله‌های نوشتن و {{count}} رله دیگر',
     '{{count}} relays': '{{count}} رله',
     'Republishing...': 'در حال بازنشر...',
-    'Trending Notes': 'یادداشت‌های محبوب'
+    'Trending Notes': 'یادداشت‌های محبوب',
+    Grouped: 'گروه‌بندی شده',
+    GroupedNotesEnable: 'فعال کردن حالت یادداشت‌های گروه‌بندی شده',
+    GroupedNotesCompact: 'نمای فشرده: فقط نویسندگان را نشان دهد',
+    GroupedNotesTimeframe: 'برای کاربران مجزا خلاصه‌ای از آنچه در آخرین بار اتفاق افتاده را نشان دهد',
+    GroupedNotesFilterMore:
+      'فیلتر کردن کاربرانی که بیش از X یادداشت در بازه زمانی منتشر کرده‌اند',
+    GroupedNotesDays: 'روز',
+    GroupedNotesHours: 'ساعت',
+    GroupedNotesDisabled: 'غیرفعال'
   }
 }

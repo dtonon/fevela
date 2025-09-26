@@ -424,6 +424,15 @@ export default {
     'Write relays and {{count}} other relays': '書き込みリレーと他の {{count}} 個のリレー',
     '{{count}} relays': '{{count}} 個のリレー',
     'Republishing...': '再公開中...',
-    'Trending Notes': '注目のノート'
+    'Trending Notes': '注目のノート',
+    Grouped: 'グループ化',
+    GroupedNotesEnable: 'グループ化ノートモードを有効にする',
+    GroupedNotesCompact: 'コンパクトビュー：作成者のみを表示',
+    GroupedNotesTimeframe: '個々のユーザーの過去の出来事の要約を表示',
+    GroupedNotesFilterMore:
+      '期間中にX件以上のノートを公開したユーザーをフィルタリング',
+    GroupedNotesDays: '日',
+    GroupedNotesHours: '時間',
+    GroupedNotesDisabled: '無効'
   }
 }

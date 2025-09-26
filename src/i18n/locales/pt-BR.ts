@@ -425,6 +425,15 @@ export default {
     'Write relays and {{count}} other relays': 'Relays de escrita e {{count}} outros relays',
     '{{count}} relays': '{{count}} relays',
     'Republishing...': 'Republicando...',
-    'Trending Notes': 'Notas de tendência'
+    'Trending Notes': 'Notas de tendência',
+    Grouped: 'Agrupado',
+    GroupedNotesEnable: 'Ativar modo de notas agrupadas',
+    GroupedNotesCompact: 'Visualização compacta: mostrar apenas autores',
+    GroupedNotesTimeframe: 'Mostre-me um resumo para usuários individuais do que aconteceu nos últimos',
+    GroupedNotesFilterMore:
+      'Filtrar usuários que publicaram mais de X notas no período',
+    GroupedNotesDays: 'Dias',
+    GroupedNotesHours: 'Horas',
+    GroupedNotesDisabled: 'Desabilitado'
   }
 }

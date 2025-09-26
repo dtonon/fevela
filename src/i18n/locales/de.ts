@@ -433,6 +433,15 @@ export default {
     'Write relays and {{count}} other relays': 'Schreib-Relays und {{count}} andere Relays',
     '{{count}} relays': '{{count}} Relays',
     'Republishing...': 'Wird erneut veröffentlicht...',
-    'Trending Notes': 'Trendende Notizen'
+    'Trending Notes': 'Trendende Notizen',
+    Grouped: 'Gruppiert',
+    GroupedNotesEnable: 'Gruppierten Notizmodus aktivieren',
+    GroupedNotesCompact: 'Kompakte Ansicht: nur Autoren anzeigen',
+    GroupedNotesTimeframe: 'Zeige mir eine Zusammenfassung für einzelne Benutzer von dem, was in den letzten passiert ist',
+    GroupedNotesFilterMore:
+      'Benutzer herausfiltern, die mehr als X Notizen im Zeitraum veröffentlicht haben',
+    GroupedNotesDays: 'Tage',
+    GroupedNotesHours: 'Stunden',
+    GroupedNotesDisabled: 'Deaktiviert'
   }
 }
