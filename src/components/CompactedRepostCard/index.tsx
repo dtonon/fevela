@@ -99,14 +99,9 @@ export default function CompactedRepostCard({
     }
   }
 
-  const handleAuthorClick = (e: React.MouseEvent) => {
-    e.stopPropagation()
-    push(toNote(event))
-  }
-
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey))
+    push(toProfile(event.pubkey, { hideTopSection: true }))
   }
 
   if (!targetEvent || shouldHide) return null
@@ -121,7 +116,7 @@ export default function CompactedRepostCard({
         >
           {/* Top row - always visible - shows reposter info */}
           <div className="px-4">
-            <div className="flex justify-between items-start gap-2">
+            <div className="flex justify-between items-center gap-2">
               <div className="flex items-center space-x-2 flex-1">
                 <UserAvatar userId={event.pubkey} size="normal" />
                 <div className="flex-1 w-0">
@@ -130,17 +125,13 @@ export default function CompactedRepostCard({
                       userId={event.pubkey}
                       className="font-semibold flex truncate cursor-pointer hover:text-primary"
                       skeletonClassName="h-4"
-                      onClick={handleAuthorClick}
                     />
                     <ClientTag event={event} />
                     <span className="text-sm text-muted-foreground">reposted</span>
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Nip05 pubkey={event.pubkey} append="·" />
-                    <FormattedTimestamp
-                      timestamp={event.created_at}
-                      className="shrink-0"
-                    />
+                    <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
                   </div>
                 </div>
               </div>
@@ -155,9 +146,7 @@ export default function CompactedRepostCard({
               </div>
             </div>
           </div>
-
         </div>
-
       </Collapsible>
       <Separator />
     </div>

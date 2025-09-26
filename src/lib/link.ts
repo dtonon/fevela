@@ -32,10 +32,20 @@ export const toNoteList = ({
   if (domain) query.set('d', domain)
   return `${path}?${query.toString()}`
 }
-export const toProfile = (userId: string) => {
-  if (userId.startsWith('npub') || userId.startsWith('nprofile')) return `/users/${userId}`
-  const npub = nip19.npubEncode(userId)
-  return `/users/${npub}`
+export const toProfile = (userId: string, options?: { hideTopSection?: boolean }) => {
+  let path: string
+  if (userId.startsWith('npub') || userId.startsWith('nprofile')) {
+    path = `/users/${userId}`
+  } else {
+    const npub = nip19.npubEncode(userId)
+    path = `/users/${npub}`
+  }
+
+  if (options?.hideTopSection) {
+    path += '?hideTop=true'
+  }
+
+  return path
 }
 export const toProfileList = ({ search, domain }: { search?: string; domain?: string }) => {
   const path = '/users'

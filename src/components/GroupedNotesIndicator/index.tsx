@@ -30,7 +30,7 @@ export default function GroupedNotesIndicator({
         className="w-full justify-center text-base text-primary hover:text-foreground py-2 h-auto"
         onClick={(e) => {
           e.stopPropagation()
-          push(toProfile(event.pubkey))
+          push(toProfile(event.pubkey, { hideTopSection: true }))
         }}
       >
         {otherNotesCount === 1
