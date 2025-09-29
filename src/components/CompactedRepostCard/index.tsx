@@ -22,7 +22,11 @@ export default function CompactedRepostCard({
   oldestTimestamp,
   filterMutedNotes = true,
   isSelected = false,
-  onSelect
+  onSelect,
+  onLastNoteRead,
+  onAllNotesRead,
+  isLastNoteRead = false,
+  areAllNotesRead = false
 }: {
   event: Event
   className?: string
@@ -31,6 +35,10 @@ export default function CompactedRepostCard({
   filterMutedNotes?: boolean
   isSelected?: boolean
   onSelect?: () => void
+  onLastNoteRead?: () => void
+  onAllNotesRead?: () => void
+  isLastNoteRead?: boolean
+  areAllNotesRead?: boolean
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -96,14 +104,21 @@ export default function CompactedRepostCard({
 
     if (!isInteractiveElement) {
       e.stopPropagation()
-      onSelect?.() // Mark as selected
+      onSelect?.()
+      // Only mark as read if not already fully read
+      if (!areAllNotesRead) {
+        onLastNoteRead?.()
+      }
       push(toNote(event))
     }
   }
 
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true }))
+    onAllNotesRead?.()
+    push(
+      toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true })
+    )
   }
 
   if (!targetEvent || shouldHide) return null
@@ -140,7 +155,11 @@ export default function CompactedRepostCard({
               {/* Show counter badge when collapsed, NoteOptions when expanded */}
               <div className="flex items-center">
                 <div
-                  className="w-8 h-8 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center text-sm font-medium text-primary cursor-pointer hover:bg-primary/20"
+                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${
+                    isLastNoteRead
+                      ? 'bg-primary/10 border border-primary/20 grayscale hover:bg-primary/20'
+                      : 'bg-primary/10 border border-primary/20 hover:bg-primary/20'
+                  } ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}
                   onClick={handleCounterClick}
                 >
                   {totalNotesInTimeframe}

@@ -14,6 +14,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
+import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
@@ -74,6 +75,7 @@ const NoteList = forwardRef(
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
     const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
+    const { markLastNoteRead, markAllNotesRead, getReadStatus } = useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
@@ -396,6 +398,8 @@ const NoteList = forwardRef(
 
           // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
           if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
+            const readStatus = getReadStatus(event.pubkey, event.created_at)
+
             // Use CompactedRepostCard for repost events to maintain compacted layout
             if (event.kind === kinds.Repost) {
               return (
@@ -408,6 +412,17 @@ const NoteList = forwardRef(
                   filterMutedNotes={filterMutedNotes}
                   isSelected={selectedNoteId === event.id}
                   onSelect={() => setSelectedNoteId(event.id)}
+                  onLastNoteRead={() => {
+                    // If there's only one note, mark all as read instead of just last
+                    if (totalNotesCount === 1) {
+                      markAllNotesRead(event.pubkey, event.created_at)
+                    } else {
+                      markLastNoteRead(event.pubkey, event.created_at)
+                    }
+                  }}
+                  onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at)}
+                  isLastNoteRead={readStatus.isLastNoteRead}
+                  areAllNotesRead={readStatus.areAllNotesRead}
                 />
               )
             }
@@ -420,6 +435,17 @@ const NoteList = forwardRef(
                 oldestTimestamp={oldestTimestamp}
                 isSelected={selectedNoteId === event.id}
                 onSelect={() => setSelectedNoteId(event.id)}
+                onLastNoteRead={() => {
+                  // If there's only one note, mark all as read instead of just last
+                  if (totalNotesCount === 1) {
+                    markAllNotesRead(event.pubkey, event.created_at)
+                  } else {
+                    markLastNoteRead(event.pubkey, event.created_at)
+                  }
+                }}
+                onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at)}
+                isLastNoteRead={readStatus.isLastNoteRead}
+                areAllNotesRead={readStatus.areAllNotesRead}
               />
             )
           }
