@@ -40,7 +40,7 @@ export default function GroupedNotesFilter() {
       enabled: false,
       timeFrame: timeFrameOptions[23],
       maxNotesFilter: 0,
-      compactedView: false,
+      compactedView: true,
       includeReplies: false
     })
   }

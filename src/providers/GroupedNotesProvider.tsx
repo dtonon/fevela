@@ -55,7 +55,7 @@ const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSet
   enabled: false,
   timeFrame: timeFrameOptions[23], // 24 hours
   maxNotesFilter: 0, // Disabled
-  compactedView: false,
+  compactedView: true,
   includeReplies: false
 })
 
@@ -77,9 +77,11 @@ export function GroupedNotesProvider({ children }: { children: React.ReactNode }
     const storedSettings = storage.getGroupedNotesSettings()
     if (storedSettings) {
       // Find matching timeFrame with current translations
-      const timeFrame = timeFrameOptions.find(
-        tf => tf.value === storedSettings.timeFrame.value && tf.unit === storedSettings.timeFrame.unit
-      ) || timeFrameOptions[23] // fallback to 24 hours
+      const timeFrame =
+        timeFrameOptions.find(
+          (tf) =>
+            tf.value === storedSettings.timeFrame.value && tf.unit === storedSettings.timeFrame.unit
+        ) || timeFrameOptions[23] // fallback to 24 hours
 
       return {
         ...storedSettings,
@@ -120,7 +122,9 @@ export function GroupedNotesProvider({ children }: { children: React.ReactNode }
   }
 
   return (
-    <GroupedNotesContext.Provider value={{ settings, updateSettings, resetSettings, timeFrameOptions }}>
+    <GroupedNotesContext.Provider
+      value={{ settings, updateSettings, resetSettings, timeFrameOptions }}
+    >
       {children}
     </GroupedNotesContext.Provider>
   )
