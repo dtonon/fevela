@@ -20,6 +20,7 @@ import {
   TThemeSetting,
   TTranslationServiceConfig
 } from '@/types'
+import { TStoredGroupedNotesSettings } from '@/providers/GroupedNotesProvider'
 
 class LocalStorageService {
   static instance: LocalStorageService
@@ -47,6 +48,7 @@ class LocalStorageService {
   private hideContentMentioningMutedUsers: boolean = false
   private notificationListStyle: TNotificationStyle = NOTIFICATION_LIST_STYLE.DETAILED
   private mediaAutoLoadPolicy: TMediaAutoLoadPolicy = MEDIA_AUTO_LOAD_POLICY.ALWAYS
+  private groupedNotesSettings: TStoredGroupedNotesSettings | null = null
 
   constructor() {
     if (!LocalStorageService.instance) {
@@ -183,6 +185,16 @@ class LocalStorageService {
       Object.values(MEDIA_AUTO_LOAD_POLICY).includes(mediaAutoLoadPolicy as TMediaAutoLoadPolicy)
     ) {
       this.mediaAutoLoadPolicy = mediaAutoLoadPolicy as TMediaAutoLoadPolicy
+    }
+
+    const groupedNotesSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
+    if (groupedNotesSettingsStr) {
+      try {
+        this.groupedNotesSettings = JSON.parse(groupedNotesSettingsStr)
+      } catch {
+        // Invalid JSON, ignore and use defaults
+        this.groupedNotesSettings = null
+      }
     }
 
     // Clean up deprecated data
@@ -452,6 +464,15 @@ class LocalStorageService {
   setMediaAutoLoadPolicy(policy: TMediaAutoLoadPolicy) {
     this.mediaAutoLoadPolicy = policy
     window.localStorage.setItem(StorageKey.MEDIA_AUTO_LOAD_POLICY, policy)
+  }
+
+  getGroupedNotesSettings() {
+    return this.groupedNotesSettings
+  }
+
+  setGroupedNotesSettings(settings: TStoredGroupedNotesSettings) {
+    this.groupedNotesSettings = settings
+    window.localStorage.setItem(StorageKey.GROUPED_NOTES_SETTINGS, JSON.stringify(settings))
   }
 }
 

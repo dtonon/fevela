@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import storage from '@/services/local-storage.service'
 
 export type TTimeFrame = {
   value: number
@@ -26,6 +27,18 @@ export type TGroupedNotesSettings = {
   enabled: boolean
   timeFrame: TTimeFrame
   maxNotesFilter: number // 0 means disabled
+  compactedView: boolean
+}
+
+export type TStoredTimeFrame = {
+  value: number
+  unit: 'hours' | 'days'
+}
+
+export type TStoredGroupedNotesSettings = {
+  enabled: boolean
+  timeFrame: TStoredTimeFrame
+  maxNotesFilter: number
   compactedView: boolean
 }
 
@@ -56,14 +69,51 @@ export const useGroupedNotes = () => {
 export function GroupedNotesProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
   const timeFrameOptions = createTimeFrameOptions(t)
-  const [settings, setSettings] = useState<TGroupedNotesSettings>(() => createDefaultSettings(timeFrameOptions))
+
+  const [settings, setSettings] = useState<TGroupedNotesSettings>(() => {
+    const storedSettings = storage.getGroupedNotesSettings()
+    if (storedSettings) {
+      // Find matching timeFrame with current translations
+      const timeFrame = timeFrameOptions.find(
+        tf => tf.value === storedSettings.timeFrame.value && tf.unit === storedSettings.timeFrame.unit
+      ) || timeFrameOptions[23] // fallback to 24 hours
+
+      return {
+        ...storedSettings,
+        timeFrame // use the one with current translations
+      }
+    }
+    return createDefaultSettings(timeFrameOptions)
+  })
 
   const updateSettings = (newSettings: Partial<TGroupedNotesSettings>) => {
-    setSettings(prev => ({ ...prev, ...newSettings }))
+    const updated = { ...settings, ...newSettings }
+    setSettings(updated)
+
+    // Convert to storage format (without translated labels)
+    const storageSettings: TStoredGroupedNotesSettings = {
+      ...updated,
+      timeFrame: {
+        value: updated.timeFrame.value,
+        unit: updated.timeFrame.unit
+      }
+    }
+    storage.setGroupedNotesSettings(storageSettings)
   }
 
   const resetSettings = () => {
-    setSettings(createDefaultSettings(timeFrameOptions))
+    const defaultSettings = createDefaultSettings(timeFrameOptions)
+    setSettings(defaultSettings)
+
+    // Convert to storage format and save
+    const storageSettings: TStoredGroupedNotesSettings = {
+      ...defaultSettings,
+      timeFrame: {
+        value: defaultSettings.timeFrame.value,
+        unit: defaultSettings.timeFrame.unit
+      }
+    }
+    storage.setGroupedNotesSettings(storageSettings)
   }
 
   return (
