@@ -32,7 +32,7 @@ export const toNoteList = ({
   if (domain) query.set('d', domain)
   return `${path}?${query.toString()}`
 }
-export const toProfile = (userId: string, options?: { hideTopSection?: boolean }) => {
+export const toProfile = (userId: string, options?: { hideTopSection?: boolean; since?: number }) => {
   let path: string
   if (userId.startsWith('npub') || userId.startsWith('nprofile')) {
     path = `/users/${userId}`
@@ -41,8 +41,17 @@ export const toProfile = (userId: string, options?: { hideTopSection?: boolean }
     path = `/users/${npub}`
   }
 
+  const query = new URLSearchParams()
   if (options?.hideTopSection) {
-    path += '?hideTop=true'
+    query.set('hideTop', 'true')
+  }
+  if (options?.since) {
+    query.set('since', options.since.toString())
+  }
+
+  const queryString = query.toString()
+  if (queryString) {
+    path += `?${queryString}`
   }
 
   return path

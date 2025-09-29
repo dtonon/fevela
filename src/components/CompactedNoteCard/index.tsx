@@ -13,12 +13,14 @@ export default function CompactedNoteCard({
   event,
   className,
   totalNotesInTimeframe,
+  oldestTimestamp,
   isSelected = false,
   onSelect
 }: {
   event: Event
   className?: string
   totalNotesInTimeframe: number
+  oldestTimestamp?: number
   isSelected?: boolean
   onSelect?: () => void
 }) {
@@ -38,7 +40,7 @@ export default function CompactedNoteCard({
 
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey, { hideTopSection: true }))
+    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp }))
   }
 
   return (

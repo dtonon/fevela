@@ -7,10 +7,12 @@ import { useTranslation } from 'react-i18next'
 export default function GroupedNotesIndicator({
   event,
   totalNotesInTimeframe,
+  oldestTimestamp,
   className = ''
 }: {
   event: Event
   totalNotesInTimeframe: number
+  oldestTimestamp?: number
   className?: string
 }) {
   const { t } = useTranslation()
@@ -30,7 +32,7 @@ export default function GroupedNotesIndicator({
         className="w-full justify-center text-base text-primary hover:text-foreground py-2 h-auto"
         onClick={(e) => {
           e.stopPropagation()
-          push(toProfile(event.pubkey, { hideTopSection: true }))
+          push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp }))
         }}
       >
         {otherNotesCount === 1

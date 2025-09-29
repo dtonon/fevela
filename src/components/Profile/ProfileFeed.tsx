@@ -13,10 +13,12 @@ import { RefreshButton } from '../RefreshButton'
 
 export default function ProfileFeed({
   pubkey,
-  topSpace = 0
+  topSpace = 0,
+  sinceTimestamp
 }: {
   pubkey: string
   topSpace?: number
+  sinceTimestamp?: number
 }) {
   const { pubkey: myPubkey } = useNostr()
   const { showKinds } = useKindFilter()
@@ -115,6 +117,7 @@ export default function ProfileFeed({
         showKinds={temporaryShowKinds}
         hideReplies={listMode === 'posts'}
         filterMutedNotes={false}
+        sinceTimestamp={sinceTimestamp}
       />
     </>
   )

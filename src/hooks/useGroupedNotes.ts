@@ -5,6 +5,7 @@ import { useMemo } from 'react'
 export type TGroupedNote = {
   note: Event
   totalNotesInTimeframe: number
+  oldestTimestamp: number
 }
 
 export function useGroupedNotesProcessing(
@@ -61,11 +62,13 @@ export function useGroupedNotesProcessing(
       // Sort by created_at descending and take the latest
       const sortedEvents = authorEvents.sort((a, b) => b.created_at - a.created_at)
       const latestNote = sortedEvents[0]
+      const oldestNote = sortedEvents[sortedEvents.length - 1]
 
       latestNotes.push(latestNote)
       groupedNotesData.set(latestNote.id, {
         note: latestNote,
-        totalNotesInTimeframe: authorEvents.length
+        totalNotesInTimeframe: authorEvents.length,
+        oldestTimestamp: oldestNote.created_at
       })
     })
 

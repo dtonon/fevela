@@ -26,7 +26,7 @@ import Followings from './Followings'
 import ProfileFeed from './ProfileFeed'
 import Relays from './Relays'
 
-export default function Profile({ id, hideTopSection = false }: { id?: string; hideTopSection?: boolean }) {
+export default function Profile({ id, hideTopSection = false, sinceTimestamp }: { id?: string; hideTopSection?: boolean; sinceTimestamp?: number }) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
   const { profile, isFetching } = useFetchProfile(id)
@@ -192,7 +192,7 @@ export default function Profile({ id, hideTopSection = false }: { id?: string; h
           </div>
         </div>
       )}
-      <ProfileFeed pubkey={pubkey} topSpace={hideTopSection ? 0 : topContainerHeight + 100} />
+      <ProfileFeed pubkey={pubkey} topSpace={hideTopSection ? 0 : topContainerHeight + 100} sinceTimestamp={sinceTimestamp} />
     </>
   )
 }

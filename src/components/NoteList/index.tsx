@@ -50,7 +50,8 @@ const NoteList = forwardRef(
       hideUntrustedNotes = false,
       areAlgoRelays = false,
       showRelayCloseReason = false,
-      groupedMode = false
+      groupedMode = false,
+      sinceTimestamp
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -60,6 +61,7 @@ const NoteList = forwardRef(
       areAlgoRelays?: boolean
       showRelayCloseReason?: boolean
       groupedMode?: boolean
+      sinceTimestamp?: number
     },
     ref
   ) => {
@@ -79,6 +81,7 @@ const NoteList = forwardRef(
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
     const [groupedLoadingMore, setGroupedLoadingMore] = useState(false)
+    const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -192,6 +195,7 @@ const NoteList = forwardRef(
             filter: {
               kinds: showKinds,
               ...filter,
+              ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
               limit
             }
           })),
@@ -310,6 +314,9 @@ const NoteList = forwardRef(
       }
 
       const loadMore = async () => {
+        // Don't auto-load if we're in filtered view mode
+        if (isFilteredView) return
+
         if (showCount < events.length) {
           setShowCount((prev) => prev + SHOW_COUNT)
           // preload more
@@ -350,7 +357,7 @@ const NoteList = forwardRef(
           observerInstance.unobserve(currentBottomRef)
         }
       }
-    }, [loading, hasMore, events, showCount, timelineKey])
+    }, [loading, hasMore, events, showCount, timelineKey, isFilteredView])
 
     const showNewEvents = () => {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
@@ -380,9 +387,9 @@ const NoteList = forwardRef(
     const list = (
       <div className="min-h-screen">
         {filteredEvents.map((event) => {
-          const totalNotesCount = groupedMode
-            ? groupedNotesData.get(event.id)?.totalNotesInTimeframe
-            : undefined
+          const groupedData = groupedMode ? groupedNotesData.get(event.id) : undefined
+          const totalNotesCount = groupedData?.totalNotesInTimeframe
+          const oldestTimestamp = groupedData?.oldestTimestamp
 
           // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
           if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
@@ -394,6 +401,7 @@ const NoteList = forwardRef(
                   className="w-full"
                   event={event}
                   totalNotesInTimeframe={totalNotesCount}
+                  oldestTimestamp={oldestTimestamp}
                   filterMutedNotes={filterMutedNotes}
                   isSelected={selectedNoteId === event.id}
                   onSelect={() => setSelectedNoteId(event.id)}
@@ -406,6 +414,7 @@ const NoteList = forwardRef(
                 className="w-full"
                 event={event}
                 totalNotesInTimeframe={totalNotesCount}
+                oldestTimestamp={oldestTimestamp}
                 isSelected={selectedNoteId === event.id}
                 onSelect={() => setSelectedNoteId(event.id)}
               />
@@ -420,6 +429,7 @@ const NoteList = forwardRef(
               event={event}
               filterMutedNotes={filterMutedNotes}
               groupedNotesTotalCount={totalNotesCount}
+              groupedNotesOldestTimestamp={oldestTimestamp}
             />
           )
         })}
@@ -432,6 +442,18 @@ const NoteList = forwardRef(
           <div className="flex justify-center items-center gap-2 mt-4 p-4">
             <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
             <div className="text-sm text-muted-foreground">{t('Loading more notes...')}</div>
+          </div>
+        ) : isFilteredView && events.length > 0 ? (
+          <div className="flex justify-center items-center mt-4 p-4">
+            <Button
+              size="lg"
+              onClick={async () => {
+                setIsFilteredView(false)
+                setHasMore(true)
+              }}
+            >
+              {t('Load more notes')}
+            </Button>
           </div>
         ) : !groupedMode && (hasMore || loading) ? (
           <div ref={bottomRef}>

@@ -14,7 +14,8 @@ export default function MainNoteCard({
   reposter,
   embedded,
   originalNoteId,
-  groupedNotesTotalCount
+  groupedNotesTotalCount,
+  groupedNotesOldestTimestamp
 }: {
   event: Event
   className?: string
@@ -22,6 +23,7 @@ export default function MainNoteCard({
   embedded?: boolean
   originalNoteId?: string
   groupedNotesTotalCount?: number
+  groupedNotesOldestTimestamp?: number
 }) {
   const { push } = useSecondaryPage()
 
@@ -45,7 +47,11 @@ export default function MainNoteCard({
         </Collapsible>
         {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}
         {!embedded && groupedNotesTotalCount && (
-          <GroupedNotesIndicator event={event} totalNotesInTimeframe={groupedNotesTotalCount} />
+          <GroupedNotesIndicator
+            event={event}
+            totalNotesInTimeframe={groupedNotesTotalCount}
+            oldestTimestamp={groupedNotesOldestTimestamp}
+          />
         )}
       </div>
       {!embedded && <Separator />}

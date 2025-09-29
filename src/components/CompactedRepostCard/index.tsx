@@ -19,6 +19,7 @@ export default function CompactedRepostCard({
   event,
   className,
   totalNotesInTimeframe,
+  oldestTimestamp,
   filterMutedNotes = true,
   isSelected = false,
   onSelect
@@ -26,6 +27,7 @@ export default function CompactedRepostCard({
   event: Event
   className?: string
   totalNotesInTimeframe: number
+  oldestTimestamp?: number
   filterMutedNotes?: boolean
   isSelected?: boolean
   onSelect?: () => void
@@ -101,7 +103,7 @@ export default function CompactedRepostCard({
 
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey, { hideTopSection: true }))
+    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp }))
   }
 
   if (!targetEvent || shouldHide) return null

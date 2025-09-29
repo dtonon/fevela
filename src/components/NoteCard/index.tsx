@@ -11,12 +11,14 @@ export default function NoteCard({
   event,
   className,
   filterMutedNotes = true,
-  groupedNotesTotalCount
+  groupedNotesTotalCount,
+  groupedNotesOldestTimestamp
 }: {
   event: Event
   className?: string
   filterMutedNotes?: boolean
   groupedNotesTotalCount?: number
+  groupedNotesOldestTimestamp?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -41,6 +43,7 @@ export default function NoteCard({
       event={event}
       className={className}
       groupedNotesTotalCount={groupedNotesTotalCount}
+      groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
     />
   )
 }
