@@ -47,6 +47,7 @@ const NoteList = forwardRef(
       showKinds,
       filterMutedNotes = true,
       hideReplies = false,
+      showOnlyReplies = false,
       hideUntrustedNotes = false,
       areAlgoRelays = false,
       showRelayCloseReason = false,
@@ -57,6 +58,7 @@ const NoteList = forwardRef(
       showKinds: number[]
       filterMutedNotes?: boolean
       hideReplies?: boolean
+      showOnlyReplies?: boolean
       hideUntrustedNotes?: boolean
       areAlgoRelays?: boolean
       showRelayCloseReason?: boolean
@@ -100,6 +102,7 @@ const NoteList = forwardRef(
       (evt: Event) => {
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
+        if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
         if (hideUntrustedNotes && !isUserTrusted(evt.pubkey)) return true
         if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
         if (
@@ -112,7 +115,7 @@ const NoteList = forwardRef(
 
         return false
       },
-      [hideReplies, hideUntrustedNotes, mutePubkeySet, isEventDeleted]
+      [hideReplies, showOnlyReplies, hideUntrustedNotes, mutePubkeySet, isEventDeleted]
     )
 
     const filteredEvents = useMemo(() => {

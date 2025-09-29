@@ -5,6 +5,7 @@ import { BIG_RELAY_URLS } from '@/constants'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import storage from '@/services/local-storage.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
@@ -14,30 +15,38 @@ import { RefreshButton } from '../RefreshButton'
 export default function ProfileFeed({
   pubkey,
   topSpace = 0,
-  sinceTimestamp
+  sinceTimestamp,
+  fromGrouped = false
 }: {
   pubkey: string
   topSpace?: number
   sinceTimestamp?: number
+  fromGrouped?: boolean
 }) {
   const { pubkey: myPubkey } = useNostr()
   const { showKinds } = useKindFilter()
+  const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
   const noteListRef = useRef<TNoteListRef>(null)
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const tabs = useMemo(() => {
     const _tabs = [
-      { value: 'posts', label: 'Notes' },
-      { value: 'postsAndReplies', label: 'Replies' }
+      { value: 'posts', label: 'Notes' }
     ]
 
-    if (myPubkey && myPubkey !== pubkey) {
+    // Show Replies tab only if includeReplies is enabled when coming from grouped notes
+    if (!fromGrouped || groupedNotesSettings.includeReplies) {
+      _tabs.push({ value: 'postsAndReplies', label: 'Replies' })
+    }
+
+    // Hide You tab when coming from grouped notes
+    if (myPubkey && myPubkey !== pubkey && !fromGrouped) {
       _tabs.push({ value: 'you', label: 'YouTabName' })
     }
 
     return _tabs
-  }, [myPubkey, pubkey])
+  }, [myPubkey, pubkey, fromGrouped, groupedNotesSettings.includeReplies])
   const supportTouch = useMemo(() => isTouchDevice(), [])
 
   useEffect(() => {
@@ -116,6 +125,7 @@ export default function ProfileFeed({
         subRequests={subRequests}
         showKinds={temporaryShowKinds}
         hideReplies={listMode === 'posts'}
+        showOnlyReplies={fromGrouped && listMode === 'postsAndReplies'}
         filterMutedNotes={false}
         sinceTimestamp={sinceTimestamp}
       />

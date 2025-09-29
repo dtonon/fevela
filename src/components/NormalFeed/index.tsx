@@ -74,7 +74,7 @@ export default function NormalFeed({
         ref={noteListRef}
         showKinds={temporaryShowKinds}
         subRequests={subRequests}
-        hideReplies={effectiveListMode === 'posts'}
+        hideReplies={effectiveListMode === 'posts' && !(groupedNotesSettings.enabled && groupedNotesSettings.includeReplies)}
         hideUntrustedNotes={hideUntrustedNotes}
         areAlgoRelays={areAlgoRelays}
         showRelayCloseReason={showRelayCloseReason}

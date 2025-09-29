@@ -8,6 +8,8 @@ import UserAvatar from '../UserAvatar'
 import Username from '../Username'
 import { useSecondaryPage } from '@/PageManager'
 import { toNote, toProfile } from '@/lib/link'
+import { isReplyNoteEvent } from '@/lib/event'
+import { useTranslation } from 'react-i18next'
 
 export default function CompactedNoteCard({
   event,
@@ -25,6 +27,8 @@ export default function CompactedNoteCard({
   onSelect?: () => void
 }) {
   const { push } = useSecondaryPage()
+  const { t } = useTranslation()
+  const isReply = isReplyNoteEvent(event)
 
   const handleTopRowClick = (e: React.MouseEvent) => {
     // Allow clicks on interactive elements (links, buttons) to work normally
@@ -40,7 +44,7 @@ export default function CompactedNoteCard({
 
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp }))
+    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true }))
   }
 
   return (
@@ -68,6 +72,12 @@ export default function CompactedNoteCard({
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Nip05 pubkey={event.pubkey} append="·" />
                     <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
+                    {isReply && (
+                      <>
+                        <span>·</span>
+                        <span className="shrink-0">{t('Reply')}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -28,6 +28,7 @@ export type TGroupedNotesSettings = {
   timeFrame: TTimeFrame
   maxNotesFilter: number // 0 means disabled
   compactedView: boolean
+  includeReplies: boolean
 }
 
 export type TStoredTimeFrame = {
@@ -40,6 +41,7 @@ export type TStoredGroupedNotesSettings = {
   timeFrame: TStoredTimeFrame
   maxNotesFilter: number
   compactedView: boolean
+  includeReplies: boolean
 }
 
 type TGroupedNotesContext = {
@@ -53,7 +55,8 @@ const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSet
   enabled: false,
   timeFrame: timeFrameOptions[23], // 24 hours
   maxNotesFilter: 0, // Disabled
-  compactedView: false
+  compactedView: false,
+  includeReplies: false
 })
 
 const GroupedNotesContext = createContext<TGroupedNotesContext | undefined>(undefined)

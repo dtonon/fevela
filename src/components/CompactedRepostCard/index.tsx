@@ -103,7 +103,7 @@ export default function CompactedRepostCard({
 
   const handleCounterClick = (e: React.MouseEvent) => {
     e.stopPropagation()
-    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp }))
+    push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true }))
   }
 
   if (!targetEvent || shouldHide) return null

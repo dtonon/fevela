@@ -40,7 +40,8 @@ export default function GroupedNotesFilter() {
       enabled: false,
       timeFrame: timeFrameOptions[23],
       maxNotesFilter: 0,
-      compactedView: false
+      compactedView: false,
+      includeReplies: false
     })
   }
 
@@ -90,6 +91,19 @@ export default function GroupedNotesFilter() {
               checked={tempSettings.compactedView}
               onCheckedChange={(checked) =>
                 setTempSettings((prev) => ({ ...prev, compactedView: checked }))
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="include-replies" className="text-sm font-medium">
+              {t('GroupedNotesIncludeReplies')}
+            </Label>
+            <Switch
+              id="include-replies"
+              checked={tempSettings.includeReplies}
+              onCheckedChange={(checked) =>
+                setTempSettings((prev) => ({ ...prev, includeReplies: checked }))
               }
             />
           </div>

@@ -1,4 +1,5 @@
 import { getTimeFrameInMs, useGroupedNotes } from '@/providers/GroupedNotesProvider'
+import { isReplyNoteEvent } from '@/lib/event'
 import { Event } from 'nostr-tools'
 import { useMemo } from 'react'
 
@@ -32,9 +33,14 @@ export function useGroupedNotesProcessing(
     const cutoffTime = Math.floor((now - timeframeMs) / 1000)
 
     // Step 1: Filter events within timeframe and matching content types
-    const eventsInTimeframe = events.filter(event =>
+    let eventsInTimeframe = events.filter(event =>
       event.created_at >= cutoffTime && showKinds.includes(event.kind)
     )
+
+    // Step 1.5: Filter out replies if includeReplies is false
+    if (!settings.includeReplies) {
+      eventsInTimeframe = eventsInTimeframe.filter(event => !isReplyNoteEvent(event))
+    }
 
     // Step 2: Group events by author pubkey
     const eventsByAuthor = new Map<string, Event[]>()
