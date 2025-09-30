@@ -30,6 +30,7 @@ export default function ProfileFeed({
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
   const noteListRef = useRef<TNoteListRef>(null)
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
+  const [hasAutoSwitched, setHasAutoSwitched] = useState(false)
   const tabs = useMemo(() => {
     const _tabs = [
       { value: 'posts', label: 'Notes' }
@@ -104,6 +105,14 @@ export default function ProfileFeed({
     noteListRef.current?.scrollToTop()
   }
 
+  const handleNotesLoaded = (hasNotes: boolean, hasReplies: boolean) => {
+    // Auto-switch to Replies tab if coming from grouped notes and there are only replies (no notes)
+    if (fromGrouped && !hasAutoSwitched && !hasNotes && hasReplies && groupedNotesSettings.includeReplies) {
+      setListMode('postsAndReplies')
+      setHasAutoSwitched(true)
+    }
+  }
+
   return (
     <>
       <Tabs
@@ -128,6 +137,7 @@ export default function ProfileFeed({
         showOnlyReplies={fromGrouped && listMode === 'postsAndReplies'}
         filterMutedNotes={false}
         sinceTimestamp={sinceTimestamp}
+        onNotesLoaded={fromGrouped ? handleNotesLoaded : undefined}
       />
     </>
   )

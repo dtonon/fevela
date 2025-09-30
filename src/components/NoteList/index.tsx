@@ -52,7 +52,8 @@ const NoteList = forwardRef(
       areAlgoRelays = false,
       showRelayCloseReason = false,
       groupedMode = false,
-      sinceTimestamp
+      sinceTimestamp,
+      onNotesLoaded
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -64,6 +65,7 @@ const NoteList = forwardRef(
       showRelayCloseReason?: boolean
       groupedMode?: boolean
       sinceTimestamp?: number
+      onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean) => void
     },
     ref
   ) => {
@@ -152,6 +154,16 @@ const NoteList = forwardRef(
         return true
       })
     }, [newEvents, shouldHideEvent])
+
+    // Notify parent about notes composition (notes vs replies)
+    useEffect(() => {
+      if (!onNotesLoaded || loading || events.length === 0) return
+
+      const hasNotes = events.some(evt => !isReplyNoteEvent(evt))
+      const hasReplies = events.some(evt => isReplyNoteEvent(evt))
+
+      onNotesLoaded(hasNotes, hasReplies)
+    }, [events, loading, onNotesLoaded])
 
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
@@ -443,7 +455,7 @@ const NoteList = forwardRef(
               filterMutedNotes={filterMutedNotes}
               groupedNotesTotalCount={unreadCountForNonCompact}
               groupedNotesOldestTimestamp={oldestTimestamp}
-              onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCountForNonCompact)}
+              onAllNotesRead={() => unreadCountForNonCompact && markAllNotesRead(event.pubkey, event.created_at, unreadCountForNonCompact)}
               areAllNotesRead={readStatusForNonCompact.areAllNotesRead}
             />
           )
