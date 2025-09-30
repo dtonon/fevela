@@ -8,12 +8,16 @@ export default function GroupedNotesIndicator({
   event,
   totalNotesInTimeframe,
   oldestTimestamp,
-  className = ''
+  className = '',
+  onAllNotesRead,
+  areAllNotesRead = false
 }: {
   event: Event
   totalNotesInTimeframe: number
   oldestTimestamp?: number
   className?: string
+  onAllNotesRead?: () => void
+  areAllNotesRead?: boolean
 }) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
@@ -29,9 +33,14 @@ export default function GroupedNotesIndicator({
       <Button
         variant="ghost"
         size="sm"
-        className="w-full justify-center text-base text-primary hover:text-foreground py-2 h-auto"
+        className={`w-full justify-center text-base py-2 h-auto transition-all ${
+          areAllNotesRead
+            ? 'text-muted-foreground grayscale hover:text-muted-foreground/80'
+            : 'text-primary hover:text-foreground'
+        }`}
         onClick={(e) => {
           e.stopPropagation()
+          onAllNotesRead?.()
           push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true }))
         }}
       >

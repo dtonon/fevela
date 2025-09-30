@@ -453,14 +453,23 @@ const NoteList = forwardRef(
           }
 
           // Use regular NoteCard
+          const unreadCountForNonCompact = groupedMode && totalNotesCount
+            ? getUnreadCount(event.pubkey, allNoteTimestamps)
+            : totalNotesCount
+          const readStatusForNonCompact = groupedMode && totalNotesCount
+            ? getReadStatus(event.pubkey, event.created_at)
+            : { isLastNoteRead: false, areAllNotesRead: false }
+
           return (
             <NoteCard
               key={event.id}
               className="w-full"
               event={event}
               filterMutedNotes={filterMutedNotes}
-              groupedNotesTotalCount={totalNotesCount}
+              groupedNotesTotalCount={unreadCountForNonCompact}
               groupedNotesOldestTimestamp={oldestTimestamp}
+              onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCountForNonCompact)}
+              areAllNotesRead={readStatusForNonCompact.areAllNotesRead}
             />
           )
         })}

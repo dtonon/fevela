@@ -15,7 +15,9 @@ export default function MainNoteCard({
   embedded,
   originalNoteId,
   groupedNotesTotalCount,
-  groupedNotesOldestTimestamp
+  groupedNotesOldestTimestamp,
+  onAllNotesRead,
+  areAllNotesRead
 }: {
   event: Event
   className?: string
@@ -24,6 +26,8 @@ export default function MainNoteCard({
   originalNoteId?: string
   groupedNotesTotalCount?: number
   groupedNotesOldestTimestamp?: number
+  onAllNotesRead?: () => void
+  areAllNotesRead?: boolean
 }) {
   const { push } = useSecondaryPage()
 
@@ -51,6 +55,8 @@ export default function MainNoteCard({
             event={event}
             totalNotesInTimeframe={groupedNotesTotalCount}
             oldestTimestamp={groupedNotesOldestTimestamp}
+            onAllNotesRead={onAllNotesRead}
+            areAllNotesRead={areAllNotesRead}
           />
         )}
       </div>
