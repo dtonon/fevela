@@ -5,6 +5,7 @@ const STORAGE_KEY = 'groupedNotesReadStatus'
 type ReadStatus = {
   timestamp: number
   onlyLast: boolean
+  countAtRead: number
 }
 
 type ReadStatusMap = Record<string, ReadStatus>
@@ -20,22 +21,24 @@ export function useGroupedNotesReadStatus() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(readStatusMap))
   }, [readStatusMap])
 
-  const markLastNoteRead = useCallback((pubkey: string, newestNoteTimestamp: number) => {
+  const markLastNoteRead = useCallback((pubkey: string, newestNoteTimestamp: number, currentCount: number) => {
     setReadStatusMap(prev => ({
       ...prev,
       [pubkey]: {
         timestamp: newestNoteTimestamp,
-        onlyLast: true
+        onlyLast: true,
+        countAtRead: currentCount
       }
     }))
   }, [])
 
-  const markAllNotesRead = useCallback((pubkey: string, newestNoteTimestamp: number) => {
+  const markAllNotesRead = useCallback((pubkey: string, newestNoteTimestamp: number, currentCount: number) => {
     setReadStatusMap(prev => ({
       ...prev,
       [pubkey]: {
         timestamp: newestNoteTimestamp,
-        onlyLast: false
+        onlyLast: false,
+        countAtRead: currentCount
       }
     }))
   }, [])
@@ -58,9 +61,28 @@ export function useGroupedNotesReadStatus() {
     }
   }, [readStatusMap])
 
+  const getUnreadCount = useCallback((pubkey: string, allNoteTimestamps: number[]) => {
+    const status = readStatusMap[pubkey]
+    if (!status) {
+      return allNoteTimestamps.length
+    }
+
+    // Count notes newer than the read timestamp
+    const newUnreadCount = allNoteTimestamps.filter(timestamp => timestamp > status.timestamp).length
+
+    // If there are new unread notes, return that count
+    if (newUnreadCount > 0) {
+      return newUnreadCount
+    }
+
+    // Otherwise, return the frozen count from when it was marked as read
+    return status.countAtRead
+  }, [readStatusMap])
+
   return {
     markLastNoteRead,
     markAllNotesRead,
-    getReadStatus
+    getReadStatus,
+    getUnreadCount
   }
 }

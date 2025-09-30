@@ -7,6 +7,8 @@ export type TGroupedNote = {
   note: Event
   totalNotesInTimeframe: number
   oldestTimestamp: number
+  newestTimestamp: number
+  allNoteTimestamps: number[]
 }
 
 export function useGroupedNotesProcessing(
@@ -69,12 +71,15 @@ export function useGroupedNotesProcessing(
       const sortedEvents = authorEvents.sort((a, b) => b.created_at - a.created_at)
       const latestNote = sortedEvents[0]
       const oldestNote = sortedEvents[sortedEvents.length - 1]
+      const allTimestamps = sortedEvents.map(e => e.created_at)
 
       latestNotes.push(latestNote)
       groupedNotesData.set(latestNote.id, {
         note: latestNote,
         totalNotesInTimeframe: authorEvents.length,
-        oldestTimestamp: oldestNote.created_at
+        oldestTimestamp: oldestNote.created_at,
+        newestTimestamp: latestNote.created_at,
+        allNoteTimestamps: allTimestamps
       })
     })
 

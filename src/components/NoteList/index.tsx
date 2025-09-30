@@ -75,7 +75,7 @@ const NoteList = forwardRef(
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
     const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
-    const { markLastNoteRead, markAllNotesRead, getReadStatus } = useGroupedNotesReadStatus()
+    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount } = useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
@@ -395,10 +395,12 @@ const NoteList = forwardRef(
           const groupedData = groupedMode ? groupedNotesData.get(event.id) : undefined
           const totalNotesCount = groupedData?.totalNotesInTimeframe
           const oldestTimestamp = groupedData?.oldestTimestamp
+          const allNoteTimestamps = groupedData?.allNoteTimestamps || []
 
           // Use CompactedNoteCard if grouped mode is enabled and compacted view is on
           if (groupedMode && groupedNotesSettings.compactedView && totalNotesCount) {
             const readStatus = getReadStatus(event.pubkey, event.created_at)
+            const unreadCount = getUnreadCount(event.pubkey, allNoteTimestamps)
 
             // Use CompactedRepostCard for repost events to maintain compacted layout
             if (event.kind === kinds.Repost) {
@@ -407,7 +409,7 @@ const NoteList = forwardRef(
                   key={`compact-repost-${event.id}`}
                   className="w-full"
                   event={event}
-                  totalNotesInTimeframe={totalNotesCount}
+                  totalNotesInTimeframe={unreadCount}
                   oldestTimestamp={oldestTimestamp}
                   filterMutedNotes={filterMutedNotes}
                   isSelected={selectedNoteId === event.id}
@@ -415,12 +417,12 @@ const NoteList = forwardRef(
                   onLastNoteRead={() => {
                     // If there's only one note, mark all as read instead of just last
                     if (totalNotesCount === 1) {
-                      markAllNotesRead(event.pubkey, event.created_at)
+                      markAllNotesRead(event.pubkey, event.created_at, unreadCount)
                     } else {
-                      markLastNoteRead(event.pubkey, event.created_at)
+                      markLastNoteRead(event.pubkey, event.created_at, unreadCount)
                     }
                   }}
-                  onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at)}
+                  onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
                   isLastNoteRead={readStatus.isLastNoteRead}
                   areAllNotesRead={readStatus.areAllNotesRead}
                 />
@@ -431,19 +433,19 @@ const NoteList = forwardRef(
                 key={event.id}
                 className="w-full"
                 event={event}
-                totalNotesInTimeframe={totalNotesCount}
+                totalNotesInTimeframe={unreadCount}
                 oldestTimestamp={oldestTimestamp}
                 isSelected={selectedNoteId === event.id}
                 onSelect={() => setSelectedNoteId(event.id)}
                 onLastNoteRead={() => {
                   // If there's only one note, mark all as read instead of just last
                   if (totalNotesCount === 1) {
-                    markAllNotesRead(event.pubkey, event.created_at)
+                    markAllNotesRead(event.pubkey, event.created_at, unreadCount)
                   } else {
-                    markLastNoteRead(event.pubkey, event.created_at)
+                    markLastNoteRead(event.pubkey, event.created_at, unreadCount)
                   }
                 }}
-                onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at)}
+                onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
                 isLastNoteRead={readStatus.isLastNoteRead}
                 areAllNotesRead={readStatus.areAllNotesRead}
               />
