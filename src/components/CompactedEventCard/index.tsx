@@ -1,5 +1,12 @@
 import { Separator } from '@/components/ui/separator'
-import { Event } from 'nostr-tools'
+import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
+import { tagNameEquals } from '@/lib/tag'
+import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useMuteList } from '@/providers/MuteListProvider'
+import client from '@/services/client.service'
+import { Event, kinds, nip19, verifyEvent } from 'nostr-tools'
+import { useEffect, useMemo, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import Collapsible from '../Collapsible'
 import ClientTag from '../ClientTag'
 import { FormattedTimestamp } from '../FormattedTimestamp'
@@ -8,14 +15,14 @@ import UserAvatar from '../UserAvatar'
 import Username from '../Username'
 import { useSecondaryPage } from '@/PageManager'
 import { toNote, toProfile } from '@/lib/link'
-import { isReplyNoteEvent } from '@/lib/event'
-import { useTranslation } from 'react-i18next'
 
-export default function CompactedNoteCard({
+export default function CompactedEventCard({
   event,
   className,
   totalNotesInTimeframe,
   oldestTimestamp,
+  variant = 'note',
+  filterMutedNotes = true,
   isSelected = false,
   onSelect,
   onLastNoteRead,
@@ -27,6 +34,8 @@ export default function CompactedNoteCard({
   className?: string
   totalNotesInTimeframe: number
   oldestTimestamp?: number
+  variant?: 'note' | 'repost'
+  filterMutedNotes?: boolean
   isSelected?: boolean
   onSelect?: () => void
   onLastNoteRead?: () => void
@@ -36,7 +45,67 @@ export default function CompactedNoteCard({
 }) {
   const { push } = useSecondaryPage()
   const { t } = useTranslation()
-  const isReply = isReplyNoteEvent(event)
+  const { mutePubkeySet } = useMuteList()
+  const { hideContentMentioningMutedUsers } = useContentPolicy()
+  const [targetEvent, setTargetEvent] = useState<Event | null>(null)
+
+  const isRepost = variant === 'repost'
+  const isReply = !isRepost && isReplyNoteEvent(event)
+
+  // Repost logic - fetch target event for reposts
+  useEffect(() => {
+    if (!isRepost) return
+
+    const fetch = async () => {
+      try {
+        const eventFromContent = event.content ? (JSON.parse(event.content) as Event) : null
+        if (eventFromContent && verifyEvent(eventFromContent)) {
+          if (eventFromContent.kind === kinds.Repost) {
+            return
+          }
+          client.addEventToCache(eventFromContent)
+          const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
+          if (targetSeenOn.length === 0) {
+            const seenOn = client.getSeenEventRelays(event.id)
+            seenOn.forEach((relay) => {
+              client.trackEventSeenOn(eventFromContent.id, relay)
+            })
+          }
+          setTargetEvent(eventFromContent)
+          return
+        }
+
+        const [, id, relay, , pubkey] = event.tags.find(tagNameEquals('e')) ?? []
+        if (!id) {
+          return
+        }
+        const targetEventId = nip19.neventEncode({
+          id,
+          relays: relay ? [relay] : [],
+          author: pubkey
+        })
+        const targetEvent = await client.fetchEvent(targetEventId)
+        if (targetEvent) {
+          setTargetEvent(targetEvent)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    fetch()
+  }, [event, isRepost])
+
+  const shouldHide = useMemo(() => {
+    if (!isRepost) return false
+    if (!targetEvent) return true
+    if (filterMutedNotes && mutePubkeySet.has(targetEvent.pubkey)) {
+      return true
+    }
+    if (hideContentMentioningMutedUsers && isMentioningMutedUsers(targetEvent, mutePubkeySet)) {
+      return true
+    }
+    return false
+  }, [isRepost, targetEvent, filterMutedNotes, hideContentMentioningMutedUsers, mutePubkeySet])
 
   const handleTopRowClick = (e: React.MouseEvent) => {
     // Allow clicks on interactive elements (links, buttons) to work normally
@@ -62,6 +131,8 @@ export default function CompactedNoteCard({
     )
   }
 
+  if (shouldHide) return null
+
   return (
     <div className={className}>
       <Collapsible alwaysExpand={false}>
@@ -83,6 +154,7 @@ export default function CompactedNoteCard({
                       skeletonClassName="h-4"
                     />
                     <ClientTag event={event} />
+                    {isRepost && <span className="text-sm text-muted-foreground">reposted</span>}
                   </div>
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <Nip05 pubkey={event.pubkey} append="·" />

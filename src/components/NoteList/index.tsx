@@ -33,8 +33,7 @@ import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
-import CompactedNoteCard from '../CompactedNoteCard'
-import CompactedRepostCard from '../CompactedRepostCard'
+import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 
 const LIMIT = 200
@@ -402,39 +401,15 @@ const NoteList = forwardRef(
             const readStatus = getReadStatus(event.pubkey, event.created_at)
             const unreadCount = getUnreadCount(event.pubkey, allNoteTimestamps)
 
-            // Use CompactedRepostCard for repost events to maintain compacted layout
-            if (event.kind === kinds.Repost) {
-              return (
-                <CompactedRepostCard
-                  key={`compact-repost-${event.id}`}
-                  className="w-full"
-                  event={event}
-                  totalNotesInTimeframe={unreadCount}
-                  oldestTimestamp={oldestTimestamp}
-                  filterMutedNotes={filterMutedNotes}
-                  isSelected={selectedNoteId === event.id}
-                  onSelect={() => setSelectedNoteId(event.id)}
-                  onLastNoteRead={() => {
-                    // If there's only one note, mark all as read instead of just last
-                    if (totalNotesCount === 1) {
-                      markAllNotesRead(event.pubkey, event.created_at, unreadCount)
-                    } else {
-                      markLastNoteRead(event.pubkey, event.created_at, unreadCount)
-                    }
-                  }}
-                  onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
-                  isLastNoteRead={readStatus.isLastNoteRead}
-                  areAllNotesRead={readStatus.areAllNotesRead}
-                />
-              )
-            }
             return (
-              <CompactedNoteCard
+              <CompactedEventCard
                 key={event.id}
                 className="w-full"
                 event={event}
+                variant={event.kind === kinds.Repost ? 'repost' : 'note'}
                 totalNotesInTimeframe={unreadCount}
                 oldestTimestamp={oldestTimestamp}
+                filterMutedNotes={filterMutedNotes}
                 isSelected={selectedNoteId === event.id}
                 onSelect={() => setSelectedNoteId(event.id)}
                 onLastNoteRead={() => {
