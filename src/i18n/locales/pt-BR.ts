@@ -425,7 +425,6 @@ export default {
     'Write relays and {{count}} other relays': 'Relays de escrita e {{count}} outros relays',
     '{{count}} relays': '{{count}} relays',
     'Republishing...': 'Republicando...',
-    'Trending Notes': 'Notas de tendência',
     Grouped: 'Agrupado',
     GroupedNotesEnable: 'Ativar modo de notas agrupadas',
     GroupedNotesCompact: 'Visualização compacta: mostrar apenas autores',
