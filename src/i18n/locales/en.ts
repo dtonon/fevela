@@ -424,6 +424,7 @@ export default {
     Grouped: 'Grouped',
     GroupedNotesEnable: 'Enable grouped notes mode',
     GroupedNotesCompact: 'Compact view: show only authors',
+    GroupedNotesShowPreview: 'Show preview of the last note',
     GroupedNotesIncludeReplies: 'Include replies',
     GroupedNotesTimeframe: 'Show me a summary for single users of what happened in the last',
     GroupedNotesFilterMore:

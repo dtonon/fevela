@@ -41,7 +41,8 @@ export default function GroupedNotesFilter() {
       timeFrame: timeFrameOptions[23],
       maxNotesFilter: 0,
       compactedView: true,
-      includeReplies: false
+      includeReplies: false,
+      showPreview: true
     })
   }
 
@@ -94,6 +95,21 @@ export default function GroupedNotesFilter() {
               }
             />
           </div>
+
+          {tempSettings.compactedView && (
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="show-preview" className="text-sm font-medium">
+                {t('GroupedNotesShowPreview')}
+              </Label>
+              <Switch
+                id="show-preview"
+                checked={tempSettings.showPreview}
+                onCheckedChange={(checked) =>
+                  setTempSettings((prev) => ({ ...prev, showPreview: checked }))
+                }
+              />
+            </div>
+          )}
 
           <div className="flex items-center justify-between gap-4">
             <Label htmlFor="include-replies" className="text-sm font-medium">
