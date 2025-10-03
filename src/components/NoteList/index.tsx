@@ -68,7 +68,7 @@ const NoteList = forwardRef(
       showRelayCloseReason?: boolean
       groupedMode?: boolean
       sinceTimestamp?: number
-      onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean) => void
+      onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean, notesCount: number, repliesCount: number) => void
       pinnedEventIds?: string[]
     },
     ref
@@ -184,10 +184,12 @@ const NoteList = forwardRef(
     useEffect(() => {
       if (!onNotesLoaded || loading || events.length === 0) return
 
-      const hasNotes = events.some((evt) => !isReplyNoteEvent(evt))
-      const hasReplies = events.some((evt) => isReplyNoteEvent(evt))
+      const notesCount = events.filter((evt) => !isReplyNoteEvent(evt)).length
+      const repliesCount = events.filter((evt) => isReplyNoteEvent(evt)).length
+      const hasNotes = notesCount > 0
+      const hasReplies = repliesCount > 0
 
-      onNotesLoaded(hasNotes, hasReplies)
+      onNotesLoaded(hasNotes, hasReplies, notesCount, repliesCount)
     }, [events, loading, onNotesLoaded])
 
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {

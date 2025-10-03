@@ -36,11 +36,25 @@ export default function ProfileFeed({
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [hasAutoSwitched, setHasAutoSwitched] = useState(false)
   const [pinnedEventIds, setPinnedEventIds] = useState<string[]>([])
+  const [totalItemsCount, setTotalItemsCount] = useState(0)
+
+  // Threshold for showing tabs - only show tabs if total items > 20
+  const TABS_THRESHOLD = 20
+  const shouldShowTabs = useMemo(() => {
+    // When coming from grouped notes, only show tabs if total items > threshold
+    if (fromGrouped) {
+      return totalItemsCount > TABS_THRESHOLD
+    }
+    // Always show tabs when not from grouped notes
+    return true
+  }, [fromGrouped, totalItemsCount])
+
   const tabs = useMemo(() => {
     const _tabs = [{ value: 'posts', label: 'Notes' }]
 
     // Show Replies tab only if includeReplies is enabled when coming from grouped notes
-    if (!fromGrouped || groupedNotesSettings.includeReplies) {
+    // AND if we should show tabs at all
+    if (shouldShowTabs && (!fromGrouped || groupedNotesSettings.includeReplies)) {
       _tabs.push({ value: 'postsAndReplies', label: 'Replies' })
     }
 
@@ -50,7 +64,7 @@ export default function ProfileFeed({
     }
 
     return _tabs
-  }, [myPubkey, pubkey, fromGrouped, groupedNotesSettings.includeReplies])
+  }, [myPubkey, pubkey, fromGrouped, groupedNotesSettings.includeReplies, shouldShowTabs])
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const noteListRef = useRef<TNoteListRef>(null)
 
@@ -156,14 +170,25 @@ export default function ProfileFeed({
     noteListRef.current?.scrollToTop('instant')
   }
 
-  const handleNotesLoaded = (hasNotes: boolean, hasReplies: boolean) => {
+  const handleNotesLoaded = (hasNotes: boolean, hasReplies: boolean, notesCount: number, repliesCount: number) => {
+    // Update total count
+    const totalCount = notesCount + repliesCount
+    setTotalItemsCount(totalCount)
+
+    // If below threshold, force showing all items together (no tab separation)
+    if (fromGrouped && totalCount <= TABS_THRESHOLD) {
+      // Don't filter by hideReplies, show everything together
+      return
+    }
+
     // Auto-switch to Replies tab if coming from grouped notes and there are only replies (no notes)
     if (
       fromGrouped &&
       !hasAutoSwitched &&
       !hasNotes &&
       hasReplies &&
-      groupedNotesSettings.includeReplies
+      groupedNotesSettings.includeReplies &&
+      totalCount > TABS_THRESHOLD
     ) {
       setListMode('postsAndReplies')
       setHasAutoSwitched(true)
@@ -179,6 +204,7 @@ export default function ProfileFeed({
           handleListModeChange(listMode as TNoteListMode)
         }}
         threshold={Math.max(800, topSpace)}
+        hideTabs={fromGrouped && !shouldShowTabs}
         options={
           <>
             {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
@@ -190,8 +216,14 @@ export default function ProfileFeed({
         ref={noteListRef}
         subRequests={subRequests}
         showKinds={temporaryShowKinds}
-        hideReplies={listMode === 'posts'}
-        showOnlyReplies={fromGrouped && listMode === 'postsAndReplies'}
+        hideReplies={
+          fromGrouped && totalItemsCount <= TABS_THRESHOLD
+            ? false // Show everything together when below threshold
+            : listMode === 'posts'
+        }
+        showOnlyReplies={
+          fromGrouped && totalItemsCount > TABS_THRESHOLD && listMode === 'postsAndReplies'
+        }
         filterMutedNotes={false}
         sinceTimestamp={sinceTimestamp}
         onNotesLoaded={fromGrouped ? handleNotesLoaded : undefined}
