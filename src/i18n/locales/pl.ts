@@ -432,6 +432,9 @@ export default {
     Grouped: 'Pogrupowane',
     GroupedNotesEnable: 'Włącz tryb pogrupowanych notatek',
     GroupedNotesCompact: 'Widok kompaktowy: pokaż tylko autorów',
+    GroupedNotesShowPreview: 'Pokaż podgląd ostatniej notatki',
+    GroupedNotesIncludeReplies: 'Uwzględnij odpowiedzi',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Pokaż tylko odpowiedzi pierwszego poziomu',
     GroupedNotesTimeframe:
       'Pokaż mi podsumowanie dla poszczególnych użytkowników tego, co wydarzyło się w ostatnich',
     GroupedNotesFilterMore:

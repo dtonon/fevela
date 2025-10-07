@@ -42,6 +42,7 @@ export default function GroupedNotesFilter() {
       maxNotesFilter: 0,
       compactedView: true,
       includeReplies: false,
+      showOnlyFirstLevelReplies: false,
       showPreview: true
     })
   }
@@ -123,6 +124,21 @@ export default function GroupedNotesFilter() {
               }
             />
           </div>
+
+          {tempSettings.includeReplies && (
+            <div className="flex items-center justify-between gap-4">
+              <Label htmlFor="show-only-first-level-replies" className="text-sm font-medium">
+                {t('GroupedNotesShowOnlyFirstLevelReplies')}
+              </Label>
+              <Switch
+                id="show-only-first-level-replies"
+                checked={tempSettings.showOnlyFirstLevelReplies}
+                onCheckedChange={(checked) =>
+                  setTempSettings((prev) => ({ ...prev, showOnlyFirstLevelReplies: checked }))
+                }
+              />
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label className="text-sm font-medium leading-4">{t('GroupedNotesTimeframe')}</Label>

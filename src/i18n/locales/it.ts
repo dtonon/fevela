@@ -432,6 +432,9 @@ export default {
     Grouped: 'Gruppo',
     GroupedNotesEnable: 'Abilita modalità note raggruppate',
     GroupedNotesCompact: 'Vista compatta: mostra solo autori',
+    GroupedNotesShowPreview: 'Mostra anteprima dell\'ultima nota',
+    GroupedNotesIncludeReplies: 'Includi risposte',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Mostra solo risposte di primo livello',
     GroupedNotesTimeframe:
       'Mostrami un riepilogo per singoli utenti di quello che è successo negli ultimi',
     GroupedNotesFilterMore: 'Filtra utenti che hanno pubblicato più di X note nel periodo di tempo',

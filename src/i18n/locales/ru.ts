@@ -434,6 +434,9 @@ export default {
     Grouped: 'Группированные',
     GroupedNotesEnable: 'Включить режим группированных заметок',
     GroupedNotesCompact: 'Компактный вид: показывать только авторов',
+    GroupedNotesShowPreview: 'Показать предпросмотр последней заметки',
+    GroupedNotesIncludeReplies: 'Включить ответы',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Показывать только ответы первого уровня',
     GroupedNotesTimeframe:
       'Показать сводку для отдельных пользователей о том, что происходило за последние',
     GroupedNotesFilterMore:

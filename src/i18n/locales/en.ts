@@ -426,6 +426,7 @@ export default {
     GroupedNotesCompact: 'Compact view: show only authors',
     GroupedNotesShowPreview: 'Show preview of the last note',
     GroupedNotesIncludeReplies: 'Include replies',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Show only first level replies',
     GroupedNotesTimeframe: 'Show me a summary for single users of what happened in the last',
     GroupedNotesFilterMore:
       'Filter out users who have published more than X notes in the timeframe',

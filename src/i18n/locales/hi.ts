@@ -429,6 +429,9 @@ export default {
     Grouped: 'ग्रुप्ड',
     GroupedNotesEnable: 'ग्रुप्ड नोट्स मोड सक्षम करें',
     GroupedNotesCompact: 'कॉम्पैक्ट व्यू: केवल लेखकों को दिखाएं',
+    GroupedNotesShowPreview: 'अंतिम नोट का पूर्वावलोकन दिखाएं',
+    GroupedNotesIncludeReplies: 'उत्तर शामिल करें',
+    GroupedNotesShowOnlyFirstLevelReplies: 'केवल पहले स्तर के उत्तर दिखाएं',
     GroupedNotesTimeframe:
       'मुझे व्यक्तिगत उपयोगकर्ताओं के लिए पिछले कई समय में क्या हुआ का सारांश दिखाएं',
     GroupedNotesFilterMore:

@@ -437,6 +437,9 @@ export default {
     Grouped: 'Gruppiert',
     GroupedNotesEnable: 'Gruppierten Notizmodus aktivieren',
     GroupedNotesCompact: 'Kompakte Ansicht: nur Autoren anzeigen',
+    GroupedNotesShowPreview: 'Vorschau der letzten Notiz anzeigen',
+    GroupedNotesIncludeReplies: 'Antworten einschließen',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Nur Antworten der ersten Ebene anzeigen',
     GroupedNotesTimeframe:
       'Zeige mir eine Zusammenfassung für einzelne Benutzer von dem, was in den letzten passiert ist',
     GroupedNotesFilterMore:

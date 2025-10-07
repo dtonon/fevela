@@ -29,6 +29,7 @@ export type TGroupedNotesSettings = {
   maxNotesFilter: number // 0 means disabled
   compactedView: boolean
   includeReplies: boolean
+  showOnlyFirstLevelReplies: boolean
   showPreview: boolean
 }
 
@@ -43,6 +44,7 @@ export type TStoredGroupedNotesSettings = {
   maxNotesFilter: number
   compactedView: boolean
   includeReplies: boolean
+  showOnlyFirstLevelReplies: boolean
   showPreview: boolean
 }
 
@@ -59,6 +61,7 @@ const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSet
   maxNotesFilter: 0, // Disabled
   compactedView: true,
   includeReplies: false,
+  showOnlyFirstLevelReplies: false,
   showPreview: true
 })
 
@@ -89,7 +92,8 @@ export function GroupedNotesProvider({ children }: { children: React.ReactNode }
       return {
         ...storedSettings,
         timeFrame, // use the one with current translations
-        showPreview: storedSettings.showPreview ?? true // default to true for existing users
+        showPreview: storedSettings.showPreview ?? true, // default to true for existing users
+        showOnlyFirstLevelReplies: storedSettings.showOnlyFirstLevelReplies ?? false // default to false for existing users
       }
     }
     return createDefaultSettings(timeFrameOptions)

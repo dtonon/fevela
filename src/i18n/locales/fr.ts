@@ -436,6 +436,9 @@ export default {
     Grouped: 'Groupé',
     GroupedNotesEnable: 'Activer le mode notes groupées',
     GroupedNotesCompact: 'Vue compacte : afficher uniquement les auteurs',
+    GroupedNotesShowPreview: 'Afficher l\'aperçu de la dernière note',
+    GroupedNotesIncludeReplies: 'Inclure les réponses',
+    GroupedNotesShowOnlyFirstLevelReplies: 'Afficher uniquement les réponses de premier niveau',
     GroupedNotesTimeframe:
       "Montrez-moi un résumé pour les utilisateurs individuels de ce qui s'est passé dans les derniers",
     GroupedNotesFilterMore:

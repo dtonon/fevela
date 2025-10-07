@@ -4,7 +4,8 @@ import {
   getReplaceableCoordinateFromEvent,
   isMentioningMutedUsers,
   isReplaceableEvent,
-  isReplyNoteEvent
+  isReplyNoteEvent,
+  isFirstLevelReply
 } from '@/lib/event'
 import { isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
@@ -124,6 +125,15 @@ const NoteList = forwardRef(
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
         if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
+        // Filter nested replies when showOnlyFirstLevelReplies is enabled
+        if (
+          groupedNotesSettings.includeReplies &&
+          groupedNotesSettings.showOnlyFirstLevelReplies &&
+          isReplyNoteEvent(evt) &&
+          !isFirstLevelReply(evt)
+        ) {
+          return true
+        }
         if (hideUntrustedNotes && !isUserTrusted(evt.pubkey)) return true
         if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
         if (
@@ -142,7 +152,8 @@ const NoteList = forwardRef(
         hideUntrustedNotes,
         mutePubkeySet,
         pinnedEventIds,
-        isEventDeleted
+        isEventDeleted,
+        groupedNotesSettings
       ]
     )
 

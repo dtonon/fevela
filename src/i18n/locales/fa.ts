@@ -427,6 +427,9 @@ export default {
     Grouped: 'گروه‌بندی شده',
     GroupedNotesEnable: 'فعال کردن حالت یادداشت‌های گروه‌بندی شده',
     GroupedNotesCompact: 'نمای فشرده: فقط نویسندگان را نشان دهد',
+    GroupedNotesShowPreview: 'نمایش پیش‌نمایش آخرین یادداشت',
+    GroupedNotesIncludeReplies: 'شامل پاسخ‌ها',
+    GroupedNotesShowOnlyFirstLevelReplies: 'فقط پاسخ‌های سطح اول را نشان دهد',
     GroupedNotesTimeframe:
       'برای کاربران مجزا خلاصه‌ای از آنچه در آخرین بار اتفاق افتاده را نشان دهد',
     GroupedNotesFilterMore: 'فیلتر کردن کاربرانی که بیش از X یادداشت در بازه زمانی منتشر کرده‌اند',
