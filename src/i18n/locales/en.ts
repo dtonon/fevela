@@ -454,6 +454,8 @@ export default {
     'Unpinned!': 'Unpinned!',
     'Failed to unpin: {{error}}': 'Failed to unpin: {{error}}',
     'Unpin from profile': 'Unpin from profile',
-    'Pin to profile': 'Pin to profile'
+    'Pin to profile': 'Pin to profile',
+    Appearance: 'Appearance',
+    'Pure Black': 'Pure Black'
   }
 }

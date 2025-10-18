@@ -458,6 +458,8 @@ export default {
     'Unpinned!': 'لغو پین شد!',
     'Failed to unpin: {{error}}': 'لغو پین ناموفق بود: {{error}}',
     'Unpin from profile': 'لغو پین از پروفایل',
-    'Pin to profile': 'پین به پروفایل'
+    'Pin to profile': 'پین به پروفایل',
+    Appearance: 'ظاهر',
+    'Pure Black': 'سیاه خالص'
   }
 }

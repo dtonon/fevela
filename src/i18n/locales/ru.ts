@@ -465,6 +465,8 @@ export default {
     'Unpinned!': 'Откреплено!',
     'Failed to unpin: {{error}}': 'Не удалось открепить: {{error}}',
     'Unpin from profile': 'Открепить из профиля',
-    'Pin to profile': 'Закрепить в профиле'
+    'Pin to profile': 'Закрепить в профиле',
+    Appearance: 'Внешний вид',
+    'Pure Black': 'Чистый Черный'
   }
 }

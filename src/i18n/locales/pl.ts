@@ -463,6 +463,8 @@ export default {
     'Unpinned!': 'Odpięte!',
     'Failed to unpin: {{error}}': 'Nie udało się przypiąć: {{error}}',
     'Unpin from profile': 'Odpiń z profilu',
-    'Pin to profile': 'Przypnij do profilu'
+    'Pin to profile': 'Przypnij do profilu',
+    Appearance: 'Wygląd',
+    'Pure Black': 'Czysta Czerń'
   }
 }

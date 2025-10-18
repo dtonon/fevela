@@ -2,14 +2,8 @@ import storage from '@/services/local-storage.service'
 import { TTheme, TThemeSetting } from '@/types'
 import { createContext, useContext, useEffect, useState } from 'react'
 
-type ThemeProviderProps = {
-  children: React.ReactNode
-  defaultTheme?: TTheme
-}
-
 type ThemeProviderState = {
   themeSetting: TThemeSetting
-  theme: TTheme
   setThemeSetting: (themeSetting: TThemeSetting) => Promise<void>
 }
 
@@ -19,7 +13,7 @@ function getSystemTheme() {
 
 const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
-export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
+export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [themeSetting, setThemeSetting] = useState<TThemeSetting>(
     (localStorage.getItem('themeSetting') as TThemeSetting | null) ?? 'system'
   )
@@ -39,7 +33,10 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
   }, [])
 
   useEffect(() => {
-    if (themeSetting !== 'system') return
+    if (themeSetting !== 'system') {
+      setTheme(themeSetting)
+      return
+    }
 
     const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
     const handleChange = (e: MediaQueryListEvent) => {
@@ -57,27 +54,27 @@ export function ThemeProvider({ children, ...props }: ThemeProviderProps) {
     const updateTheme = async () => {
       const root = window.document.documentElement
       root.classList.remove('light', 'dark')
-      root.classList.add(theme)
-      localStorage.setItem('theme', theme)
+      root.classList.add(theme === 'pure-black' ? 'dark' : theme)
+
+      if (theme === 'pure-black') {
+        root.classList.add('pure-black')
+      } else {
+        root.classList.remove('pure-black')
+      }
     }
     updateTheme()
   }, [theme])
 
+  const updateThemeSetting = async (themeSetting: TThemeSetting) => {
+    storage.setThemeSetting(themeSetting)
+    setThemeSetting(themeSetting)
+  }
+
   return (
     <ThemeProviderContext.Provider
-      {...props}
       value={{
         themeSetting: themeSetting,
-        theme: theme,
-        setThemeSetting: async (themeSetting: TThemeSetting) => {
-          storage.setThemeSetting(themeSetting)
-          setThemeSetting(themeSetting)
-          if (themeSetting === 'system') {
-            setTheme(getSystemTheme())
-            return
-          }
-          setTheme(themeSetting)
-        }
+        setThemeSetting: updateThemeSetting
       }}
     >
       {children}

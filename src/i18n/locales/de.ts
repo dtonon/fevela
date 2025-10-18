@@ -469,6 +469,8 @@ export default {
     'Unpinned!': 'Anheften aufgehoben!',
     'Failed to unpin: {{error}}': 'Fehler beim Anheften aufheben: {{error}}',
     'Unpin from profile': 'Vom Profil lösen',
-    'Pin to profile': 'An Profil anheften'
+    'Pin to profile': 'An Profil anheften',
+    Appearance: 'Aussehen',
+    'Pure Black': 'Reines Schwarz'
   }
 }

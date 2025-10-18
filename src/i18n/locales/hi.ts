@@ -460,6 +460,8 @@ export default {
     'Unpinned!': 'पिन हटा दिया गया!',
     'Failed to unpin: {{error}}': 'पिन हटाने में असफल: {{error}}',
     'Unpin from profile': 'प्रोफ़ाइल से पिन हटाएं',
-    'Pin to profile': 'प्रोफ़ाइल पर पिन करें'
+    'Pin to profile': 'प्रोफ़ाइल पर पिन करें',
+    Appearance: 'दिखावट',
+    'Pure Black': 'शुद्ध काला'
   }
 }

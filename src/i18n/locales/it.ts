@@ -463,6 +463,8 @@ export default {
     'Unpinned!': 'Rimosso fissaggio!',
     'Failed to unpin: {{error}}': 'Impossibile rimuovere il fissaggio: {{error}}',
     'Unpin from profile': 'Rimuovi fissaggio dal profilo',
-    'Pin to profile': 'Fissa al profilo'
+    'Pin to profile': 'Fissa al profilo',
+    Appearance: 'Aspetto',
+    'Pure Black': 'Nero Puro'
   }
 }

@@ -453,6 +453,8 @@ export default {
     'Unpinned!': 'ยกเลิกปักหมุดแล้ว!',
     'Failed to unpin: {{error}}': 'ไม่สามารถยกเลิกปักหมุดได้: {{error}}',
     'Unpin from profile': 'ยกเลิกปักหมุดจากโปรไฟล์',
-    'Pin to profile': 'ปักหมุดไปที่โปรไฟล์'
+    'Pin to profile': 'ปักหมุดไปที่โปรไฟล์',
+    Appearance: 'รูปลักษณ์',
+    'Pure Black': 'สีดำล้วน'
   }
 }

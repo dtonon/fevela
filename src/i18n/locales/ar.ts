@@ -455,6 +455,8 @@ export default {
     'Unpinned!': 'تم إلغاء التثبيت!',
     'Failed to unpin: {{error}}': 'فشل في إلغاء التثبيت: {{error}}',
     'Unpin from profile': 'إلغاء التثبيت من الملف الشخصي',
-    'Pin to profile': 'تثبيت في الملف الشخصي'
+    'Pin to profile': 'تثبيت في الملف الشخصي',
+    Appearance: 'المظهر',
+    'Pure Black': 'أسود نقي'
   }
 }

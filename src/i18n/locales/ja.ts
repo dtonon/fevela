@@ -459,6 +459,8 @@ export default {
     'Unpinned!': '固定が解除されました！',
     'Failed to unpin: {{error}}': '固定解除に失敗しました: {{error}}',
     'Unpin from profile': 'プロフィールから固定解除',
-    'Pin to profile': 'プロフィールに固定'
+    'Pin to profile': 'プロフィールに固定',
+    Appearance: '外観',
+    'Pure Black': '純黒'
   }
 }

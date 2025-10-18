@@ -468,6 +468,8 @@ export default {
     'Unpinned!': 'Retrait de l’épingle effectué !',
     'Failed to unpin: {{error}}': 'Échec du retrait de l’épingle : {{error}}',
     'Unpin from profile': 'Retirer l’épingle du profil',
-    'Pin to profile': 'Épingler au profil'
+    'Pin to profile': 'Épingler au profil',
+    Appearance: 'Apparence',
+    'Pure Black': 'Noir pur'
   }
 }

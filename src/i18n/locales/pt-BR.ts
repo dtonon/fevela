@@ -460,6 +460,8 @@ export default {
     'Unpinned!': 'Desafixado!',
     'Failed to unpin: {{error}}': 'Falha ao desafixar: {{error}}',
     'Unpin from profile': 'Desafixar do perfil',
-    'Pin to profile': 'Fixar no perfil'
+    'Pin to profile': 'Fixar no perfil',
+    Appearance: 'Aparência',
+    'Pure Black': 'Preto Puro'
   }
 }

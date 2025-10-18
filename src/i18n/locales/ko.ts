@@ -459,6 +459,8 @@ export default {
     'Unpinned!': '고정 해제됨!',
     'Failed to unpin: {{error}}': '고정 해제 실패: {{error}}',
     'Unpin from profile': '프로필에서 고정 해제',
-    'Pin to profile': '프로필에 고정'
+    'Pin to profile': '프로필에 고정',
+    Appearance: '외관',
+    'Pure Black': '순수한 검은색'
   }
 }

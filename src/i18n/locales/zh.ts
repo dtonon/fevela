@@ -451,6 +451,8 @@ export default {
     'Unpinned!': '已取消置顶！',
     'Failed to unpin: {{error}}': '取消置顶失败: {{error}}',
     'Unpin from profile': '从个人资料取消置顶',
-    'Pin to profile': '置顶到个人资料'
+    'Pin to profile': '置顶到个人资料',
+    Appearance: '外观',
+    'Pure Black': '纯黑'
   }
 }
