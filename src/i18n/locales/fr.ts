@@ -470,6 +470,25 @@ export default {
     'Unpin from profile': 'Retirer l’épingle du profil',
     'Pin to profile': 'Épingler au profil',
     Appearance: 'Apparence',
-    'Pure Black': 'Noir pur'
+    'Pure Black': 'Noir pur',
+    Default: 'Par défaut',
+    Red: 'Rouge',
+    Orange: 'Orange',
+    Amber: 'Ambre',
+    Yellow: 'Jaune',
+    Lime: 'Citron vert',
+    Green: 'Vert',
+    Emerald: 'Émeraude',
+    Teal: 'Sarcelle',
+    Cyan: 'Cyan',
+    Sky: 'Bleu ciel',
+    Blue: 'Bleu',
+    Indigo: 'Indigo',
+    Violet: 'Violet',
+    Purple: 'Pourpre',
+    Fuchsia: 'Fuchsia',
+    Pink: 'Rose',
+    Rose: 'Rose',
+    'Primary color': 'Couleur principale'
   }
 }

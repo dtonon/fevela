@@ -460,6 +460,25 @@ export default {
     'Unpin from profile': 'لغو پین از پروفایل',
     'Pin to profile': 'پین به پروفایل',
     Appearance: 'ظاهر',
-    'Pure Black': 'سیاه خالص'
+    'Pure Black': 'سیاه خالص',
+    Default: 'پیش‌فرض',
+    Red: 'قرمز',
+    Orange: 'نارنجی',
+    Amber: 'کهربایی',
+    Yellow: 'زرد',
+    Lime: 'لیمویی',
+    Green: 'سبز',
+    Emerald: 'زمردی',
+    Teal: 'سبز آبی',
+    Cyan: 'فیروزه‌ای',
+    Sky: 'آسمانی',
+    Blue: 'آبی',
+    Indigo: 'نیلی',
+    Violet: 'بنفش',
+    Purple: 'ارغوانی',
+    Fuchsia: 'فوشیا',
+    Pink: 'صورتی',
+    Rose: 'گلی',
+    'Primary color': 'رنگ اصلی'
   }
 }

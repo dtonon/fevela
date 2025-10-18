@@ -471,6 +471,25 @@ export default {
     'Unpin from profile': 'Vom Profil lösen',
     'Pin to profile': 'An Profil anheften',
     Appearance: 'Aussehen',
-    'Pure Black': 'Reines Schwarz'
+    'Pure Black': 'Reines Schwarz',
+    Default: 'Standard',
+    Red: 'Rot',
+    Orange: 'Orange',
+    Amber: 'Bernstein',
+    Yellow: 'Gelb',
+    Lime: 'Limette',
+    Green: 'Grün',
+    Emerald: 'Smaragd',
+    Teal: 'Blaugrün',
+    Cyan: 'Cyan',
+    Sky: 'Himmelblau',
+    Blue: 'Blau',
+    Indigo: 'Indigo',
+    Violet: 'Violett',
+    Purple: 'Lila',
+    Fuchsia: 'Fuchsia',
+    Pink: 'Rosa',
+    Rose: 'Rose',
+    'Primary color': 'Primärfarbe'
   }
 }

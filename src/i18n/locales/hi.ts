@@ -462,6 +462,25 @@ export default {
     'Unpin from profile': 'प्रोफ़ाइल से पिन हटाएं',
     'Pin to profile': 'प्रोफ़ाइल पर पिन करें',
     Appearance: 'दिखावट',
-    'Pure Black': 'शुद्ध काला'
+    'Pure Black': 'शुद्ध काला',
+    Default: 'डिफ़ॉल्ट',
+    Red: 'लाल',
+    Orange: 'नारंगी',
+    Amber: 'एम्बर',
+    Yellow: 'पीला',
+    Lime: 'नींबू',
+    Green: 'हरा',
+    Emerald: 'पन्ना',
+    Teal: 'टील',
+    Cyan: 'सियान',
+    Sky: 'आसमानी',
+    Blue: 'नीला',
+    Indigo: 'नील',
+    Violet: 'बैंगनी',
+    Purple: 'जामुनी',
+    Fuchsia: 'फुशिया',
+    Pink: 'गुलाबी',
+    Rose: 'गुलाब',
+    'Primary color': 'प्राथमिक रंग'
   }
 }
