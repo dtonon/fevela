@@ -361,16 +361,15 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
         >
           <CurrentRelaysProvider>
             <NotificationProvider>
-              <div className="flex justify-around w-full">
-                <div className="sticky top-0 w-full flex justify-end self-start h-[var(--vh)]">
+              <div className="flex xl:justify-around w-full">
+                <div className="sticky top-0 xl:w-full flex justify-end self-start h-[var(--vh)]">
                   <Sidebar />
                 </div>
-                <div className="w-[45vw] min-w-96 max-w-4xl bg-background border-x shrink-0">
+                <div className="flex-1 w-0 bg-background border-x xl:w-[900px] xl:shrink-0">
                   {!!secondaryStack.length &&
                     secondaryStack.map((item, index) => (
                       <div
                         key={item.index}
-                        className="flex flex-col w-full"
                         style={{
                           display: index === secondaryStack.length - 1 ? 'block' : 'none'
                         }}
@@ -381,7 +380,6 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                   {primaryPages.map(({ name, element, props }) => (
                     <div
                       key={name}
-                      className="flex flex-col w-full"
                       style={{
                         display:
                           secondaryStack.length === 0 && currentPrimaryPage === name
@@ -393,7 +391,7 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                     </div>
                   ))}
                 </div>
-                <div className="w-full" />
+                <div className="hidden xl:w-full xl:block" />
               </div>
               <TooManyRelaysAlertDialog />
               <CreateWalletGuideToast />
