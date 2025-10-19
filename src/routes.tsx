@@ -1,6 +1,7 @@
 import { match } from 'path-to-regexp'
 import { isValidElement } from 'react'
 import AppearanceSettingsPage from './pages/secondary/AppearanceSettingsPage'
+import BookmarkPage from './pages/secondary/BookmarkPage'
 import FollowingListPage from './pages/secondary/FollowingListPage'
 import GeneralSettingsPage from './pages/secondary/GeneralSettingsPage'
 import MuteListPage from './pages/secondary/MuteListPage'
@@ -39,7 +40,8 @@ const ROUTES = [
   { path: '/settings/translation', element: <TranslationPage /> },
   { path: '/profile-editor', element: <ProfileEditorPage /> },
   { path: '/mutes', element: <MuteListPage /> },
-  { path: '/rizful', element: <RizfulPage /> }
+  { path: '/rizful', element: <RizfulPage /> },
+  { path: '/bookmarks', element: <BookmarkPage /> }
 ]
 
 export const routes = ROUTES.map(({ path, element }) => ({

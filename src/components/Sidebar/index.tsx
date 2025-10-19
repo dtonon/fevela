@@ -1,11 +1,13 @@
 import Icon from '@/assets/Icon'
 import Logo from '@/assets/Logo'
 import { cn } from '@/lib/utils'
+import { useNostr } from '@/providers/NostrProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import AccountButton from './AccountButton'
+import BookmarkButton from './BookmarkButton'
 import RelaysButton from './ExploreButton'
 import HomeButton from './HomeButton'
 import NotificationsButton from './NotificationButton'
@@ -18,6 +20,7 @@ export default function PrimaryPageSidebar() {
   const { isSmallScreen } = useScreenSize()
   const { themeSetting } = useTheme()
   const { sidebarCollapse, updateSidebarCollapse, enableSingleColumnLayout } = useUserPreferences()
+  const { pubkey } = useNostr()
 
   if (isSmallScreen) return null
 
@@ -43,6 +46,7 @@ export default function PrimaryPageSidebar() {
         <NotificationsButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
         <SearchButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
         <ProfileButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        {pubkey && <BookmarkButton collapse={sidebarCollapse && !enableSingleColumnLayout} />}
         <SettingsButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
         <PostButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
       </div>

@@ -20,6 +20,7 @@ import BottomNavigationBar from './components/BottomNavigationBar'
 import CreateWalletGuideToast from './components/CreateWalletGuideToast'
 import TooManyRelaysAlertDialog from './components/TooManyRelaysAlertDialog'
 import { normalizeUrl } from './lib/url'
+import BookmarkPage from './pages/primary/BookmarkPage'
 import ExplorePage from './pages/primary/ExplorePage'
 import MePage from './pages/primary/MePage'
 import NotificationListPage from './pages/primary/NotificationListPage'
@@ -61,7 +62,8 @@ const PRIMARY_PAGE_REF_MAP = {
   me: createRef<TPageRef>(),
   profile: createRef<TPageRef>(),
   relay: createRef<TPageRef>(),
-  search: createRef<TPageRef>()
+  search: createRef<TPageRef>(),
+  bookmark: createRef<TPageRef>()
 }
 
 const PRIMARY_PAGE_MAP = {
@@ -71,7 +73,8 @@ const PRIMARY_PAGE_MAP = {
   me: <MePage ref={PRIMARY_PAGE_REF_MAP.me} />,
   profile: <ProfilePage ref={PRIMARY_PAGE_REF_MAP.profile} />,
   relay: <RelayPage ref={PRIMARY_PAGE_REF_MAP.relay} />,
-  search: <SearchPage ref={PRIMARY_PAGE_REF_MAP.search} />
+  search: <SearchPage ref={PRIMARY_PAGE_REF_MAP.search} />,
+  bookmark: <BookmarkPage ref={PRIMARY_PAGE_REF_MAP.bookmark} />
 }
 
 const PrimaryPageContext = createContext<TPrimaryPageContext | undefined>(undefined)
