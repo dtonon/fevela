@@ -476,6 +476,9 @@ export default {
     Fuchsia: 'فوشيا',
     Pink: 'وردي',
     Rose: 'وردة',
-    'Primary color': 'اللون الأساسي'
+    'Primary color': 'اللون الأساسي',
+    Layout: 'التخطيط',
+    'Double column': 'عمودين',
+    'Single column': 'عمود واحد'
   }
 }

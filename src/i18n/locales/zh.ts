@@ -472,6 +472,9 @@ export default {
     Fuchsia: '紫红色',
     Pink: '粉色',
     Rose: '玫瑰色',
-    'Primary color': '主色调'
+    'Primary color': '主色调',
+    Layout: '布局',
+    'Double column': '双栏',
+    'Single column': '单栏'
   }
 }

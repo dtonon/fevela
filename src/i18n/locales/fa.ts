@@ -479,6 +479,9 @@ export default {
     Fuchsia: 'فوشیا',
     Pink: 'صورتی',
     Rose: 'گلی',
-    'Primary color': 'رنگ اصلی'
+    'Primary color': 'رنگ اصلی',
+    Layout: 'چیدمان',
+    'Double column': 'دو ستونی',
+    'Single column': 'تک ستونی'
   }
 }

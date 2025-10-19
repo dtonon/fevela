@@ -474,6 +474,9 @@ export default {
     Fuchsia: 'บานเย็น',
     Pink: 'ชมพู',
     Rose: 'กุหลาบ',
-    'Primary color': 'สีหลัก'
+    'Primary color': 'สีหลัก',
+    Layout: 'เค้าโครง',
+    'Double column': 'สองคอลัมน์',
+    'Single column': 'คอลัมน์เดียว'
   }
 }

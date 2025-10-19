@@ -480,6 +480,9 @@ export default {
     Fuchsia: 'フクシア',
     Pink: 'ピンク',
     Rose: 'ローズ',
-    'Primary color': '主要な色'
+    'Primary color': '主要な色',
+    Layout: 'レイアウト',
+    'Double column': '2列',
+    'Single column': '1列'
   }
 }

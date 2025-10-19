@@ -17,7 +17,7 @@ import SettingsButton from './SettingsButton'
 export default function PrimaryPageSidebar() {
   const { isSmallScreen } = useScreenSize()
   const { themeSetting } = useTheme()
-  const { sidebarCollapse, updateSidebarCollapse } = useUserPreferences()
+  const { sidebarCollapse, updateSidebarCollapse, enableSingleColumnLayout } = useUserPreferences()
 
   if (isSmallScreen) return null
 
@@ -25,11 +25,11 @@ export default function PrimaryPageSidebar() {
     <div
       className={cn(
         'relative flex flex-col pb-2 pt-3 justify-between h-full shrink-0',
-        sidebarCollapse ? 'px-2 w-16' : 'px-4 w-52'
+        sidebarCollapse && !enableSingleColumnLayout ? 'px-2 w-16' : 'px-4 w-52'
       )}
     >
       <div className="space-y-2">
-        {sidebarCollapse ? (
+        {sidebarCollapse && !enableSingleColumnLayout ? (
           <div className="px-3 py-1 mb-6 w-full">
             <Icon />
           </div>
@@ -38,27 +38,29 @@ export default function PrimaryPageSidebar() {
             <Logo />
           </div>
         )}
-        <HomeButton collapse={sidebarCollapse} />
-        <RelaysButton collapse={sidebarCollapse} />
-        <NotificationsButton collapse={sidebarCollapse} />
-        <SearchButton collapse={sidebarCollapse} />
-        <ProfileButton collapse={sidebarCollapse} />
-        <SettingsButton collapse={sidebarCollapse} />
-        <PostButton collapse={sidebarCollapse} />
+        <HomeButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <RelaysButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <NotificationsButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <SearchButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <ProfileButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <SettingsButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+        <PostButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
       </div>
-      <AccountButton collapse={sidebarCollapse} />
-      <button
-        className={cn(
-          'absolute flex flex-col justify-center items-center right-0 w-5 h-6 p-0 rounded-l-md hover:shadow-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
-          themeSetting === 'pure-black' ? 'top-3' : 'top-5'
-        )}
-        onClick={(e) => {
-          e.stopPropagation()
-          updateSidebarCollapse(!sidebarCollapse)
-        }}
-      >
-        {sidebarCollapse ? <ChevronsRight /> : <ChevronsLeft />}
-      </button>
+      <AccountButton collapse={sidebarCollapse && !enableSingleColumnLayout} />
+      {!enableSingleColumnLayout && (
+        <button
+          className={cn(
+            'absolute flex flex-col justify-center items-center right-0 w-5 h-6 p-0 rounded-l-md hover:shadow-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
+            themeSetting === 'pure-black' ? 'top-3' : 'top-5'
+          )}
+          onClick={(e) => {
+            e.stopPropagation()
+            updateSidebarCollapse(!sidebarCollapse)
+          }}
+        >
+          {sidebarCollapse ? <ChevronsRight /> : <ChevronsLeft />}
+        </button>
+      )}
     </div>
   )
 }

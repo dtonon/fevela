@@ -486,6 +486,9 @@ export default {
     Fuchsia: 'Фуксия',
     Pink: 'Розовый',
     Rose: 'Роза',
-    'Primary color': 'Основной цвет'
+    'Primary color': 'Основной цвет',
+    Layout: 'Макет',
+    'Double column': 'Две колонки',
+    'Single column': 'Одна колонка'
   }
 }

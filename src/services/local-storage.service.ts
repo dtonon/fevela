@@ -51,6 +51,7 @@ class LocalStorageService {
   private shownCreateWalletGuideToastPubkeys: Set<string> = new Set()
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
+  private enableSingleColumnLayout: boolean = false
 
   constructor() {
     if (!LocalStorageService.instance) {
@@ -200,6 +201,9 @@ class LocalStorageService {
 
     this.primaryColor =
       (window.localStorage.getItem(StorageKey.PRIMARY_COLOR) as TPrimaryColor) ?? 'DEFAULT'
+
+    this.enableSingleColumnLayout =
+      window.localStorage.getItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT) === 'true'
 
     // Clean up deprecated data
     window.localStorage.removeItem(StorageKey.ACCOUNT_PROFILE_EVENT_MAP)
@@ -501,6 +505,15 @@ class LocalStorageService {
   setPrimaryColor(color: TPrimaryColor) {
     this.primaryColor = color
     window.localStorage.setItem(StorageKey.PRIMARY_COLOR, color)
+  }
+
+  getEnableSingleColumnLayout() {
+    return this.enableSingleColumnLayout
+  }
+
+  setEnableSingleColumnLayout(enable: boolean) {
+    this.enableSingleColumnLayout = enable
+    window.localStorage.setItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT, enable.toString())
   }
 }
 

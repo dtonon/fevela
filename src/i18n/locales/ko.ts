@@ -480,6 +480,9 @@ export default {
     Fuchsia: '자홍',
     Pink: '분홍',
     Rose: '장미',
-    'Primary color': '기본 색상'
+    'Primary color': '기본 색상',
+    Layout: '레이아웃',
+    'Double column': '두 열',
+    'Single column': '한 열'
   }
 }

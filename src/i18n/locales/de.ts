@@ -490,6 +490,9 @@ export default {
     Fuchsia: 'Fuchsia',
     Pink: 'Rosa',
     Rose: 'Rose',
-    'Primary color': 'Primärfarbe'
+    'Primary color': 'Primärfarbe',
+    Layout: 'Layout',
+    'Double column': 'Zweispaltig',
+    'Single column': 'Einspaltig'
   }
 }
