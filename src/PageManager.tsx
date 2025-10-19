@@ -365,7 +365,7 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                 <div className="sticky top-0 xl:w-full flex justify-end self-start h-[var(--vh)]">
                   <Sidebar />
                 </div>
-                <div className="flex-1 w-0 bg-background border-x xl:w-[900px] xl:shrink-0">
+                <div className="flex-1 w-0 bg-background border-x xl:flex-auto xl:w-[900px] xl:shrink-0">
                   {!!secondaryStack.length &&
                     secondaryStack.map((item, index) => (
                       <div
