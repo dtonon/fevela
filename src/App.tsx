@@ -24,10 +24,10 @@ import { PageManager } from './PageManager'
 
 export default function App(): JSX.Element {
   return (
-    <UserPreferencesProvider>
-      <ThemeProvider>
-        <ContentPolicyProvider>
-          <ScreenSizeProvider>
+    <ScreenSizeProvider>
+      <UserPreferencesProvider>
+        <ThemeProvider>
+          <ContentPolicyProvider>
             <DeletedEventProvider>
               <NostrProvider>
                 <ZapProvider>
@@ -58,9 +58,9 @@ export default function App(): JSX.Element {
                 </ZapProvider>
               </NostrProvider>
             </DeletedEventProvider>
-          </ScreenSizeProvider>
-        </ContentPolicyProvider>
-      </ThemeProvider>
-    </UserPreferencesProvider>
+          </ContentPolicyProvider>
+        </ThemeProvider>
+      </UserPreferencesProvider>
+    </ScreenSizeProvider>
   )
 }

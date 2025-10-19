@@ -2,6 +2,7 @@ import { Label } from '@/components/ui/label'
 import { PRIMARY_COLORS, TPrimaryColor } from '@/constants'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn } from '@/lib/utils'
+import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { Columns2, LayoutList, List, Monitor, Moon, PanelLeft, Sun } from 'lucide-react'
@@ -27,6 +28,7 @@ const NOTIFICATION_STYLES = [
 
 const AppearanceSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
+  const { isSmallScreen } = useScreenSize()
   const { themeSetting, setThemeSetting, primaryColor, setPrimaryColor } = useTheme()
   const {
     enableSingleColumnLayout,
@@ -52,20 +54,22 @@ const AppearanceSettingsPage = forwardRef(({ index }: { index?: number }, ref) =
             ))}
           </div>
         </div>
-        <div className="flex flex-col gap-2 px-4">
-          <Label className="text-base">{t('Layout')}</Label>
-          <div className="grid grid-cols-2 gap-4 w-full">
-            {LAYOUTS.map(({ key, label, icon }) => (
-              <OptionButton
-                key={key.toString()}
-                isSelected={enableSingleColumnLayout === key}
-                icon={icon}
-                label={t(label)}
-                onClick={() => updateEnableSingleColumnLayout(key)}
-              />
-            ))}
+        {!isSmallScreen && (
+          <div className="flex flex-col gap-2 px-4">
+            <Label className="text-base">{t('Layout')}</Label>
+            <div className="grid grid-cols-2 gap-4 w-full">
+              {LAYOUTS.map(({ key, label, icon }) => (
+                <OptionButton
+                  key={key.toString()}
+                  isSelected={enableSingleColumnLayout === key}
+                  icon={icon}
+                  label={t(label)}
+                  onClick={() => updateEnableSingleColumnLayout(key)}
+                />
+              ))}
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex flex-col gap-2 px-4">
           <Label className="text-base">{t('Notification list style')}</Label>
           <div className="grid grid-cols-2 gap-4 w-full">

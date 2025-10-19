@@ -327,9 +327,6 @@ const NoteList = forwardRef(
 
     return (
       <div>
-        {filteredNewEvents.length > 0 && (
-          <NewNotesButton newEvents={filteredNewEvents} onClick={showNewEvents} />
-        )}
         <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
         {supportTouch ? (
           <PullToRefresh
@@ -345,6 +342,9 @@ const NoteList = forwardRef(
           list
         )}
         <div className="h-40" />
+        {filteredNewEvents.length > 0 && (
+          <NewNotesButton newEvents={filteredNewEvents} onClick={showNewEvents} />
+        )}
       </div>
     )
   }

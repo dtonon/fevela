@@ -1,6 +1,7 @@
 import storage from '@/services/local-storage.service'
 import { TNotificationStyle } from '@/types'
 import { createContext, useContext, useState } from 'react'
+import { useScreenSize } from './ScreenSizeProvider'
 
 type TUserPreferencesContext = {
   notificationListStyle: TNotificationStyle
@@ -27,6 +28,7 @@ export const useUserPreferences = () => {
 }
 
 export function UserPreferencesProvider({ children }: { children: React.ReactNode }) {
+  const { isSmallScreen } = useScreenSize()
   const [notificationListStyle, setNotificationListStyle] = useState(
     storage.getNotificationListStyle()
   )
@@ -60,7 +62,7 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         updateMuteMedia: setMuteMedia,
         sidebarCollapse,
         updateSidebarCollapse,
-        enableSingleColumnLayout,
+        enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
         updateEnableSingleColumnLayout
       }}
     >

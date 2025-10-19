@@ -27,6 +27,7 @@ import NotificationListPage from './pages/primary/NotificationListPage'
 import ProfilePage from './pages/primary/ProfilePage'
 import RelayPage from './pages/primary/RelayPage'
 import SearchPage from './pages/primary/SearchPage'
+import SettingsPage from './pages/primary/SettingsPage'
 import { NotificationProvider } from './providers/NotificationProvider'
 import { useScreenSize } from './providers/ScreenSizeProvider'
 import { useTheme } from './providers/ThemeProvider'
@@ -63,7 +64,8 @@ const PRIMARY_PAGE_REF_MAP = {
   profile: createRef<TPageRef>(),
   relay: createRef<TPageRef>(),
   search: createRef<TPageRef>(),
-  bookmark: createRef<TPageRef>()
+  bookmark: createRef<TPageRef>(),
+  settings: createRef<TPageRef>()
 }
 
 const PRIMARY_PAGE_MAP = {
@@ -74,7 +76,8 @@ const PRIMARY_PAGE_MAP = {
   profile: <ProfilePage ref={PRIMARY_PAGE_REF_MAP.profile} />,
   relay: <RelayPage ref={PRIMARY_PAGE_REF_MAP.relay} />,
   search: <SearchPage ref={PRIMARY_PAGE_REF_MAP.search} />,
-  bookmark: <BookmarkPage ref={PRIMARY_PAGE_REF_MAP.bookmark} />
+  bookmark: <BookmarkPage ref={PRIMARY_PAGE_REF_MAP.bookmark} />,
+  settings: <SettingsPage ref={PRIMARY_PAGE_REF_MAP.settings} />
 }
 
 const PrimaryPageContext = createContext<TPrimaryPageContext | undefined>(undefined)
@@ -248,7 +251,7 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
     if (needScrollToTop) {
       PRIMARY_PAGE_REF_MAP[page].current?.scrollToTop('smooth')
     }
-    if (isSmallScreen || enableSingleColumnLayout) {
+    if (enableSingleColumnLayout) {
       clearSecondaryPages()
     }
   }
@@ -358,48 +361,39 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
         >
           <CurrentRelaysProvider>
             <NotificationProvider>
-              <div className="flex flex-col items-center bg-surface-background">
-                <div
-                  className="flex h-[var(--vh)] w-full bg-surface-background"
-                  style={{
-                    maxWidth: '1920px'
-                  }}
-                >
-                  <div className="grid grid-cols-10 w-full">
-                    <div className="col-span-3 flex justify-end">
-                      <Sidebar />
-                    </div>
-                    <div className="col-span-4 bg-background overflow-hidden border-x">
-                      {!!secondaryStack.length &&
-                        secondaryStack.map((item, index) => (
-                          <div
-                            key={item.index}
-                            className="flex flex-col h-full w-full"
-                            style={{
-                              display: index === secondaryStack.length - 1 ? 'block' : 'none'
-                            }}
-                          >
-                            {item.component}
-                          </div>
-                        ))}
-                      {primaryPages.map(({ name, element, props }) => (
-                        <div
-                          key={name}
-                          className="flex flex-col h-full w-full"
-                          style={{
-                            display:
-                              secondaryStack.length === 0 && currentPrimaryPage === name
-                                ? 'block'
-                                : 'none'
-                          }}
-                        >
-                          {props ? cloneElement(element as React.ReactElement, props) : element}
-                        </div>
-                      ))}
-                    </div>
-                    <div className="col-span-3" />
-                  </div>
+              <div className="flex justify-around w-full">
+                <div className="sticky top-0 w-full flex justify-end self-start h-[var(--vh)]">
+                  <Sidebar />
                 </div>
+                <div className="w-[40vw] min-w-96 max-w-2xl bg-background border-x shrink-0">
+                  {!!secondaryStack.length &&
+                    secondaryStack.map((item, index) => (
+                      <div
+                        key={item.index}
+                        className="flex flex-col w-full"
+                        style={{
+                          display: index === secondaryStack.length - 1 ? 'block' : 'none'
+                        }}
+                      >
+                        {item.component}
+                      </div>
+                    ))}
+                  {primaryPages.map(({ name, element, props }) => (
+                    <div
+                      key={name}
+                      className="flex flex-col w-full"
+                      style={{
+                        display:
+                          secondaryStack.length === 0 && currentPrimaryPage === name
+                            ? 'block'
+                            : 'none'
+                      }}
+                    >
+                      {props ? cloneElement(element as React.ReactElement, props) : element}
+                    </div>
+                  ))}
+                </div>
+                <div className="w-full" />
               </div>
               <TooManyRelaysAlertDialog />
               <CreateWalletGuideToast />
