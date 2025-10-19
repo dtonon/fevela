@@ -14,7 +14,7 @@ export default function SettingsButton({ collapse }: { collapse: boolean }) {
       title="Settings"
       onClick={() => (enableSingleColumnLayout ? navigate('settings') : push(toSettings()))}
       collapse={collapse}
-      active={enableSingleColumnLayout ? current === 'settings' : false}
+      active={current === 'settings'}
     >
       <Settings />
     </SidebarItem>
