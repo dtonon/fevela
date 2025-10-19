@@ -4,7 +4,7 @@ import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn } from '@/lib/utils'
 import { useTheme } from '@/providers/ThemeProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
-import { Monitor, Moon, Sun, Columns2, PanelLeft } from 'lucide-react'
+import { Columns2, LayoutList, List, Monitor, Moon, PanelLeft, Sun } from 'lucide-react'
 import { forwardRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -20,14 +20,38 @@ const LAYOUTS = [
   { key: true, label: 'Single column', icon: <PanelLeft className="size-5" /> }
 ] as const
 
+const NOTIFICATION_STYLES = [
+  { key: 'detailed', label: 'Detailed', icon: <LayoutList className="size-5" /> },
+  { key: 'compact', label: 'Compact', icon: <List className="size-5" /> }
+] as const
+
 const AppearanceSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
   const { themeSetting, setThemeSetting, primaryColor, setPrimaryColor } = useTheme()
-  const { enableSingleColumnLayout, updateEnableSingleColumnLayout } = useUserPreferences()
+  const {
+    enableSingleColumnLayout,
+    updateEnableSingleColumnLayout,
+    notificationListStyle,
+    updateNotificationListStyle
+  } = useUserPreferences()
 
   return (
     <SecondaryPageLayout ref={ref} index={index} title={t('Appearance')}>
       <div className="space-y-4 my-3">
+        <div className="flex flex-col gap-2 px-4">
+          <Label className="text-base">{t('Theme')}</Label>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
+            {THEMES.map(({ key, label, icon }) => (
+              <OptionButton
+                key={key}
+                isSelected={themeSetting === key}
+                icon={icon}
+                label={t(label)}
+                onClick={() => setThemeSetting(key)}
+              />
+            ))}
+          </div>
+        </div>
         <div className="flex flex-col gap-2 px-4">
           <Label className="text-base">{t('Layout')}</Label>
           <div className="grid grid-cols-2 gap-4 w-full">
@@ -43,15 +67,15 @@ const AppearanceSettingsPage = forwardRef(({ index }: { index?: number }, ref) =
           </div>
         </div>
         <div className="flex flex-col gap-2 px-4">
-          <Label className="text-base">{t('Theme')}</Label>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full">
-            {THEMES.map(({ key, label, icon }) => (
+          <Label className="text-base">{t('Notification list style')}</Label>
+          <div className="grid grid-cols-2 gap-4 w-full">
+            {NOTIFICATION_STYLES.map(({ key, label, icon }) => (
               <OptionButton
                 key={key}
-                isSelected={themeSetting === key}
+                isSelected={notificationListStyle === key}
                 icon={icon}
                 label={t(label)}
-                onClick={() => setThemeSetting(key)}
+                onClick={() => updateNotificationListStyle(key)}
               />
             ))}
           </div>
