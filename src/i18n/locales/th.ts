@@ -476,7 +476,7 @@ export default {
     Rose: 'กุหลาบ',
     'Primary color': 'สีหลัก',
     Layout: 'เค้าโครง',
-    'Double column': 'สองคอลัมน์',
-    'Single column': 'คอลัมน์เดียว'
+    'Two-column': 'สองคอลัมน์',
+    'Single-column': 'คอลัมน์เดียว'
   }
 }

@@ -482,7 +482,7 @@ export default {
     Rose: '장미',
     'Primary color': '기본 색상',
     Layout: '레이아웃',
-    'Double column': '두 열',
-    'Single column': '한 열'
+    'Two-column': '두 열',
+    'Single-column': '한 열'
   }
 }

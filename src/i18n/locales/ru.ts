@@ -488,7 +488,7 @@ export default {
     Rose: 'Роза',
     'Primary color': 'Основной цвет',
     Layout: 'Макет',
-    'Double column': 'Две колонки',
-    'Single column': 'Одна колонка'
+    'Two-column': 'Две колонки',
+    'Single-column': 'Одна колонка'
   }
 }

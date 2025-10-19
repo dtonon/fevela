@@ -492,7 +492,7 @@ export default {
     Rose: 'Rose',
     'Primary color': 'Primärfarbe',
     Layout: 'Layout',
-    'Double column': 'Zweispaltig',
-    'Single column': 'Einspaltig'
+    'Two-column': 'Zweispaltig',
+    'Single-column': 'Einspaltig'
   }
 }

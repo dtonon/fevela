@@ -481,7 +481,7 @@ export default {
     Rose: 'گلی',
     'Primary color': 'رنگ اصلی',
     Layout: 'چیدمان',
-    'Double column': 'دو ستونی',
-    'Single column': 'تک ستونی'
+    'Two-column': 'دو ستونی',
+    'Single-column': 'تک ستونی'
   }
 }

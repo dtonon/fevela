@@ -16,8 +16,8 @@ const THEMES = [
 ] as const
 
 const LAYOUTS = [
-  { key: false, label: 'Double column', icon: <Columns2 className="size-5" /> },
-  { key: true, label: 'Single column', icon: <PanelLeft className="size-5" /> }
+  { key: false, label: 'Two-column', icon: <Columns2 className="size-5" /> },
+  { key: true, label: 'Single-column', icon: <PanelLeft className="size-5" /> }
 ] as const
 
 const NOTIFICATION_STYLES = [

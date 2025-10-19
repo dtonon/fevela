@@ -478,7 +478,7 @@ export default {
     Rose: 'وردة',
     'Primary color': 'اللون الأساسي',
     Layout: 'التخطيط',
-    'Double column': 'عمودين',
-    'Single column': 'عمود واحد'
+    'Two-column': 'عمودين',
+    'Single-column': 'عمود واحد'
   }
 }

@@ -474,7 +474,7 @@ export default {
     Rose: '玫瑰色',
     'Primary color': '主色调',
     Layout: '布局',
-    'Double column': '双栏',
-    'Single column': '单栏'
+    'Two-column': '双栏',
+    'Single-column': '单栏'
   }
 }
