@@ -38,7 +38,7 @@
     transition: background-color 0.2s ease;
 
     &:active {
-      background-color: hsl(var(--muted) / 0.5);
+      background-color: hsl(var(--muted) / 0.3);
     }
   }
 
@@ -60,7 +60,7 @@
 
   @media (hover: hover) and (pointer: fine) {
     .clickable:hover {
-      background-color: hsl(var(--muted) / 0.5);
+      background-color: hsl(var(--muted) / 0.3);
     }
   }
 
