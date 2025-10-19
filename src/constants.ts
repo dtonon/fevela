@@ -165,12 +165,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '259 43% 56%',
       'primary-hover': '259 43% 65%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '259 43% 56%'
     },
     dark: {
       primary: '259 43% 56%',
       'primary-hover': '259 43% 65%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '259 43% 56%'
     }
   },
   RED: {
@@ -178,12 +180,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '0 65% 55%',
       'primary-hover': '0 65% 65%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '0 65% 55%'
     },
     dark: {
       primary: '0 65% 55%',
       'primary-hover': '0 65% 65%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '0 65% 55%'
     }
   },
   ORANGE: {
@@ -191,12 +195,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '30 100% 50%',
       'primary-hover': '30 100% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '30 100% 50%'
     },
     dark: {
       primary: '30 100% 50%',
       'primary-hover': '30 100% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '30 100% 50%'
     }
   },
   AMBER: {
@@ -204,12 +210,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '42 100% 50%',
       'primary-hover': '42 100% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '42 100% 50%'
     },
     dark: {
       primary: '42 100% 50%',
       'primary-hover': '42 100% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '42 100% 50%'
     }
   },
   YELLOW: {
@@ -217,12 +225,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '54 100% 50%',
       'primary-hover': '54 100% 60%',
-      'primary-foreground': '0 0% 10%'
+      'primary-foreground': '0 0% 10%',
+      ring: '54 100% 50%'
     },
     dark: {
       primary: '54 100% 50%',
       'primary-hover': '54 100% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '54 100% 50%'
     }
   },
   LIME: {
@@ -230,12 +240,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '90 60% 50%',
       'primary-hover': '90 60% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '90 60% 50%'
     },
     dark: {
       primary: '90 60% 50%',
       'primary-hover': '90 60% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '90 60% 50%'
     }
   },
   GREEN: {
@@ -243,12 +255,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '140 60% 40%',
       'primary-hover': '140 60% 50%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '140 60% 40%'
     },
     dark: {
       primary: '140 60% 40%',
       'primary-hover': '140 60% 50%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '140 60% 40%'
     }
   },
   EMERALD: {
@@ -256,12 +270,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '160 70% 40%',
       'primary-hover': '160 70% 50%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '160 70% 40%'
     },
     dark: {
       primary: '160 70% 40%',
       'primary-hover': '160 70% 50%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '160 70% 40%'
     }
   },
   TEAL: {
@@ -269,12 +285,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '180 70% 40%',
       'primary-hover': '180 70% 50%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '180 70% 40%'
     },
     dark: {
       primary: '180 70% 40%',
       'primary-hover': '180 70% 50%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '180 70% 40%'
     }
   },
   CYAN: {
@@ -282,12 +300,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '200 70% 40%',
       'primary-hover': '200 70% 50%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '200 70% 40%'
     },
     dark: {
       primary: '200 70% 40%',
       'primary-hover': '200 70% 50%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '200 70% 40%'
     }
   },
   SKY: {
@@ -295,12 +315,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '210 70% 50%',
       'primary-hover': '210 70% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '210 70% 50%'
     },
     dark: {
       primary: '210 70% 50%',
       'primary-hover': '210 70% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '210 70% 50%'
     }
   },
   BLUE: {
@@ -308,12 +330,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '220 80% 50%',
       'primary-hover': '220 80% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '220 80% 50%'
     },
     dark: {
       primary: '220 80% 50%',
       'primary-hover': '220 80% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '220 80% 50%'
     }
   },
   INDIGO: {
@@ -321,12 +345,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '230 80% 50%',
       'primary-hover': '230 80% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '230 80% 50%'
     },
     dark: {
       primary: '230 80% 50%',
       'primary-hover': '230 80% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '230 80% 50%'
     }
   },
   VIOLET: {
@@ -334,12 +360,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '250 80% 50%',
       'primary-hover': '250 80% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '250 80% 50%'
     },
     dark: {
       primary: '250 80% 50%',
       'primary-hover': '250 80% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '250 80% 50%'
     }
   },
   PURPLE: {
@@ -347,12 +375,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '280 80% 50%',
       'primary-hover': '280 80% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '280 80% 50%'
     },
     dark: {
       primary: '280 80% 50%',
       'primary-hover': '280 80% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '280 80% 50%'
     }
   },
   FUCHSIA: {
@@ -360,12 +390,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '310 80% 50%',
       'primary-hover': '310 80% 60%',
-      'primary-foreground': '0 0% 98%'
+      'primary-foreground': '0 0% 98%',
+      ring: '310 80% 50%'
     },
     dark: {
       primary: '310 80% 50%',
       'primary-hover': '310 80% 60%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '310 80% 50%'
     }
   },
   PINK: {
@@ -373,12 +405,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '330 80% 60%',
       'primary-hover': '330 80% 70%',
-      'primary-foreground': '0 0% 10%'
+      'primary-foreground': '0 0% 10%',
+      ring: '330 80% 60%'
     },
     dark: {
       primary: '330 80% 60%',
       'primary-hover': '330 80% 70%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '330 80% 60%'
     }
   },
   ROSE: {
@@ -386,12 +420,14 @@ export const PRIMARY_COLORS = {
     light: {
       primary: '350 80% 60%',
       'primary-hover': '350 80% 70%',
-      'primary-foreground': '0 0% 10%'
+      'primary-foreground': '0 0% 10%',
+      ring: '350 80% 60%'
     },
     dark: {
       primary: '350 80% 60%',
       'primary-hover': '350 80% 70%',
-      'primary-foreground': '240 5.9% 10%'
+      'primary-foreground': '240 5.9% 10%',
+      ring: '350 80% 60%'
     }
   }
 } as const

@@ -21,6 +21,7 @@ const updateCSSVariables = (color: TPrimaryColor, currentTheme: TTheme) => {
   root.style.setProperty('--primary', config.primary)
   root.style.setProperty('--primary-hover', config['primary-hover'])
   root.style.setProperty('--primary-foreground', config['primary-foreground'])
+  root.style.setProperty('--ring', config.ring)
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
