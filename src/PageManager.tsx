@@ -361,11 +361,11 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
         >
           <CurrentRelaysProvider>
             <NotificationProvider>
-              <div className="flex xl:justify-around w-full">
-                <div className="sticky top-0 xl:w-full flex justify-end self-start h-[var(--vh)]">
+              <div className="flex lg:justify-around w-full">
+                <div className="sticky top-0 lg:w-full flex justify-end self-start h-[var(--vh)]">
                   <Sidebar />
                 </div>
-                <div className="flex-1 w-0 bg-background border-x xl:flex-auto xl:w-[900px] xl:shrink-0">
+                <div className="flex-1 w-0 bg-background border-x lg:flex-auto lg:w-[640px] lg:shrink-0">
                   {!!secondaryStack.length &&
                     secondaryStack.map((item, index) => (
                       <div
@@ -391,7 +391,7 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                     </div>
                   ))}
                 </div>
-                <div className="hidden xl:w-full xl:block" />
+                <div className="hidden lg:w-full lg:block" />
               </div>
               <TooManyRelaysAlertDialog />
               <CreateWalletGuideToast />
