@@ -431,6 +431,7 @@ export default {
     GroupedNotesShowPreview: '最後のノートのプレビューを表示',
     GroupedNotesIncludeReplies: '返信を含める',
     GroupedNotesShowOnlyFirstLevelReplies: '第一レベルの返信のみを表示',
+    GroupedNotesFilter: 'ユーザーを検索...',
     GroupedNotesTimeframe: '個々のユーザーの過去の出来事の要約を表示',
     GroupedNotesFilterMore: '期間中にX件以上のノートを公開したユーザーをフィルタリング',
     GroupedNotesDays: '日',

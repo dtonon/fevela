@@ -431,6 +431,7 @@ export default {
     GroupedNotesShowPreview: '마지막 노트의 미리보기 표시',
     GroupedNotesIncludeReplies: '답글 포함',
     GroupedNotesShowOnlyFirstLevelReplies: '첫 번째 수준의 답글만 표시',
+    GroupedNotesFilter: '사용자 검색...',
     GroupedNotesTimeframe: '개별 사용자가 지난 기간에 일어난 일들의 요약을 보여주세요',
     GroupedNotesFilterMore: '기간 내에 X개 이상의 노트를 게시한 사용자 필터링',
     GroupedNotesDays: '일',

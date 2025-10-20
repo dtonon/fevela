@@ -432,6 +432,7 @@ export default {
     GroupedNotesShowPreview: 'अंतिम नोट का पूर्वावलोकन दिखाएं',
     GroupedNotesIncludeReplies: 'उत्तर शामिल करें',
     GroupedNotesShowOnlyFirstLevelReplies: 'केवल पहले स्तर के उत्तर दिखाएं',
+    GroupedNotesFilter: 'उपयोगकर्ता खोजें...',
     GroupedNotesTimeframe:
       'मुझे व्यक्तिगत उपयोगकर्ताओं के लिए पिछले कई समय में क्या हुआ का सारांश दिखाएं',
     GroupedNotesFilterMore:

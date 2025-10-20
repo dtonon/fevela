@@ -428,6 +428,7 @@ export default {
     GroupedNotesShowPreview: 'إظهار معاينة الملاحظة الأخيرة',
     GroupedNotesIncludeReplies: 'تضمين الردود',
     GroupedNotesShowOnlyFirstLevelReplies: 'إظهار الردود من المستوى الأول فقط',
+    GroupedNotesFilter: 'البحث عن المستخدمين...',
     GroupedNotesTimeframe: 'أظهر لي ملخصاً للمستخدمين المنفردين عما حدث في آخر',
     GroupedNotesFilterMore: 'تصفية المستخدمين الذين نشروا أكثر من X ملاحظة في الفترة الزمنية',
     GroupedNotesDays: 'أيام',

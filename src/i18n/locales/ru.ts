@@ -437,6 +437,7 @@ export default {
     GroupedNotesShowPreview: 'Показать предпросмотр последней заметки',
     GroupedNotesIncludeReplies: 'Включить ответы',
     GroupedNotesShowOnlyFirstLevelReplies: 'Показывать только ответы первого уровня',
+    GroupedNotesFilter: 'Поиск пользователей...',
     GroupedNotesTimeframe:
       'Показать сводку для отдельных пользователей о том, что происходило за последние',
     GroupedNotesFilterMore:

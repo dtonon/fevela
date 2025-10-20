@@ -22,6 +22,7 @@ import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, kinds } from 'nostr-tools'
 import { decode } from 'nostr-tools/nip19'
+import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,
   useCallback,
@@ -57,7 +58,8 @@ const NoteList = forwardRef(
       groupedMode = false,
       sinceTimestamp,
       onNotesLoaded,
-      pinnedEventIds = []
+      pinnedEventIds = [],
+      userFilter = ''
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -71,6 +73,7 @@ const NoteList = forwardRef(
       sinceTimestamp?: number
       onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean, notesCount: number, repliesCount: number) => void
       pinnedEventIds?: string[]
+      userFilter?: string
     },
     ref
   ) => {
@@ -93,6 +96,7 @@ const NoteList = forwardRef(
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
     const [groupedLoadingMore, setGroupedLoadingMore] = useState(false)
     const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
+    const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -173,6 +177,44 @@ const NoteList = forwardRef(
           return true
         })
     }, [eventsToProcess, showCount, shouldHideEvent, groupedMode])
+
+    // Update matching pubkeys when user filter changes (for grouped mode)
+    useEffect(() => {
+      if (!groupedMode || !userFilter.trim()) {
+        setMatchingPubkeys(null)
+        return
+      }
+
+      const searchProfiles = async () => {
+        try {
+          const npubs = await client.searchNpubsFromLocal(userFilter, 1000)
+          const pubkeys = npubs
+            .map((npub) => {
+              try {
+                return userIdToPubkey(npub)
+              } catch {
+                return null
+              }
+            })
+            .filter((pubkey): pubkey is string => pubkey !== null)
+          setMatchingPubkeys(new Set(pubkeys))
+        } catch (error) {
+          console.error('Error searching profiles:', error)
+          setMatchingPubkeys(new Set())
+        }
+      }
+
+      searchProfiles()
+    }, [groupedMode, userFilter])
+
+    // Apply user filter for grouped mode
+    const userFilteredEvents = useMemo(() => {
+      if (!groupedMode || !userFilter.trim() || matchingPubkeys === null) {
+        return filteredEvents
+      }
+
+      return filteredEvents.filter((evt) => matchingPubkeys.has(evt.pubkey))
+    }, [filteredEvents, groupedMode, userFilter, matchingPubkeys])
 
     const filteredNewEvents = useMemo(() => {
       const idSet = new Set<string>()
@@ -443,7 +485,7 @@ const NoteList = forwardRef(
         {pinnedEventIds.map((id) => (
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
-        {filteredEvents.map((event) => {
+        {userFilteredEvents.map((event) => {
           const groupedData = groupedMode ? groupedNotesData.get(event.id) : undefined
           const totalNotesCount = groupedData?.totalNotesInTimeframe
           const oldestTimestamp = groupedData?.oldestTimestamp

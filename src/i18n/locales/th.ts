@@ -426,6 +426,7 @@ export default {
     GroupedNotesShowPreview: 'แสดงตัวอย่างโน้ตล่าสุด',
     GroupedNotesIncludeReplies: 'รวมการตอบกลับ',
     GroupedNotesShowOnlyFirstLevelReplies: 'แสดงเฉพาะการตอบกลับระดับแรก',
+    GroupedNotesFilter: 'ค้นหาผู้ใช้...',
     GroupedNotesTimeframe: 'แสดงสรุปสำหรับผู้ใช้แต่ละคนเกี่ยวกับสิ่งที่เกิดขึ้นใน',
     GroupedNotesFilterMore: 'กรองผู้ใช้ที่เผยแพร่โน้ตมากกว่า X บันทึกในช่วงเวลา',
     GroupedNotesDays: 'วัน',

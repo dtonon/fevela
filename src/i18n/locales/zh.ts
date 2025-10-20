@@ -424,6 +424,7 @@ export default {
     GroupedNotesShowPreview: '显示最后一条笔记的预览',
     GroupedNotesIncludeReplies: '包括回复',
     GroupedNotesShowOnlyFirstLevelReplies: '仅显示第一级回复',
+    GroupedNotesFilter: '搜索用户...',
     GroupedNotesTimeframe: '显示单个用户在过去期间发生事情的摘要',
     GroupedNotesFilterMore: '过滤在时间范围内发布超过 X 条笔记的用户',
     GroupedNotesDays: '天',
