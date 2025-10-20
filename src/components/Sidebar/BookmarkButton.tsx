@@ -4,14 +4,14 @@ import { Bookmark } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 
 export default function BookmarkButton({ collapse }: { collapse: boolean }) {
-  const { navigate, current } = usePrimaryPage()
+  const { navigate, current, display } = usePrimaryPage()
   const { checkLogin } = useNostr()
 
   return (
     <SidebarItem
       title="Bookmarks"
       onClick={() => checkLogin(() => navigate('bookmark'))}
-      active={current === 'bookmark'}
+      active={display && current === 'bookmark'}
       collapse={collapse}
     >
       <Bookmark />

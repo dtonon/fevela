@@ -5,7 +5,7 @@ import { Settings } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 
 export default function SettingsButton({ collapse }: { collapse: boolean }) {
-  const { current, navigate } = usePrimaryPage()
+  const { current, navigate, display } = usePrimaryPage()
   const { push } = useSecondaryPage()
   const { enableSingleColumnLayout } = useUserPreferences()
 
@@ -14,7 +14,7 @@ export default function SettingsButton({ collapse }: { collapse: boolean }) {
       title="Settings"
       onClick={() => (enableSingleColumnLayout ? navigate('settings') : push(toSettings()))}
       collapse={collapse}
-      active={current === 'settings'}
+      active={display && current === 'settings'}
     >
       <Settings />
     </SidebarItem>
