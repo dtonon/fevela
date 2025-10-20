@@ -20,6 +20,7 @@ import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, kinds } from 'nostr-tools'
+import { decode } from 'nostr-tools/nip19'
 import {
   forwardRef,
   useCallback,
@@ -35,6 +36,7 @@ import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
+import PinnedNoteCard from '../PinnedNoteCard'
 
 const LIMIT = 200
 const ALGO_LIMIT = 500
@@ -53,7 +55,8 @@ const NoteList = forwardRef(
       showRelayCloseReason = false,
       groupedMode = false,
       sinceTimestamp,
-      onNotesLoaded
+      onNotesLoaded,
+      pinnedEventIds = []
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -66,6 +69,7 @@ const NoteList = forwardRef(
       groupedMode?: boolean
       sinceTimestamp?: number
       onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean) => void
+      pinnedEventIds?: string[]
     },
     ref
   ) => {
@@ -76,7 +80,8 @@ const NoteList = forwardRef(
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
     const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
-    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount } = useGroupedNotesReadStatus()
+    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount } =
+      useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
@@ -103,6 +108,19 @@ const NoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
+        const pinnedEventHexIdSet = new Set()
+        pinnedEventIds.forEach((id) => {
+          try {
+            const { type, data } = decode(id)
+            if (type === 'nevent') {
+              pinnedEventHexIdSet.add(data.id)
+            }
+          } catch {
+            // ignore
+          }
+        })
+
+        if (pinnedEventHexIdSet.has(evt.id)) return true
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
         if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
@@ -118,7 +136,14 @@ const NoteList = forwardRef(
 
         return false
       },
-      [hideReplies, showOnlyReplies, hideUntrustedNotes, mutePubkeySet, isEventDeleted]
+      [
+        hideReplies,
+        showOnlyReplies,
+        hideUntrustedNotes,
+        mutePubkeySet,
+        pinnedEventIds,
+        isEventDeleted
+      ]
     )
 
     const filteredEvents = useMemo(() => {
@@ -159,8 +184,8 @@ const NoteList = forwardRef(
     useEffect(() => {
       if (!onNotesLoaded || loading || events.length === 0) return
 
-      const hasNotes = events.some(evt => !isReplyNoteEvent(evt))
-      const hasReplies = events.some(evt => isReplyNoteEvent(evt))
+      const hasNotes = events.some((evt) => !isReplyNoteEvent(evt))
+      const hasReplies = events.some((evt) => isReplyNoteEvent(evt))
 
       onNotesLoaded(hasNotes, hasReplies)
     }, [events, loading, onNotesLoaded])
@@ -289,7 +314,7 @@ const NoteList = forwardRef(
               return
             }
 
-            setEvents(prevEvents => [...prevEvents, ...moreEvents])
+            setEvents((prevEvents) => [...prevEvents, ...moreEvents])
 
             // Check if we need to load even more
             const oldestNewEvent = moreEvents[moreEvents.length - 1]
@@ -402,6 +427,9 @@ const NoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen">
+        {pinnedEventIds.map((id) => (
+          <PinnedNoteCard key={id} eventId={id} className="w-full" />
+        ))}
         {filteredEvents.map((event) => {
           const groupedData = groupedMode ? groupedNotesData.get(event.id) : undefined
           const totalNotesCount = groupedData?.totalNotesInTimeframe
@@ -440,12 +468,14 @@ const NoteList = forwardRef(
           }
 
           // Use regular NoteCard
-          const unreadCountForNonCompact = groupedMode && totalNotesCount
-            ? getUnreadCount(event.pubkey, allNoteTimestamps)
-            : totalNotesCount
-          const readStatusForNonCompact = groupedMode && totalNotesCount
-            ? getReadStatus(event.pubkey, event.created_at)
-            : { isLastNoteRead: false, areAllNotesRead: false }
+          const unreadCountForNonCompact =
+            groupedMode && totalNotesCount
+              ? getUnreadCount(event.pubkey, allNoteTimestamps)
+              : totalNotesCount
+          const readStatusForNonCompact =
+            groupedMode && totalNotesCount
+              ? getReadStatus(event.pubkey, event.created_at)
+              : { isLastNoteRead: false, areAllNotesRead: false }
 
           return (
             <NoteCard
@@ -455,7 +485,10 @@ const NoteList = forwardRef(
               filterMutedNotes={filterMutedNotes}
               groupedNotesTotalCount={unreadCountForNonCompact}
               groupedNotesOldestTimestamp={oldestTimestamp}
-              onAllNotesRead={() => unreadCountForNonCompact && markAllNotesRead(event.pubkey, event.created_at, unreadCountForNonCompact)}
+              onAllNotesRead={() =>
+                unreadCountForNonCompact &&
+                markAllNotesRead(event.pubkey, event.created_at, unreadCountForNonCompact)
+              }
               areAllNotesRead={readStatusForNonCompact.areAllNotesRead}
             />
           )
@@ -502,9 +535,6 @@ const NoteList = forwardRef(
 
     return (
       <div>
-        {filteredNewEvents.length > 0 && (
-          <NewNotesButton newEvents={filteredNewEvents} onClick={showNewEvents} />
-        )}
         <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
         {supportTouch ? (
           <PullToRefresh
@@ -520,6 +550,9 @@ const NoteList = forwardRef(
           list
         )}
         <div className="h-40" />
+        {filteredNewEvents.length > 0 && (
+          <NewNotesButton newEvents={filteredNewEvents} onClick={showNewEvents} />
+        )}
       </div>
     )
   }

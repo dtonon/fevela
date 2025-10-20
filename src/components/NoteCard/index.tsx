@@ -14,7 +14,8 @@ export default function NoteCard({
   groupedNotesTotalCount,
   groupedNotesOldestTimestamp,
   onAllNotesRead,
-  areAllNotesRead
+  areAllNotesRead,
+  pinned = false
 }: {
   event: Event
   className?: string
@@ -23,6 +24,7 @@ export default function NoteCard({
   groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
+  pinned?: boolean
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -39,9 +41,15 @@ export default function NoteCard({
 
   if (event.kind === kinds.Repost) {
     return (
-      <RepostNoteCard event={event} className={className} filterMutedNotes={filterMutedNotes} />
+      <RepostNoteCard
+        event={event}
+        className={className}
+        filterMutedNotes={filterMutedNotes}
+        pinned={pinned}
+      />
     )
   }
+
   return (
     <MainNoteCard
       event={event}
@@ -50,6 +58,7 @@ export default function NoteCard({
       groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
+      pinned={pinned}
     />
   )
 }

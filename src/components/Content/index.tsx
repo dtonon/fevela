@@ -15,36 +15,36 @@ import { cn } from '@/lib/utils'
 import mediaUpload from '@/services/media-upload.service'
 import { TImetaInfo } from '@/types'
 import { Event } from 'nostr-tools'
-import { memo } from 'react'
+import { useMemo } from 'react'
 import {
   EmbeddedHashtag,
   EmbeddedLNInvoice,
   EmbeddedMention,
-  EmbeddedNormalUrl,
   EmbeddedNote,
   EmbeddedWebsocketUrl
 } from '../Embedded'
 import Emoji from '../Emoji'
+import ExternalLink from '../ExternalLink'
 import ImageGallery from '../ImageGallery'
 import MediaPlayer from '../MediaPlayer'
 import WebPreview from '../WebPreview'
 import YoutubeEmbeddedPlayer from '../YoutubeEmbeddedPlayer'
 
-const Content = memo(
-  ({
-    event,
-    content,
-    className,
-    mustLoadMedia
-  }: {
-    event?: Event
-    content?: string
-    className?: string
-    mustLoadMedia?: boolean
-  }) => {
-    const translatedEvent = useTranslatedEvent(event?.id)
+export default function Content({
+  event,
+  content,
+  className,
+  mustLoadMedia
+}: {
+  event?: Event
+  content?: string
+  className?: string
+  mustLoadMedia?: boolean
+}) {
+  const translatedEvent = useTranslatedEvent(event?.id)
+  const { nodes, allImages, lastNormalUrl, emojiInfos } = useMemo(() => {
     const _content = translatedEvent?.content ?? event?.content ?? content
-    if (!_content) return null
+    if (!_content) return {}
 
     const nodes = parseContent(_content, [
       EmbeddedUrlParser,
@@ -80,7 +80,6 @@ const Content = memo(
       })
       .filter(Boolean)
       .flat() as TImetaInfo[]
-    let imageIndex = 0
 
     const emojiInfos = getEmojiInfosFromEmojiTags(event?.tags)
 
@@ -88,73 +87,78 @@ const Content = memo(
     const lastNormalUrl =
       typeof lastNormalUrlNode?.data === 'string' ? lastNormalUrlNode.data : undefined
 
-    return (
-      <div className={cn('text-wrap break-words whitespace-pre-wrap', className)}>
-        {nodes.map((node, index) => {
-          if (node.type === 'text') {
-            return node.data
-          }
-          if (node.type === 'image' || node.type === 'images') {
-            const start = imageIndex
-            const end = imageIndex + (Array.isArray(node.data) ? node.data.length : 1)
-            imageIndex = end
-            return (
-              <ImageGallery
-                className="mt-2"
-                key={index}
-                images={allImages}
-                start={start}
-                end={end}
-                mustLoad={mustLoadMedia}
-              />
-            )
-          }
-          if (node.type === 'media') {
-            return (
-              <MediaPlayer className="mt-2" key={index} src={node.data} mustLoad={mustLoadMedia} />
-            )
-          }
-          if (node.type === 'url') {
-            return <EmbeddedNormalUrl url={node.data} key={index} />
-          }
-          if (node.type === 'invoice') {
-            return <EmbeddedLNInvoice invoice={node.data} key={index} className="mt-2" />
-          }
-          if (node.type === 'websocket-url') {
-            return <EmbeddedWebsocketUrl url={node.data} key={index} />
-          }
-          if (node.type === 'event') {
-            const id = node.data.split(':')[1]
-            return <EmbeddedNote key={index} noteId={id} className="mt-2" />
-          }
-          if (node.type === 'mention') {
-            return <EmbeddedMention key={index} userId={node.data.split(':')[1]} />
-          }
-          if (node.type === 'hashtag') {
-            return <EmbeddedHashtag hashtag={node.data} key={index} />
-          }
-          if (node.type === 'emoji') {
-            const shortcode = node.data.split(':')[1]
-            const emoji = emojiInfos.find((e) => e.shortcode === shortcode)
-            if (!emoji) return node.data
-            return <Emoji classNames={{ img: 'mb-1' }} emoji={emoji} key={index} />
-          }
-          if (node.type === 'youtube') {
-            return (
-              <YoutubeEmbeddedPlayer
-                key={index}
-                url={node.data}
-                className="mt-2"
-                mustLoad={mustLoadMedia}
-              />
-            )
-          }
-          return null
-        })}
-        {lastNormalUrl && <WebPreview className="mt-2" url={lastNormalUrl} />}
-      </div>
-    )
+    return { nodes, allImages, emojiInfos, lastNormalUrl }
+  }, [event, translatedEvent, content])
+
+  if (!nodes || nodes.length === 0) {
+    return null
   }
-)
-Content.displayName = 'Content'
-export default Content
+
+  let imageIndex = 0
+  return (
+    <div className={cn('text-wrap break-words whitespace-pre-wrap', className)}>
+      {nodes.map((node, index) => {
+        if (node.type === 'text') {
+          return node.data
+        }
+        if (node.type === 'image' || node.type === 'images') {
+          const start = imageIndex
+          const end = imageIndex + (Array.isArray(node.data) ? node.data.length : 1)
+          imageIndex = end
+          return (
+            <ImageGallery
+              className="mt-2"
+              key={index}
+              images={allImages}
+              start={start}
+              end={end}
+              mustLoad={mustLoadMedia}
+            />
+          )
+        }
+        if (node.type === 'media') {
+          return (
+            <MediaPlayer className="mt-2" key={index} src={node.data} mustLoad={mustLoadMedia} />
+          )
+        }
+        if (node.type === 'url') {
+          return <ExternalLink url={node.data} key={index} />
+        }
+        if (node.type === 'invoice') {
+          return <EmbeddedLNInvoice invoice={node.data} key={index} className="mt-2" />
+        }
+        if (node.type === 'websocket-url') {
+          return <EmbeddedWebsocketUrl url={node.data} key={index} />
+        }
+        if (node.type === 'event') {
+          const id = node.data.split(':')[1]
+          return <EmbeddedNote key={index} noteId={id} className="mt-2" />
+        }
+        if (node.type === 'mention') {
+          return <EmbeddedMention key={index} userId={node.data.split(':')[1]} />
+        }
+        if (node.type === 'hashtag') {
+          return <EmbeddedHashtag hashtag={node.data} key={index} />
+        }
+        if (node.type === 'emoji') {
+          const shortcode = node.data.split(':')[1]
+          const emoji = emojiInfos.find((e) => e.shortcode === shortcode)
+          if (!emoji) return node.data
+          return <Emoji classNames={{ img: 'mb-1' }} emoji={emoji} key={index} />
+        }
+        if (node.type === 'youtube') {
+          return (
+            <YoutubeEmbeddedPlayer
+              key={index}
+              url={node.data}
+              className="mt-2"
+              mustLoad={mustLoadMedia}
+            />
+          )
+        }
+        return null
+      })}
+      {lastNormalUrl && <WebPreview className="mt-2" url={lastNormalUrl} />}
+    </div>
+  )
+}

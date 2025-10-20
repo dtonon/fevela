@@ -20,18 +20,31 @@ import client from '@/services/client.service'
 import { Link, Zap } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
+import SearchInput from '../SearchInput'
 import NotFound from '../NotFound'
 import FollowedBy from './FollowedBy'
 import Followings from './Followings'
 import ProfileFeed from './ProfileFeed'
 import Relays from './Relays'
 
-export default function Profile({ id, hideTopSection = false, sinceTimestamp, fromGrouped = false }: { id?: string; hideTopSection?: boolean; sinceTimestamp?: number; fromGrouped?: boolean }) {
+export default function Profile({
+  id,
+  hideTopSection = false,
+  sinceTimestamp,
+  fromGrouped = false
+}: {
+  id?: string
+  hideTopSection?: boolean
+  sinceTimestamp?: number
+  fromGrouped?: boolean
+}) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
   const { profile, isFetching } = useFetchProfile(id)
   const { pubkey: accountPubkey } = useNostr()
   const { mutePubkeySet } = useMuteList()
+  const [searchInput, setSearchInput] = useState('')
+  const [debouncedInput, setDebouncedInput] = useState(searchInput)
   const { followings } = useFetchFollowings(profile?.pubkey)
   const isFollowingYou = useMemo(() => {
     return (
@@ -50,6 +63,16 @@ export default function Profile({ id, hideTopSection = false, sinceTimestamp, fr
       setTopContainer(node)
     }
   }, [])
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedInput(searchInput.trim())
+    }, 1000)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [searchInput])
 
   useEffect(() => {
     if (!profile?.pubkey) return
@@ -180,7 +203,10 @@ export default function Profile({ id, hideTopSection = false, sinceTimestamp, fr
                   <Followings pubkey={pubkey} />
                   <Relays pubkey={pubkey} />
                   {isSelf && (
-                    <SecondaryPageLink to={toMuteList()} className="flex gap-1 hover:underline w-fit">
+                    <SecondaryPageLink
+                      to={toMuteList()}
+                      className="flex gap-1 hover:underline w-fit"
+                    >
                       {mutePubkeySet.size}
                       <div className="text-muted-foreground">{t('Muted')}</div>
                     </SecondaryPageLink>
@@ -190,9 +216,22 @@ export default function Profile({ id, hideTopSection = false, sinceTimestamp, fr
               </div>
             </div>
           </div>
+          <div className="px-4 pt-2 pb-0.5">
+            <SearchInput
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              placeholder={t('Search')}
+            />
+          </div>
         </div>
       )}
-      <ProfileFeed pubkey={pubkey} topSpace={hideTopSection ? 0 : topContainerHeight + 100} sinceTimestamp={sinceTimestamp} fromGrouped={fromGrouped} />
+      <ProfileFeed
+        pubkey={pubkey}
+        topSpace={hideTopSection ? 0 : topContainerHeight + 100}
+        sinceTimestamp={sinceTimestamp}
+        fromGrouped={fromGrouped}
+        search={debouncedInput}
+      />
     </>
   )
 }

@@ -94,7 +94,7 @@ export const EmbeddedUrlParser: TContentParser = (content: string) => {
       type = 'image'
     } else if (isMedia(url)) {
       type = 'media'
-    } else if (YOUTUBE_URL_REGEX.test(url)) {
+    } else if (url.match(YOUTUBE_URL_REGEX)) {
       type = 'youtube'
     }
 

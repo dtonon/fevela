@@ -31,7 +31,7 @@ export function ZapNotification({
       sentAt={notification.created_at}
       targetEvent={event}
       middle={
-        <div className="font-semibold text-yellow-400 shrink-0">
+        <div className="font-semibold text-yellow-400 truncate">
           {formatAmount(amount)} {t('sats')} {comment}
         </div>
       }

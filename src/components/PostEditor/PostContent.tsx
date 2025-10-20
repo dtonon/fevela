@@ -149,12 +149,14 @@ export default function PostContent({
         addReplies([newEvent])
         close()
       } catch (error) {
-        if (error instanceof AggregateError) {
-          error.errors.forEach((e) => toast.error(`${t('Failed to post')}: ${e.message}`))
-        } else if (error instanceof Error) {
-          toast.error(`${t('Failed to post')}: ${error.message}`)
-        }
-        console.error(error)
+        const errors = error instanceof AggregateError ? error.errors : [error]
+        errors.forEach((err) => {
+          toast.error(
+            `${t('Failed to post')}: ${err instanceof Error ? err.message : String(err)}`,
+            { duration: 10_000 }
+          )
+          console.error(err)
+        })
         return
       } finally {
         setPosting(false)

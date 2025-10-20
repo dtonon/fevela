@@ -1,11 +1,13 @@
 import { Separator } from '@/components/ui/separator'
 import { toNote } from '@/lib/link'
+import { cn } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
 import { Event } from 'nostr-tools'
 import Collapsible from '../Collapsible'
 import GroupedNotesIndicator from '../GroupedNotesIndicator'
 import Note from '../Note'
 import NoteStats from '../NoteStats'
+import PinnedButton from './PinnedButton'
 import RepostDescription from './RepostDescription'
 
 export default function MainNoteCard({
@@ -17,7 +19,8 @@ export default function MainNoteCard({
   groupedNotesTotalCount,
   groupedNotesOldestTimestamp,
   onAllNotesRead,
-  areAllNotesRead
+  areAllNotesRead,
+  pinned = false
 }: {
   event: Event
   className?: string
@@ -28,6 +31,7 @@ export default function MainNoteCard({
   groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
+  pinned?: boolean
 }) {
   const { push } = useSecondaryPage()
 
@@ -39,8 +43,9 @@ export default function MainNoteCard({
         push(toNote(originalNoteId ?? event))
       }}
     >
-      <div className={`clickable ${embedded ? 'p-2 sm:p-3 border rounded-lg' : 'pt-3'}`}>
+      <div className={cn('clickable', embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3')}>
         <Collapsible alwaysExpand={embedded}>
+          {pinned && <PinnedButton event={event} />}
           <RepostDescription className={embedded ? '' : 'px-4'} reposter={reposter} />
           <Note
             className={embedded ? '' : 'px-4'}

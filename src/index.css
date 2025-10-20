@@ -33,12 +33,22 @@
     user-select: none;
   }
 
+  /* hide scrollbar */
+  html, body {
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 和 Edge */
+  }
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar {
+    display: none; /* Chrome、Safari、Edge */
+  }
+
   .clickable {
     cursor: pointer;
     transition: background-color 0.2s ease;
 
     &:active {
-      background-color: hsl(var(--muted) / 0.5);
+      background-color: hsl(var(--muted) / 0.3);
     }
   }
 
@@ -60,7 +70,7 @@
 
   @media (hover: hover) and (pointer: fine) {
     .clickable:hover {
-      background-color: hsl(var(--muted) / 0.5);
+      background-color: hsl(var(--muted) / 0.3);
     }
   }
 
@@ -133,6 +143,12 @@
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+  }
+  .dark.pure-black {
+    --surface-background: 0 0% 0%;
+    --background: 0 0% 0%;
+    --card: 0 0% 0%;
+    --popover: 0 0% 0%;
   }
 
   .dark input[type='datetime-local']::-webkit-calendar-picker-indicator {
