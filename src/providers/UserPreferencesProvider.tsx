@@ -1,6 +1,6 @@
 import storage from '@/services/local-storage.service'
 import { TNotificationStyle } from '@/types'
-import { createContext, useContext, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useScreenSize } from './ScreenSizeProvider'
 
 type TUserPreferencesContext = {
@@ -37,6 +37,14 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
   const [enableSingleColumnLayout, setEnableSingleColumnLayout] = useState(
     storage.getEnableSingleColumnLayout()
   )
+
+  useEffect(() => {
+    if (!isSmallScreen && enableSingleColumnLayout) {
+      document.documentElement.style.setProperty('overflow-y', 'scroll')
+    } else {
+      document.documentElement.style.removeProperty('overflow-y')
+    }
+  }, [enableSingleColumnLayout, isSmallScreen])
 
   const updateNotificationListStyle = (style: TNotificationStyle) => {
     setNotificationListStyle(style)
