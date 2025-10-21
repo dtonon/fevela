@@ -13,6 +13,7 @@ import { KindFilterProvider } from '@/providers/KindFilterProvider'
 import { MediaUploadServiceProvider } from '@/providers/MediaUploadServiceProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
+import { PinBuryProvider } from '@/providers/PinBuryProvider'
 import { PinListProvider } from '@/providers/PinListProvider'
 import { ReplyProvider } from '@/providers/ReplyProvider'
 import { ScreenSizeProvider } from '@/providers/ScreenSizeProvider'
@@ -35,8 +36,9 @@ export default function App(): JSX.Element {
                   <TranslationServiceProvider>
                     <FavoriteRelaysProvider>
                       <FollowListProvider>
-                        <MuteListProvider>
-                          <UserTrustProvider>
+                        <PinBuryProvider>
+                          <MuteListProvider>
+                            <UserTrustProvider>
                             <BookmarksProvider>
                               <PinListProvider>
                                 <FeedProvider>
@@ -53,8 +55,9 @@ export default function App(): JSX.Element {
                                 </FeedProvider>
                               </PinListProvider>
                             </BookmarksProvider>
-                          </UserTrustProvider>
-                        </MuteListProvider>
+                            </UserTrustProvider>
+                          </MuteListProvider>
+                        </PinBuryProvider>
                       </FollowListProvider>
                     </FavoriteRelaysProvider>
                   </TranslationServiceProvider>

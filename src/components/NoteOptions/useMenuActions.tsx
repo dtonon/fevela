@@ -4,9 +4,11 @@ import { pubkeyToNpub } from '@/lib/pubkey'
 import { simplifyUrl } from '@/lib/url'
 import { useCurrentRelays } from '@/providers/CurrentRelaysProvider'
 import { useFavoriteRelays } from '@/providers/FavoriteRelaysProvider'
+import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { usePinList } from '@/providers/PinListProvider'
+import { usePinBury } from '@/providers/PinBuryProvider'
 import client from '@/services/client.service'
 import {
   Bell,
@@ -16,6 +18,8 @@ import {
   Link,
   Pin,
   PinOff,
+  ArrowDown,
+  ArrowUp,
   SatelliteDish,
   Trash2,
   TriangleAlert
@@ -68,7 +72,10 @@ export function useMenuActions({
   }, [currentBrowsingRelayUrls, favoriteRelays])
   const { mutePubkeyPublicly, mutePubkeyPrivately, unmutePubkey, mutePubkeySet } = useMuteList()
   const { pinnedEventHexIdSet, pin, unpin } = usePinList()
+  const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
+  const { settings: groupedNotesSettings } = useGroupedNotes()
   const isMuted = useMemo(() => mutePubkeySet.has(event.pubkey), [mutePubkeySet, event])
+  const pinBuryState = useMemo(() => getPinBuryState(event.pubkey), [getPinBuryState, event.pubkey])
 
   const broadcastSubMenu: SubMenuAction[] = useMemo(() => {
     const items = []
@@ -159,14 +166,74 @@ export function useMenuActions({
   }, [pubkey, relayUrls, relaySets])
 
   const menuActions: MenuAction[] = useMemo(() => {
-    const actions: MenuAction[] = [
+    const actions: MenuAction[] = []
+
+    // Pin/Bury user actions (first block) - only when grouped notes is enabled
+    if (groupedNotesSettings.enabled) {
+      if (pinBuryState === 'pinned') {
+        actions.push({
+          icon: PinOff,
+          label: t('GroupedNotesUnpin'),
+          onClick: () => {
+            closeDrawer()
+            clearState(event.pubkey)
+          }
+        })
+        actions.push({
+          icon: ArrowDown,
+          label: t('GroupedNotesBury'),
+          onClick: () => {
+            closeDrawer()
+            setBuried(event.pubkey)
+          }
+        })
+      } else if (pinBuryState === 'buried') {
+        actions.push({
+          icon: ArrowUp,
+          label: t('GroupedNotesUnbury'),
+          onClick: () => {
+            closeDrawer()
+            clearState(event.pubkey)
+          }
+        })
+        actions.push({
+          icon: Pin,
+          label: t('GroupedNotesPin'),
+          onClick: () => {
+            closeDrawer()
+            setPinned(event.pubkey)
+          }
+        })
+      } else {
+        actions.push({
+          icon: Pin,
+          label: t('GroupedNotesPin'),
+          onClick: () => {
+            closeDrawer()
+            setPinned(event.pubkey)
+          }
+        })
+        actions.push({
+          icon: ArrowDown,
+          label: t('GroupedNotesBury'),
+          onClick: () => {
+            closeDrawer()
+            setBuried(event.pubkey)
+          }
+        })
+      }
+    }
+
+    // Standard actions
+    actions.push(
       {
         icon: Copy,
         label: t('Copy event ID'),
         onClick: () => {
           navigator.clipboard.writeText(getNoteBech32Id(event))
           closeDrawer()
-        }
+        },
+        separator: groupedNotesSettings.enabled // Only add separator if pin/bury actions were shown
       },
       {
         icon: Copy,
@@ -193,7 +260,7 @@ export function useMenuActions({
         },
         separator: true
       }
-    ]
+    )
 
     const isProtected = isProtectedEvent(event)
     if (!isProtected || event.pubkey === pubkey) {
@@ -292,12 +359,17 @@ export function useMenuActions({
     isSmallScreen,
     broadcastSubMenu,
     pinnedEventHexIdSet,
+    pinBuryState,
+    groupedNotesSettings.enabled,
     closeDrawer,
     showSubMenuActions,
     setIsRawEventDialogOpen,
     mutePubkeyPrivately,
     mutePubkeyPublicly,
-    unmutePubkey
+    unmutePubkey,
+    setPinned,
+    setBuried,
+    clearState
   ])
 
   return menuActions

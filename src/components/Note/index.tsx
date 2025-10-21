@@ -11,6 +11,7 @@ import AudioPlayer from '../AudioPlayer'
 import ClientTag from '../ClientTag'
 import Content from '../Content'
 import FollowingBadge from '../FollowingBadge'
+import PinBuryBadge from '../PinBuryBadge'
 import { FormattedTimestamp } from '../FormattedTimestamp'
 import Nip05 from '../Nip05'
 import NoteOptions from '../NoteOptions'
@@ -122,6 +123,7 @@ export default function Note({
                   skeletonClassName={size === 'small' ? 'h-3' : 'h-4'}
                 />
                 <FollowingBadge pubkey={event.pubkey} />
+                <PinBuryBadge pubkey={event.pubkey} />
                 <ClientTag event={event} />
               </div>
               <div className="flex items-center gap-1 text-sm text-muted-foreground">

@@ -16,6 +16,8 @@ import Username, { SimpleUsername } from '../Username'
 import { useSecondaryPage } from '@/PageManager'
 import { toNote, toProfile } from '@/lib/link'
 import { userIdToPubkey } from '@/lib/pubkey'
+import PinBuryBadge from '../PinBuryBadge'
+import CompactModeMenu from '../CompactModeMenu'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
@@ -227,6 +229,7 @@ export default function CompactedEventCard({
                         className="font-semibold flex truncate cursor-pointer hover:text-primary"
                         skeletonClassName="h-4"
                       />
+                      <PinBuryBadge pubkey={event.pubkey} />
                     </div>
                     <div className="flex items-center gap-1 text-sm text-muted-foreground">
                       <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
@@ -247,10 +250,11 @@ export default function CompactedEventCard({
                     </div>
                   </div>
                 </div>
-                {/* Show counter badge - border becomes more contrasted on hover */}
-                <div className="flex items-center">
+                {/* Show compact mode menu and counter badge */}
+                <div className="flex items-center gap-1">
+                  <CompactModeMenu pubkey={event.pubkey} />
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${
+                    className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${
                       isLastNoteRead
                         ? 'bg-primary/10 border border-primary/20 grayscale group-hover/row:border-foreground/30'
                         : 'bg-primary/10 border border-primary/20 group-hover/row:border-foreground/30'

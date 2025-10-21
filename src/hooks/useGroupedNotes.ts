@@ -2,6 +2,7 @@ import { getTimeFrameInMs, useGroupedNotes } from '@/providers/GroupedNotesProvi
 import { isReplyNoteEvent } from '@/lib/event'
 import { Event } from 'nostr-tools'
 import { useMemo } from 'react'
+import { usePinBury } from '@/providers/PinBuryProvider'
 
 export type TGroupedNote = {
   note: Event
@@ -20,6 +21,7 @@ export function useGroupedNotesProcessing(
   hasNoResults: boolean
 } {
   const { settings } = useGroupedNotes()
+  const { getPinBuryState } = usePinBury()
 
   return useMemo(() => {
     if (!settings.enabled) {
@@ -83,8 +85,22 @@ export function useGroupedNotesProcessing(
       })
     })
 
-    // Step 5: Sort final notes by created_at descending
-    const processedEvents = latestNotes.sort((a, b) => b.created_at - a.created_at)
+    // Step 5: Sort final notes by pin/bury state, then by created_at descending
+    const processedEvents = latestNotes.sort((a, b) => {
+      const stateA = getPinBuryState(a.pubkey)
+      const stateB = getPinBuryState(b.pubkey)
+
+      // Pinned users come first
+      if (stateA === 'pinned' && stateB !== 'pinned') return -1
+      if (stateA !== 'pinned' && stateB === 'pinned') return 1
+
+      // Buried users come last
+      if (stateA === 'buried' && stateB !== 'buried') return 1
+      if (stateA !== 'buried' && stateB === 'buried') return -1
+
+      // Within the same group, sort by created_at descending
+      return b.created_at - a.created_at
+    })
 
     const hasNoResults = processedEvents.length === 0 && eventsInTimeframe.length > 0
 
@@ -93,5 +109,5 @@ export function useGroupedNotesProcessing(
       groupedNotesData,
       hasNoResults
     }
-  }, [events, showKinds, settings])
+  }, [events, showKinds, settings, getPinBuryState])
 }
