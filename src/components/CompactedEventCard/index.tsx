@@ -12,7 +12,7 @@ import { useTranslation } from 'react-i18next'
 import Collapsible from '../Collapsible'
 import { FormattedTimestamp } from '../FormattedTimestamp'
 import UserAvatar from '../UserAvatar'
-import Username from '../Username'
+import Username, { SimpleUsername } from '../Username'
 import { useSecondaryPage } from '@/PageManager'
 import { toNote, toProfile } from '@/lib/link'
 import { userIdToPubkey } from '@/lib/pubkey'
@@ -236,10 +236,12 @@ export default function CompactedEventCard({
                           <span className="shrink-0">{t('Reply')}</span>
                         </>
                       )}
-                      {isRepost && (
+                      {isRepost && targetEvent && (
                         <>
                           <span>·</span>
-                          <span className="text-sm text-muted-foreground">Reposted</span>
+                          <span className="shrink-0">Reposting</span>
+                          <UserAvatar userId={targetEvent.pubkey} size="xSmall" />
+                          <SimpleUsername userId={targetEvent.pubkey} />
                         </>
                       )}
                     </div>
