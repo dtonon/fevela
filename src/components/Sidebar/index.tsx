@@ -20,7 +20,7 @@ import SettingsButton from './SettingsButton'
 export default function PrimaryPageSidebar() {
   const { isSmallScreen } = useScreenSize()
   const { themeSetting } = useTheme()
-  const { sidebarCollapse, updateSidebarCollapse } = useUserPreferences()
+  const { sidebarCollapse, updateSidebarCollapse, enableSingleColumnLayout } = useUserPreferences()
   const { pubkey } = useNostr()
 
   if (isSmallScreen) return null
@@ -58,7 +58,7 @@ export default function PrimaryPageSidebar() {
       <button
         className={cn(
           'absolute flex flex-col justify-center items-center right-0 w-5 h-6 p-0 rounded-l-md hover:shadow-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
-          themeSetting === 'pure-black' ? 'top-3' : 'top-5'
+          themeSetting === 'pure-black' || enableSingleColumnLayout ? 'top-3' : 'top-5'
         )}
         onClick={(e) => {
           e.stopPropagation()
