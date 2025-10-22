@@ -84,6 +84,33 @@ export default function GroupedNotesFilter() {
 
       {tempSettings.enabled && (
         <>
+          <div className="space-y-2">
+            <Label className="text-sm font-medium leading-4">{t('GroupedNotesTimeframe')}</Label>
+            <Select
+              value={`${tempSettings.timeFrame.value}-${tempSettings.timeFrame.unit}`}
+              onValueChange={(value) => {
+                const [val, unit] = value.split('-')
+                const timeFrame = timeFrameOptions.find(
+                  (tf) => tf.value === parseInt(val) && tf.unit === unit
+                )
+                if (timeFrame) {
+                  setTempSettings((prev) => ({ ...prev, timeFrame }))
+                }
+              }}
+            >
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent className="max-h-60">
+                {timeFrameOptions.map((tf) => (
+                  <SelectItem key={`${tf.value}-${tf.unit}`} value={`${tf.value}-${tf.unit}`}>
+                    {tf.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
           <div className="flex items-center justify-between gap-4">
             <Label htmlFor="compacted-view" className="text-sm font-medium">
               {t('GroupedNotesCompact')}
@@ -139,33 +166,6 @@ export default function GroupedNotesFilter() {
               />
             </div>
           )}
-
-          <div className="space-y-2">
-            <Label className="text-sm font-medium leading-4">{t('GroupedNotesTimeframe')}</Label>
-            <Select
-              value={`${tempSettings.timeFrame.value}-${tempSettings.timeFrame.unit}`}
-              onValueChange={(value) => {
-                const [val, unit] = value.split('-')
-                const timeFrame = timeFrameOptions.find(
-                  (tf) => tf.value === parseInt(val) && tf.unit === unit
-                )
-                if (timeFrame) {
-                  setTempSettings((prev) => ({ ...prev, timeFrame }))
-                }
-              }}
-            >
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {timeFrameOptions.map((tf) => (
-                  <SelectItem key={`${tf.value}-${tf.unit}`} value={`${tf.value}-${tf.unit}`}>
-                    {tf.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium leading-4">{t('GroupedNotesFilterMore')}</Label>
