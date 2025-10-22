@@ -40,22 +40,27 @@ function HighlightSource({ event }: { event: Event }) {
   const sourceTag = useMemo(() => {
     let sourceTag: string[] | undefined
     for (const tag of event.tags) {
+      // Highest priority: 'source' tag
       if (tag[2] === 'source') {
         sourceTag = tag
         break
       }
-      if (tag[0] === 'r') {
+
+      // Give 'e' tags highest priority
+      if (tag[0] === 'e') {
         sourceTag = tag
         continue
-      } else if (tag[0] === 'a') {
-        if (!sourceTag || sourceTag[0] !== 'r') {
-          sourceTag = tag
-        }
+      }
+
+      // Give 'a' tags second priority over 'e' tags
+      if (tag[0] === 'a' && (!sourceTag || sourceTag[0] !== 'e')) {
+        sourceTag = tag
         continue
-      } else if (tag[0] === 'e') {
-        if (!sourceTag || sourceTag[0] === 'e') {
-          sourceTag = tag
-        }
+      }
+
+      // Give 'r' tags lowest priority
+      if (tag[0] === 'r' && (!sourceTag || sourceTag[0] === 'r')) {
+        sourceTag = tag
         continue
       }
     }
