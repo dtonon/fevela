@@ -136,23 +136,6 @@ export default function ProfileFeed({
     init()
   }, [pubkey, listMode, search])
 
-  useEffect(() => {
-    if (pubkey !== myPubkey) return
-
-    const handleNewEvent = (data: Event) => {
-      const customEvent = data as CustomEvent<NostrEvent>
-      const evt = customEvent.detail
-      if (evt.pubkey !== pubkey) return
-
-      noteListRef.current?.refresh()
-    }
-
-    client.addEventListener('newEvent', handleNewEvent)
-    return () => {
-      client.removeEventListener('newEvent', handleNewEvent)
-    }
-  }, [pubkey, myPubkey])
-
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)
     noteListRef.current?.scrollToTop('smooth')
