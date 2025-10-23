@@ -20,6 +20,7 @@ import {
   EventTemplate,
   Filter,
   kinds,
+  matchFilters,
   Event as NEvent,
   nip19,
   Relay,
@@ -471,8 +472,24 @@ class ClientService extends EventTarget {
       }
     })
 
+    const handleNewEventFromInternal = (data: Event) => {
+      const customEvent = data as CustomEvent<NEvent>
+      const evt = customEvent.detail
+      if (!matchFilters(filters, evt)) return
+
+      const id = evt.id
+      const have = _knownIds.has(id)
+      if (have) return
+
+      _knownIds.add(id)
+      onevent?.(evt)
+    }
+
+    this.addEventListener('newEvent', handleNewEventFromInternal)
+
     return {
       close: () => {
+        this.removeEventListener('newEvent', handleNewEventFromInternal)
         subPromises.forEach((subPromise) => {
           subPromise
             .then((sub) => {

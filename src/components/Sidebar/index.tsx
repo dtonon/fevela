@@ -10,6 +10,7 @@ import AccountButton from './AccountButton'
 import BookmarkButton from './BookmarkButton'
 import RelaysButton from './ExploreButton'
 import HomeButton from './HomeButton'
+import LayoutSwitcher from './LayoutSwitcher'
 import NotificationsButton from './NotificationButton'
 import PostButton from './PostButton'
 import ProfileButton from './ProfileButton'
@@ -19,7 +20,7 @@ import SettingsButton from './SettingsButton'
 export default function PrimaryPageSidebar() {
   const { isSmallScreen } = useScreenSize()
   const { themeSetting } = useTheme()
-  const { sidebarCollapse, updateSidebarCollapse } = useUserPreferences()
+  const { sidebarCollapse, updateSidebarCollapse, enableSingleColumnLayout } = useUserPreferences()
   const { pubkey } = useNostr()
 
   if (isSmallScreen) return null
@@ -50,11 +51,14 @@ export default function PrimaryPageSidebar() {
         <SettingsButton collapse={sidebarCollapse} />
         <PostButton collapse={sidebarCollapse} />
       </div>
-      <AccountButton collapse={sidebarCollapse} />
+      <div className="space-y-4">
+        <LayoutSwitcher collapse={sidebarCollapse} />
+        <AccountButton collapse={sidebarCollapse} />
+      </div>
       <button
         className={cn(
           'absolute flex flex-col justify-center items-center right-0 w-5 h-6 p-0 rounded-l-md hover:shadow-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
-          themeSetting === 'pure-black' ? 'top-3' : 'top-5'
+          themeSetting === 'pure-black' || enableSingleColumnLayout ? 'top-3' : 'top-5'
         )}
         onClick={(e) => {
           e.stopPropagation()

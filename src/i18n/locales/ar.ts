@@ -495,6 +495,7 @@ export default {
     'Primary color': 'اللون الأساسي',
     Layout: 'التخطيط',
     'Two-column': 'عمودين',
-    'Single-column': 'عمود واحد'
+    'Single-column': 'عمود واحد',
+    Reviews: 'المراجعات'
   }
 }

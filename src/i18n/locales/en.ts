@@ -495,6 +495,7 @@ export default {
     'Primary color': 'Primary color',
     Layout: 'Layout',
     'Two-column': 'Two-column',
-    'Single-column': 'Single-column'
+    'Single-column': 'Single-column',
+    Reviews: 'Reviews'
   }
 }

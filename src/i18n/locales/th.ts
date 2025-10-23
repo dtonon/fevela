@@ -495,6 +495,7 @@ export default {
     'Primary color': 'สีหลัก',
     Layout: 'เค้าโครง',
     'Two-column': 'สองคอลัมน์',
-    'Single-column': 'คอลัมน์เดียว'
+    'Single-column': 'คอลัมน์เดียว',
+    Reviews: 'รีวิว'
   }
 }

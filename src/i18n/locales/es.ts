@@ -505,6 +505,7 @@ export default {
     'Primary color': 'Color primario',
     Layout: 'Diseño',
     'Two-column': 'Doble columna',
-    'Single-column': 'Columna única'
+    'Single-column': 'Columna única',
+    Reviews: 'Reseñas'
   }
 }

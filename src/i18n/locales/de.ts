@@ -511,6 +511,7 @@ export default {
     'Primary color': 'Primärfarbe',
     Layout: 'Layout',
     'Two-column': 'Zweispaltig',
-    'Single-column': 'Einspaltig'
+    'Single-column': 'Einspaltig',
+    Reviews: 'Bewertungen'
   }
 }

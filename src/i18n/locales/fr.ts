@@ -510,6 +510,7 @@ export default {
     'Primary color': 'Couleur principale',
     Layout: 'Disposition',
     'Two-column': 'Deux colonnes',
-    'Single-column': 'Une seule colonne'
+    'Single-column': 'Une seule colonne',
+    Reviews: 'Avis'
   }
 }

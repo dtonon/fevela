@@ -499,6 +499,7 @@ export default {
     'Primary color': 'رنگ اصلی',
     Layout: 'چیدمان',
     'Two-column': 'دو ستونی',
-    'Single-column': 'تک ستونی'
+    'Single-column': 'تک ستونی',
+    Reviews: 'نقدها'
   }
 }
