@@ -484,6 +484,7 @@ export default {
     'Primary color': 'प्राथमिक रंग',
     Layout: 'लेआउट',
     'Two-column': 'दोहरा स्तंभ',
-    'Single-column': 'एकल स्तंभ'
+    'Single-column': 'एकल स्तंभ',
+    Reviews: 'समीक्षाएं'
   }
 }

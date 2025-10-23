@@ -487,6 +487,7 @@ export default {
     'Primary color': 'Kolor podstawowy',
     Layout: 'Układ',
     'Two-column': 'Dwie kolumny',
-    'Single-column': 'Jedna kolumna'
+    'Single-column': 'Jedna kolumna',
+    Reviews: 'Opinie'
   }
 }

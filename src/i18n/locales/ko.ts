@@ -483,6 +483,7 @@ export default {
     'Primary color': '기본 색상',
     Layout: '레이아웃',
     'Two-column': '두 열',
-    'Single-column': '한 열'
+    'Single-column': '한 열',
+    Reviews: '리뷰'
   }
 }

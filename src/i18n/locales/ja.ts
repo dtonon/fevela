@@ -483,6 +483,7 @@ export default {
     'Primary color': '主要な色',
     Layout: 'レイアウト',
     'Two-column': '2列',
-    'Single-column': '1列'
+    'Single-column': '1列',
+    Reviews: 'レビュー'
   }
 }
