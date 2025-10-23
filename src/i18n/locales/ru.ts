@@ -489,6 +489,7 @@ export default {
     'Primary color': 'Основной цвет',
     Layout: 'Макет',
     'Two-column': 'Две колонки',
-    'Single-column': 'Одна колонка'
+    'Single-column': 'Одна колонка',
+    Reviews: 'Отзывы'
   }
 }

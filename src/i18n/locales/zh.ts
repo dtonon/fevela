@@ -475,6 +475,7 @@ export default {
     'Primary color': '主色调',
     Layout: '布局',
     'Two-column': '双栏',
-    'Single-column': '单栏'
+    'Single-column': '单栏',
+    Reviews: '评价'
   }
 }
