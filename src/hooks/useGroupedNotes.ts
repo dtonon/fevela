@@ -75,6 +75,35 @@ export function useGroupedNotesProcessing(
       }
     }
 
+    // Step 1.7: Filter out short notes (single words or less than 10 characters)
+    if (settings.hideShortNotes) {
+      eventsInTimeframe = eventsInTimeframe.filter(event => {
+        const content = (event.content || '').trim()
+
+        // Filter out if content is less than 10 characters
+        if (content.length < 10) {
+          return false
+        }
+
+        // Filter out emoji-only notes
+        // Remove emojis and check if there's any substantial text left
+        // Using Unicode property escapes to match all emoji characters
+        const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+        const contentWithoutEmojis = content.replace(emojiRegex, '').replace(/\s+/g, '').trim()
+        if (contentWithoutEmojis.length < 2) {
+          return false
+        }
+
+        // Filter out single words (no spaces or only one word)
+        const words = content.split(/\s+/).filter(word => word.length > 0)
+        if (words.length === 1) {
+          return false
+        }
+
+        return true
+      })
+    }
+
     // Step 2: Group events by author pubkey
     const eventsByAuthor = new Map<string, Event[]>()
     eventsInTimeframe.forEach(event => {

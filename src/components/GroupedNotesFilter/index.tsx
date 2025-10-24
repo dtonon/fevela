@@ -45,7 +45,8 @@ export default function GroupedNotesFilter() {
       compactedView: true,
       includeReplies: false,
       showOnlyFirstLevelReplies: false,
-      showPreview: true
+      showPreview: true,
+      hideShortNotes: false
     })
   }
 
@@ -173,6 +174,19 @@ export default function GroupedNotesFilter() {
               />
             </div>
           )}
+
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="hide-short-notes" className="text-sm font-medium">
+              {t('GroupedNotesHideShortNotes')}
+            </Label>
+            <Switch
+              id="hide-short-notes"
+              checked={tempSettings.hideShortNotes}
+              onCheckedChange={(checked) =>
+                setTempSettings((prev) => ({ ...prev, hideShortNotes: checked }))
+              }
+            />
+          </div>
 
           <div className="space-y-2">
             <Label htmlFor="word-filter" className="text-sm font-medium leading-4">
