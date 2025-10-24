@@ -90,11 +90,12 @@ export default function Image({
           alt={alt}
           decoding="async"
           loading="lazy"
+          draggable={false}
           {...props}
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
-            'object-cover rounded-lg w-full h-full transition-opacity',
+            'object-cover rounded-lg w-full h-full transition-opacity pointer-events-none',
             isLoading ? 'opacity-0' : 'opacity-100',
             className
           )}
