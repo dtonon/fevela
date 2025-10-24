@@ -430,6 +430,8 @@ export default {
     GroupedNotesShowOnlyFirstLevelReplies: 'إظهار الردود من المستوى الأول فقط',
     GroupedNotesFilter: 'البحث عن المستخدمين...',
     GroupedNotesTimeframe: 'أظهر لي ملخصاً للمستخدمين المنفردين عما حدث في آخر',
+    GroupedNotesWordFilter: 'تصفية الملاحظات التي تحتوي على هذه الكلمات (مفصولة بفاصلة):',
+    GroupedNotesWordFilterPlaceholder: 'مثال: nostr, bitcoin, gm',
     GroupedNotesFilterMore: 'تصفية المستخدمين الذين نشروا أكثر من X ملاحظة في الفترة الزمنية',
     GroupedNotesDays: 'أيام',
     GroupedNotesHours: 'ساعات',

@@ -440,6 +440,8 @@ export default {
     GroupedNotesFilter: 'Поиск пользователей...',
     GroupedNotesTimeframe:
       'Показать сводку для отдельных пользователей о том, что происходило за последние',
+    GroupedNotesWordFilter: 'Фильтровать заметки с этими словами (через запятую):',
+    GroupedNotesWordFilterPlaceholder: 'например: nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'Отфильтровать пользователей, которые опубликовали больше X заметок в течение периода',
     GroupedNotesDays: 'Дни',

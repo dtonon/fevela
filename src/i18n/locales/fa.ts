@@ -433,6 +433,8 @@ export default {
     GroupedNotesFilter: 'جستجوی کاربران...',
     GroupedNotesTimeframe:
       'برای کاربران مجزا خلاصه‌ای از آنچه در آخرین بار اتفاق افتاده را نشان دهد',
+    GroupedNotesWordFilter: 'فیلتر کردن یادداشت‌هایی که این کلمات را دارند (با کاما جدا شوند):',
+    GroupedNotesWordFilterPlaceholder: 'مثال: nostr, bitcoin, gm',
     GroupedNotesFilterMore: 'فیلتر کردن کاربرانی که بیش از X یادداشت در بازه زمانی منتشر کرده‌اند',
     GroupedNotesDays: 'روز',
     GroupedNotesHours: 'ساعت',

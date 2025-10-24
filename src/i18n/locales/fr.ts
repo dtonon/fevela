@@ -442,6 +442,8 @@ export default {
     GroupedNotesFilter: 'Rechercher des utilisateurs...',
     GroupedNotesTimeframe:
       "Montrez-moi un résumé pour les utilisateurs individuels de ce qui s'est passé dans les derniers",
+    GroupedNotesWordFilter: 'Filtrer les notes avec ces mots (séparés par des virgules):',
+    GroupedNotesWordFilterPlaceholder: 'ex. nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'Filtrer les utilisateurs qui ont publié plus de X notes dans la période',
     GroupedNotesDays: 'Jours',

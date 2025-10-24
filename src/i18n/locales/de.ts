@@ -443,6 +443,8 @@ export default {
     GroupedNotesFilter: 'Benutzer suchen...',
     GroupedNotesTimeframe:
       'Zeige mir eine Zusammenfassung für einzelne Benutzer von dem, was in den letzten passiert ist',
+    GroupedNotesWordFilter: 'Notizen mit diesen Wörtern herausfiltern (durch Komma getrennt):',
+    GroupedNotesWordFilterPlaceholder: 'z.B. nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'Benutzer herausfiltern, die mehr als X Notizen im Zeitraum veröffentlicht haben',
     GroupedNotesDays: 'Tage',

@@ -433,6 +433,8 @@ export default {
     GroupedNotesShowOnlyFirstLevelReplies: '第一レベルの返信のみを表示',
     GroupedNotesFilter: 'ユーザーを検索...',
     GroupedNotesTimeframe: '個々のユーザーの過去の出来事の要約を表示',
+    GroupedNotesWordFilter: 'これらの単語を含むノートをフィルタリング（カンマ区切り）：',
+    GroupedNotesWordFilterPlaceholder: '例: nostr, bitcoin, gm',
     GroupedNotesFilterMore: '期間中にX件以上のノートを公開したユーザーをフィルタリング',
     GroupedNotesDays: '日',
     GroupedNotesHours: '時間',

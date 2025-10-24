@@ -26,6 +26,7 @@ export const createTimeFrameOptions = (t: (key: string) => string): TTimeFrame[]
 export type TGroupedNotesSettings = {
   enabled: boolean
   timeFrame: TTimeFrame
+  wordFilter: string // comma-separated words to filter out
   maxNotesFilter: number // 0 means disabled
   compactedView: boolean
   includeReplies: boolean
@@ -41,6 +42,7 @@ export type TStoredTimeFrame = {
 export type TStoredGroupedNotesSettings = {
   enabled: boolean
   timeFrame: TStoredTimeFrame
+  wordFilter: string
   maxNotesFilter: number
   compactedView: boolean
   includeReplies: boolean
@@ -58,6 +60,7 @@ type TGroupedNotesContext = {
 const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSettings => ({
   enabled: false,
   timeFrame: timeFrameOptions[23], // 24 hours
+  wordFilter: '',
   maxNotesFilter: 0, // Disabled
   compactedView: true,
   includeReplies: false,
@@ -92,6 +95,7 @@ export function GroupedNotesProvider({ children }: { children: React.ReactNode }
       return {
         ...storedSettings,
         timeFrame, // use the one with current translations
+        wordFilter: storedSettings.wordFilter ?? '', // default to empty for existing users
         showPreview: storedSettings.showPreview ?? true, // default to true for existing users
         showOnlyFirstLevelReplies: storedSettings.showOnlyFirstLevelReplies ?? false // default to false for existing users
       }

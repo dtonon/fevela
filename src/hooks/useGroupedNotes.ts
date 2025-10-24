@@ -46,6 +46,35 @@ export function useGroupedNotesProcessing(
       eventsInTimeframe = eventsInTimeframe.filter(event => !isReplyNoteEvent(event))
     }
 
+    // Step 1.6: Filter by word filter (content and hashtags)
+    if (settings.wordFilter.trim()) {
+      const filterWords = settings.wordFilter
+        .split(',')
+        .map(word => word.trim().toLowerCase())
+        .filter(word => word.length > 0)
+
+      if (filterWords.length > 0) {
+        eventsInTimeframe = eventsInTimeframe.filter(event => {
+          // Get content in lowercase for case-insensitive matching
+          const content = (event.content || '').toLowerCase()
+
+          // Get hashtags from tags
+          const hashtags = event.tags
+            .filter(tag => tag[0] === 't' && tag[1])
+            .map(tag => tag[1].toLowerCase())
+
+          // Check if any filter word matches content or hashtags
+          const hasMatchInContent = filterWords.some(word => content.includes(word))
+          const hasMatchInHashtags = filterWords.some(word =>
+            hashtags.some(hashtag => hashtag.includes(word))
+          )
+
+          // Return true to KEEP the event (filter OUT events that match)
+          return !hasMatchInContent && !hasMatchInHashtags
+        })
+      }
+    }
+
     // Step 2: Group events by author pubkey
     const eventsByAuthor = new Map<string, Event[]>()
     eventsInTimeframe.forEach(event => {

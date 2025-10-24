@@ -435,6 +435,8 @@ export default {
     GroupedNotesFilter: 'उपयोगकर्ता खोजें...',
     GroupedNotesTimeframe:
       'मुझे व्यक्तिगत उपयोगकर्ताओं के लिए पिछले कई समय में क्या हुआ का सारांश दिखाएं',
+    GroupedNotesWordFilter: 'इन शब्दों वाले नोट्स फ़िल्टर करें (अल्पविराम से अलग):',
+    GroupedNotesWordFilterPlaceholder: 'उदा. nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'उन उपयोगकर्ताओं को फिल्टर करें जिन्होंने समयावधि में X से अधिक नोट्स प्रकाशित किए हैं',
     GroupedNotesDays: 'दिन',

@@ -438,6 +438,8 @@ export default {
     GroupedNotesFilter: 'Wyszukaj użytkowników...',
     GroupedNotesTimeframe:
       'Pokaż mi podsumowanie dla poszczególnych użytkowników tego, co wydarzyło się w ostatnich',
+    GroupedNotesWordFilter: 'Odfiltruj notatki z tymi słowami (oddzielone przecinkami):',
+    GroupedNotesWordFilterPlaceholder: 'np. nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'Odfiltruj użytkowników, którzy opublikowali więcej niż X notatek w okresie czasu',
     GroupedNotesDays: 'Dni',

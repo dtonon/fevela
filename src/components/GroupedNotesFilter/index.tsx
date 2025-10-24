@@ -1,5 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Drawer, DrawerContent, DrawerHeader, DrawerTrigger } from '@/components/ui/drawer'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
@@ -39,6 +40,7 @@ export default function GroupedNotesFilter() {
     setTempSettings({
       enabled: false,
       timeFrame: timeFrameOptions[23],
+      wordFilter: '',
       maxNotesFilter: 0,
       compactedView: true,
       includeReplies: false,
@@ -64,7 +66,12 @@ export default function GroupedNotesFilter() {
       <Group size={16} />
       {t('Grouped')}
       {settings.enabled && (
-        <div className="absolute size-2 rounded-full bg-primary left-7 top-2 ring-2 ring-background" />
+        <div
+          className="absolute size-2 rounded-full left-7 top-2 ring-2 ring-background"
+          style={{
+            backgroundColor: settings.wordFilter.trim() ? '#e03f8c' : 'hsl(var(--primary))'
+          }}
+        />
       )}
     </Button>
   )
@@ -166,6 +173,26 @@ export default function GroupedNotesFilter() {
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label htmlFor="word-filter" className="text-sm font-medium leading-4">
+              {t('GroupedNotesWordFilter')}
+            </Label>
+            <div className="relative">
+              <Input
+                id="word-filter"
+                type="text"
+                placeholder={t('GroupedNotesWordFilterPlaceholder')}
+                className="text-[#e03f8c]"
+                value={tempSettings.wordFilter}
+                onChange={(e) =>
+                  setTempSettings((prev) => ({ ...prev, wordFilter: e.target.value }))
+                }
+                showClearButton
+                onClear={() => setTempSettings((prev) => ({ ...prev, wordFilter: '' }))}
+              />
+            </div>
+          </div>
 
           <div className="space-y-2">
             <Label className="text-sm font-medium leading-4">{t('GroupedNotesFilterMore')}</Label>
