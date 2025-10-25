@@ -45,8 +45,11 @@ const DropdownMenu = ({
         createPortal(
           <div
             ref={backdropRef}
-            className="fixed inset-0 z-50"
-            onClick={() => handleOpenChange(false)}
+            className="fixed inset-0 z-50 pointer-events-auto"
+            onClick={(e) => {
+              e.stopPropagation()
+              handleOpenChange(false)
+            }}
           />,
           document.body
         )}
