@@ -13,6 +13,7 @@ const DropdownMenu = ({
   const [uncontrolledOpen, setUncontrolledOpen] = React.useState(false)
   const isControlled = controlledOpen !== undefined
   const open = isControlled ? controlledOpen : uncontrolledOpen
+  const backdropRef = React.useRef<HTMLDivElement>(null)
 
   const handleOpenChange = React.useCallback(
     (newOpen: boolean) => {
@@ -24,11 +25,29 @@ const DropdownMenu = ({
     [isControlled, controlledOnOpenChange]
   )
 
+  React.useEffect(() => {
+    if (open) {
+      const preventScroll = (e: Event) => e.preventDefault()
+
+      document.addEventListener('wheel', preventScroll, { passive: false })
+      document.addEventListener('touchmove', preventScroll, { passive: false })
+
+      return () => {
+        document.removeEventListener('wheel', preventScroll)
+        document.removeEventListener('touchmove', preventScroll)
+      }
+    }
+  }, [open])
+
   return (
     <>
       {open &&
         createPortal(
-          <div className="fixed inset-0 z-50" onClick={() => handleOpenChange(false)} />,
+          <div
+            ref={backdropRef}
+            className="fixed inset-0 z-50"
+            onClick={() => handleOpenChange(false)}
+          />,
           document.body
         )}
       <DropdownMenuPrimitive.Root
@@ -224,6 +243,7 @@ const DropdownMenuContent = React.forwardRef<
           ref={scrollAreaRef}
           className={cn('p-1 overflow-y-auto', className)}
           onScroll={checkScrollability}
+          onWheel={(e) => e.stopPropagation()}
         >
           {props.children}
         </div>
