@@ -89,7 +89,6 @@ export default function Image({
           src={imageUrl}
           alt={alt}
           decoding="async"
-          loading="lazy"
           draggable={false}
           {...props}
           onLoad={handleLoad}
