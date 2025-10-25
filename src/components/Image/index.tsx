@@ -28,6 +28,7 @@ export default function Image({
   const [displaySkeleton, setDisplaySkeleton] = useState(true)
   const [hasError, setHasError] = useState(false)
   const [imageUrl, setImageUrl] = useState<string>()
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   useEffect(() => {
     setIsLoading(true)
@@ -37,7 +38,14 @@ export default function Image({
     if (pubkey) {
       blossomService.getValidUrl(url, pubkey).then((validUrl) => {
         setImageUrl(validUrl)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
       })
+      timeoutRef.current = setTimeout(() => {
+        setImageUrl(url)
+      }, 5000)
     } else {
       setImageUrl(url)
     }

@@ -6,10 +6,11 @@ class BlossomService {
   private cacheMap = new Map<
     string,
     {
-      pubkey: string
+      pubkey?: string
       resolve: (url: string) => void
       promise: Promise<string>
       tried: Set<string>
+      validUrl?: string
     }
   >()
 
@@ -23,7 +24,7 @@ class BlossomService {
   async getValidUrl(url: string, pubkey: string): Promise<string> {
     const cache = this.cacheMap.get(url)
     if (cache) {
-      return cache.promise
+      return cache.validUrl ?? cache.promise
     }
 
     let resolveFunc: (url: string) => void
@@ -40,6 +41,10 @@ class BlossomService {
     const entry = this.cacheMap.get(originalUrl)
     if (!entry) {
       return null
+    }
+
+    if (entry.validUrl) {
+      return entry.validUrl
     }
 
     const { pubkey, tried, resolve } = entry
@@ -82,12 +87,18 @@ class BlossomService {
 
   markAsSuccess(originalUrl: string, successUrl: string) {
     const entry = this.cacheMap.get(originalUrl)
-    if (!entry) return
+    if (!entry) {
+      this.cacheMap.set(originalUrl, {
+        resolve: () => {},
+        promise: Promise.resolve(successUrl),
+        tried: new Set<string>(),
+        validUrl: successUrl
+      })
+      return
+    }
 
     entry.resolve(successUrl)
-    if (originalUrl === successUrl) {
-      this.cacheMap.delete(originalUrl)
-    }
+    entry.validUrl = successUrl
   }
 }
 
