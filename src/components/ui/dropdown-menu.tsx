@@ -157,7 +157,7 @@ const DropdownMenuSubContent = React.forwardRef<
 
         <div
           ref={scrollAreaRef}
-          className={cn('p-1 overflow-y-auto', className)}
+          className={cn('p-1 overflow-y-auto scrollbar-hide', className)}
           onScroll={checkScrollability}
         >
           {props.children}
@@ -244,7 +244,7 @@ const DropdownMenuContent = React.forwardRef<
 
         <div
           ref={scrollAreaRef}
-          className={cn('p-1 overflow-y-auto', className)}
+          className={cn('p-1 overflow-y-auto scrollbar-hide', className)}
           onScroll={checkScrollability}
           onWheel={(e) => e.stopPropagation()}
         >
