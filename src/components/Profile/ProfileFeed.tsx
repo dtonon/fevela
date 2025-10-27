@@ -227,7 +227,7 @@ export default function ProfileFeed({
         filterMutedNotes={false}
         sinceTimestamp={sinceTimestamp}
         onNotesLoaded={fromGrouped ? handleNotesLoaded : undefined}
-        pinnedEventIds={listMode === 'you' || !!search ? [] : pinnedEventIds}
+        pinnedEventIds={listMode === 'you' || !!search || !!sinceTimestamp ? [] : pinnedEventIds}
       />
     </>
   )
