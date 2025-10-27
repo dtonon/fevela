@@ -5,11 +5,14 @@ import { nip19 } from 'nostr-tools'
 
 export function parseEditorJsonToText(node?: JSONContent) {
   const text = _parseEditorJsonToText(node).trim()
-  const regex = /(?:@|nostr:)?(nevent|naddr|nprofile|npub)1[a-zA-Z0-9]+/g
+  const regex = /(?:^|\s|@)(nostr:)?(nevent|naddr|nprofile|npub)1[a-zA-Z0-9]+/g
 
   return text.replace(regex, (match) => {
     let bech32 = match.trim()
-    if (bech32.startsWith('@')) {
+    const leadingSpace = match.startsWith(' ') ? ' ' : ''
+    if (bech32.startsWith('@nostr:')) {
+      bech32 = bech32.slice(7)
+    } else if (bech32.startsWith('@')) {
       bech32 = bech32.slice(1)
     } else if (bech32.startsWith('nostr:')) {
       bech32 = bech32.slice(6)
@@ -17,7 +20,7 @@ export function parseEditorJsonToText(node?: JSONContent) {
 
     try {
       nip19.decode(bech32)
-      return `nostr:${bech32}`
+      return `${leadingSpace}nostr:${bech32}`
     } catch {
       return match
     }
