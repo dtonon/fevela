@@ -24,6 +24,7 @@ export function useGroupedNotesProcessing(
   const { getPinBuryState } = usePinBury()
 
   return useMemo(() => {
+
     if (!settings.enabled) {
       return {
         processedEvents: events,
@@ -36,37 +37,37 @@ export function useGroupedNotesProcessing(
     const timeframeMs = getTimeFrameInMs(settings.timeFrame)
     const cutoffTime = Math.floor((now - timeframeMs) / 1000)
 
-    // Step 1: Filter events within timeframe and matching content types
-    let eventsInTimeframe = events.filter(event =>
-      event.created_at >= cutoffTime && showKinds.includes(event.kind)
+    // Filter events within timeframe and matching content types
+    let eventsInTimeframe = events.filter(
+      (event) => event.created_at >= cutoffTime && showKinds.includes(event.kind)
     )
 
-    // Step 1.5: Filter out replies if includeReplies is false
+    // Filter out replies if includeReplies is false
     if (!settings.includeReplies) {
-      eventsInTimeframe = eventsInTimeframe.filter(event => !isReplyNoteEvent(event))
+      eventsInTimeframe = eventsInTimeframe.filter((event) => !isReplyNoteEvent(event))
     }
 
-    // Step 1.6: Filter by word filter (content and hashtags)
+    // Filter by word filter (content and hashtags)
     if (settings.wordFilter.trim()) {
       const filterWords = settings.wordFilter
         .split(',')
-        .map(word => word.trim().toLowerCase())
-        .filter(word => word.length > 0)
+        .map((word) => word.trim().toLowerCase())
+        .filter((word) => word.length > 0)
 
       if (filterWords.length > 0) {
-        eventsInTimeframe = eventsInTimeframe.filter(event => {
+        eventsInTimeframe = eventsInTimeframe.filter((event) => {
           // Get content in lowercase for case-insensitive matching
           const content = (event.content || '').toLowerCase()
 
           // Get hashtags from tags
           const hashtags = event.tags
-            .filter(tag => tag[0] === 't' && tag[1])
-            .map(tag => tag[1].toLowerCase())
+            .filter((tag) => tag[0] === 't' && tag[1])
+            .map((tag) => tag[1].toLowerCase())
 
           // Check if any filter word matches content or hashtags
-          const hasMatchInContent = filterWords.some(word => content.includes(word))
-          const hasMatchInHashtags = filterWords.some(word =>
-            hashtags.some(hashtag => hashtag.includes(word))
+          const hasMatchInContent = filterWords.some((word) => content.includes(word))
+          const hasMatchInHashtags = filterWords.some((word) =>
+            hashtags.some((hashtag) => hashtag.includes(word))
           )
 
           // Return true to KEEP the event (filter OUT events that match)
@@ -75,9 +76,9 @@ export function useGroupedNotesProcessing(
       }
     }
 
-    // Step 1.7: Filter out short notes (single words or less than 10 characters)
+    // Filter out short notes (single words or less than 10 characters)
     if (settings.hideShortNotes) {
-      eventsInTimeframe = eventsInTimeframe.filter(event => {
+      eventsInTimeframe = eventsInTimeframe.filter((event) => {
         const content = (event.content || '').trim()
 
         // Filter out if content is less than 10 characters
@@ -95,7 +96,7 @@ export function useGroupedNotesProcessing(
         }
 
         // Filter out single words (no spaces or only one word)
-        const words = content.split(/\s+/).filter(word => word.length > 0)
+        const words = content.split(/\s+/).filter((word) => word.length > 0)
         if (words.length === 1) {
           return false
         }
@@ -104,16 +105,16 @@ export function useGroupedNotesProcessing(
       })
     }
 
-    // Step 2: Group events by author pubkey
+    // Group events by author pubkey
     const eventsByAuthor = new Map<string, Event[]>()
-    eventsInTimeframe.forEach(event => {
+    eventsInTimeframe.forEach((event) => {
       if (!eventsByAuthor.has(event.pubkey)) {
         eventsByAuthor.set(event.pubkey, [])
       }
       eventsByAuthor.get(event.pubkey)!.push(event)
     })
 
-    // Step 3: Apply activity level filter
+    // Apply activity level filter
     const authorsThatPassFilter = new Map<string, Event[]>()
     eventsByAuthor.forEach((authorEvents, pubkey) => {
       const eventCount = authorEvents.length
@@ -122,7 +123,7 @@ export function useGroupedNotesProcessing(
       }
     })
 
-    // Step 4: Get the latest note from each author
+    // Get the latest note from each author
     const groupedNotesData = new Map<string, TGroupedNote>()
     const latestNotes: Event[] = []
 
@@ -131,7 +132,7 @@ export function useGroupedNotesProcessing(
       const sortedEvents = authorEvents.sort((a, b) => b.created_at - a.created_at)
       const latestNote = sortedEvents[0]
       const oldestNote = sortedEvents[sortedEvents.length - 1]
-      const allTimestamps = sortedEvents.map(e => e.created_at)
+      const allTimestamps = sortedEvents.map((e) => e.created_at)
 
       latestNotes.push(latestNote)
       groupedNotesData.set(latestNote.id, {
@@ -143,7 +144,7 @@ export function useGroupedNotesProcessing(
       })
     })
 
-    // Step 5: Sort final notes by pin/bury state, then by created_at descending
+    // Sort final notes by pin/bury state, then by created_at descending
     const processedEvents = latestNotes.sort((a, b) => {
       const stateA = getPinBuryState(a.pubkey)
       const stateB = getPinBuryState(b.pubkey)
