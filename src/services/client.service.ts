@@ -1400,7 +1400,7 @@ class ClientService extends EventTarget {
         if (
           relayCount > 10 &&
           pubkeys.size < 10 &&
-          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 2)
+          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 3)
         ) {
           delete group[url]
         } else {
