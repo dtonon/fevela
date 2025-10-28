@@ -7,13 +7,13 @@ import { closeModal, launchPaymentModal } from '@getalby/bitcoin-connect-react'
 import { Loader } from 'lucide-react'
 import { useState } from 'react'
 import { toast } from 'sonner'
-import { useJumbleTranslateAccount } from './JumbleTranslateAccountProvider'
+import { useFevelaTranslateAccount } from './FevelaTranslateAccountProvider'
 import { useTranslation } from 'react-i18next'
 
 export default function TopUp() {
   const { t } = useTranslation()
   const { pubkey } = useNostr()
-  const { getAccount } = useJumbleTranslateAccount()
+  const { getAccount } = useFevelaTranslateAccount()
   const [topUpLoading, setTopUpLoading] = useState(false)
   const [topUpAmount, setTopUpAmount] = useState(1000)
   const [selectedAmount, setSelectedAmount] = useState<number | null>(1000)

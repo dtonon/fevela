@@ -48,8 +48,8 @@ export default defineConfig({
         enabled: true
       },
       manifest: {
-        name: 'Jumble',
-        short_name: 'Jumble',
+        name: 'Fevela',
+        short_name: 'Fevela',
         icons: [
           {
             src: '/pwa-512x512.png',

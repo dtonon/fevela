@@ -4,27 +4,27 @@ import { TTranslationAccount } from '@/types'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
-type TJumbleTranslateAccountContext = {
+type TFevelaTranslateAccountContext = {
   account: TTranslationAccount | null
   getAccount: () => Promise<void>
   regenerateApiKey: () => Promise<void>
 }
 
-export const JumbleTranslateAccountContext = createContext<
-  TJumbleTranslateAccountContext | undefined
+export const FevelaTranslateAccountContext = createContext<
+  TFevelaTranslateAccountContext | undefined
 >(undefined)
 
-export const useJumbleTranslateAccount = () => {
-  const context = useContext(JumbleTranslateAccountContext)
+export const useFevelaTranslateAccount = () => {
+  const context = useContext(FevelaTranslateAccountContext)
   if (!context) {
     throw new Error(
-      'useJumbleTranslateAccount must be used within a JumbleTranslateAccountProvider'
+      'useFevelaTranslateAccount must be used within a FevelaTranslateAccountProvider'
     )
   }
   return context
 }
 
-export function JumbleTranslateAccountProvider({ children }: { children: React.ReactNode }) {
+export function FevelaTranslateAccountProvider({ children }: { children: React.ReactNode }) {
   const { pubkey } = useNostr()
   const { getAccount: _getAccount, regenerateApiKey: _regenerateApiKey } = useTranslationService()
   const [account, setAccount] = useState<TTranslationAccount | null>(null)
@@ -55,7 +55,7 @@ export function JumbleTranslateAccountProvider({ children }: { children: React.R
       }
     } catch (error) {
       toast.error(
-        'Failed to regenerate Jumble translation API key: ' +
+        'Failed to regenerate Fevela translation API key: ' +
           (error instanceof Error
             ? error.message
             : 'An error occurred while regenerating the API key')
@@ -72,7 +72,7 @@ export function JumbleTranslateAccountProvider({ children }: { children: React.R
       }
     } catch (error) {
       toast.error(
-        'Failed to fetch Jumble translation account: ' +
+        'Failed to fetch Fevela translation account: ' +
           (error instanceof Error ? error.message : 'An error occurred while fetching the account')
       )
       setAccount(null)
@@ -80,8 +80,8 @@ export function JumbleTranslateAccountProvider({ children }: { children: React.R
   }
 
   return (
-    <JumbleTranslateAccountContext.Provider value={{ account, getAccount, regenerateApiKey }}>
+    <FevelaTranslateAccountContext.Provider value={{ account, getAccount, regenerateApiKey }}>
       {children}
-    </JumbleTranslateAccountContext.Provider>
+    </FevelaTranslateAccountContext.Provider>
   )
 }

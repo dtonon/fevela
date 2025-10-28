@@ -12,7 +12,7 @@ import { useTranslationService } from '@/providers/TranslationServiceProvider'
 import { TLanguage } from '@/types'
 import { forwardRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import JumbleTranslate from './JumbleTranslate'
+import FevelaTranslate from './FevelaTranslate'
 import LibreTranslate from './LibreTranslate'
 
 const TranslationPage = forwardRef(({ index }: { index?: number }, ref) => {
@@ -53,19 +53,19 @@ const TranslationPage = forwardRef(({ index }: { index?: number }, ref) => {
             defaultValue={config.service}
             value={config.service}
             onValueChange={(newService) => {
-              updateConfig({ service: newService as 'jumble' | 'libre_translate' })
+              updateConfig({ service: newService as 'fevela' | 'libre_translate' })
             }}
           >
             <SelectTrigger id="translation-service-select" className="w-[180px]">
               <SelectValue placeholder={t('Select Translation Service')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="jumble">Jumble</SelectItem>
+              <SelectItem value="fevela">Fevela</SelectItem>
               <SelectItem value="libre_translate">LibreTranslate</SelectItem>
             </SelectContent>
           </Select>
         </div>
-        {config.service === 'jumble' ? <JumbleTranslate /> : <LibreTranslate />}
+        {config.service === 'fevela' ? <FevelaTranslate /> : <LibreTranslate />}
       </div>
     </SecondaryPageLayout>
   )

@@ -143,7 +143,7 @@ export type TTranslationAccount = {
 
 export type TTranslationServiceConfig =
   | {
-      service: 'jumble'
+      service: 'fevela'
     }
   | {
       service: 'libre_translate'

@@ -43,7 +43,7 @@ class IndexedDbService {
   init(): Promise<void> {
     if (!this.initPromise) {
       this.initPromise = new Promise((resolve, reject) => {
-        const request = window.indexedDB.open('jumble', 9)
+        const request = window.indexedDB.open('fevela', 9)
 
         request.onerror = (event) => {
           reject(event)

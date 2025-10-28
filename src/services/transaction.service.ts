@@ -1,4 +1,4 @@
-import { JUMBLE_API_BASE_URL } from '@/constants'
+import { FEVELA_API_BASE_URL } from '@/constants'
 
 class TransactionService {
   static instance: TransactionService
@@ -17,7 +17,7 @@ class TransactionService {
     transactionId: string
     invoiceId: string
   }> {
-    const url = new URL('/v1/transactions', JUMBLE_API_BASE_URL).toString()
+    const url = new URL('/v1/transactions', FEVELA_API_BASE_URL).toString()
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -39,7 +39,7 @@ class TransactionService {
   async checkTransaction(transactionId: string): Promise<{
     state: 'pending' | 'failed' | 'settled'
   }> {
-    const url = new URL(`/v1/transactions/${transactionId}/check`, JUMBLE_API_BASE_URL).toString()
+    const url = new URL(`/v1/transactions/${transactionId}/check`, FEVELA_API_BASE_URL).toString()
     const response = await fetch(url, {
       method: 'POST'
     })

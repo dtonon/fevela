@@ -389,7 +389,7 @@ class LocalStorageService {
   }
 
   getTranslationServiceConfig(pubkey?: string | null) {
-    return this.translationServiceConfigMap[pubkey ?? '_'] ?? { service: 'jumble' }
+    return this.translationServiceConfigMap[pubkey ?? '_'] ?? { service: 'fevela' }
   }
 
   setTranslationServiceConfig(config: TTranslationServiceConfig, pubkey?: string | null) {

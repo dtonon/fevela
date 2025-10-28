@@ -92,7 +92,7 @@ export default {
     'Add an Account': 'إضافة حساب',
     'More options': 'المزيد من الخيارات',
     'Add client tag': 'إضافة وسم العميل',
-    'Show others this was sent via Jumble': 'عرض أن هذه الرسالة أُرسلت عبر Jumble',
+    'Show others this was sent via Fevela': 'عرض أن هذه الرسالة أُرسلت عبر Fevela',
     'Are you sure you want to logout?': 'هل أنت متأكد أنك تريد تسجيل الخروج؟',
     'relay sets': 'مجموعات الريلاي',
     edit: 'تعديل',
@@ -192,9 +192,9 @@ export default {
     All: 'الكل',
     Reactions: 'التفاعلات',
     Zaps: 'Zaps',
-    'Enjoying Jumble?': 'هل تستمتع بـ Jumble؟',
-    'Your donation helps me maintain Jumble and make it better! 😊':
-      'تبرعك يساعد في صيانة Jumble وتحسينه! 😊',
+    'Enjoying Fevela?': 'هل تستمتع بـ Fevela؟',
+    'Your donation helps me maintain Fevela and make it better! 😊':
+      'تبرعك يساعد في صيانة Fevela وتحسينه! 😊',
     'Earlier notifications': 'الإشعارات السابقة',
     'Temporarily display this note': 'عرض هذه الملاحظة مؤقتاً',
     buttonFollowing: 'جارٍ المتابعة',
@@ -247,7 +247,7 @@ export default {
     Translation: 'الترجمة',
     Balance: 'الرصيد',
     characters: 'الحروف',
-    jumbleTranslateApiKeyDescription:
+    fevelaTranslateApiKeyDescription:
       'يمكنك استخدام مفتاح API هذا في أي مكان آخر يدعم LibreTranslate. عنوان الخدمة هو {{serviceUrl}}',
     'Top up': 'إعادة شحن',
     'Will receive: {n} characters': 'ستتلقى: {{n}} حروف',

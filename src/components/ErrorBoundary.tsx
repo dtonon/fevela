@@ -33,7 +33,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <p className="text-lg text-center max-w-md">
             Sorry for the inconvenience. If you don't mind helping, you can{' '}
             <a
-              href="https://github.com/CodyTseng/jumble/issues/new"
+              href="https://github.com/CodyTseng/fevela/issues/new"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline"
@@ -42,7 +42,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </a>{' '}
             with the error details, or{' '}
             <a
-              href="https://jumble.social/npub1syjmjy0dp62dhccq3g97fr87tngvpvzey08llyt6ul58m2zqpzps9wf6wl"
+              href="https://fevela.social/npub1syjmjy0dp62dhccq3g97fr87tngvpvzey08llyt6ul58m2zqpzps9wf6wl"
               target="_blank"
               rel="noopener noreferrer"
               className="text-primary underline"

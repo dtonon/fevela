@@ -155,7 +155,7 @@ function RelaySetOptions({ relaySet }: { relaySet: TRelaySet }) {
 
   const copyShareLink = () => {
     navigator.clipboard.writeText(
-      `https://jumble.social/?${relaySet.relayUrls.map((url) => 'r=' + url).join('&')}`
+      `https://fevela.social/?${relaySet.relayUrls.map((url) => 'r=' + url).join('&')}`
     )
   }
 

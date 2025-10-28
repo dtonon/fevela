@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, CODY_PUBKEY, JUMBLE_PUBKEY } from '@/constants'
+import { BIG_RELAY_URLS, CODY_PUBKEY, FEVELA_PUBKEY } from '@/constants'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { TProfile } from '@/types'
 import { init, launchPaymentModal } from '@getalby/bitcoin-connect-react'
@@ -14,7 +14,7 @@ import client from './client.service'
 
 export type TRecentSupporter = { pubkey: string; amount: number; comment?: string }
 
-const OFFICIAL_PUBKEYS = [JUMBLE_PUBKEY, CODY_PUBKEY]
+const OFFICIAL_PUBKEYS = [FEVELA_PUBKEY, CODY_PUBKEY]
 
 class LightningService {
   static instance: LightningService
@@ -25,7 +25,7 @@ class LightningService {
     if (!LightningService.instance) {
       LightningService.instance = this
       init({
-        appName: 'Jumble',
+        appName: 'Fevela',
         showBalance: false
       })
     }

@@ -1,18 +1,18 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { JUMBLE_API_BASE_URL } from '@/constants'
+import { FEVELA_API_BASE_URL } from '@/constants'
 import { useNostr } from '@/providers/NostrProvider'
 import { Check, Copy, Eye, EyeOff } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useJumbleTranslateAccount } from './JumbleTranslateAccountProvider'
+import { useFevelaTranslateAccount } from './FevelaTranslateAccountProvider'
 import RegenerateApiKeyButton from './RegenerateApiKeyButton'
 import TopUp from './TopUp'
 
 export function AccountInfo() {
   const { t } = useTranslation()
   const { pubkey, startLogin } = useNostr()
-  const { account } = useJumbleTranslateAccount()
+  const { account } = useFevelaTranslateAccount()
   const [showApiKey, setShowApiKey] = useState(false)
   const [copied, setCopied] = useState(false)
 
@@ -63,8 +63,8 @@ export function AccountInfo() {
           <RegenerateApiKeyButton />
         </div>
         <p className="text-sm text-muted-foreground select-text">
-          {t('jumbleTranslateApiKeyDescription', {
-            serviceUrl: new URL('/v1/translation', JUMBLE_API_BASE_URL).toString()
+          {t('fevelaTranslateApiKeyDescription', {
+            serviceUrl: new URL('/v1/translation', FEVELA_API_BASE_URL).toString()
           })}
         </p>
       </div>

@@ -1,6 +1,6 @@
 import { kinds } from 'nostr-tools'
 
-export const JUMBLE_API_BASE_URL = 'https://api.jumble.social'
+export const FEVELA_API_BASE_URL = 'https://api.fevela.social'
 
 export const DEFAULT_FAVORITE_RELAYS = [
   'wss://nostr.wine/',
@@ -122,7 +122,7 @@ export const EMOJI_REGEX =
 export const YOUTUBE_URL_REGEX =
   /https?:\/\/(?:(?:www|m)\.)?(?:youtube\.com\/(?:watch\?[^#\s]*|embed\/[\w-]+|shorts\/[\w-]+|live\/[\w-]+)|youtu\.be\/[\w-]+)(?:\?[^#\s]*)?(?:#[^\s]*)?/gi
 
-export const JUMBLE_PUBKEY = 'f4eb8e62add1340b9cadcd9861e669b2e907cea534e0f7f3ac974c11c758a51a'
+export const FEVELA_PUBKEY = 'f4eb8e62add1340b9cadcd9861e669b2e907cea534e0f7f3ac974c11c758a51a'
 export const CODY_PUBKEY = '8125b911ed0e94dbe3008a0be48cfe5cd0c0b05923cfff917ae7e87da8400883'
 
 export const NIP_96_SERVICE = [
