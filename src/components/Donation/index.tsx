@@ -40,7 +40,6 @@ export default function Donation({ className }: { className?: string }) {
           )
         })}
       </div>
-      <PlatinumSponsors />
       <RecentSupporters />
       <ZapDialog
         open={open}

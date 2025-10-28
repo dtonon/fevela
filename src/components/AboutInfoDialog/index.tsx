@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
-import { CODY_PUBKEY } from '@/constants'
+import { DEV_PUBKEY } from '@/constants'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useState } from 'react'
 import Username from '../Username'
@@ -16,12 +16,12 @@ export default function AboutInfoDialog({ children }: { children: React.ReactNod
         A user-friendly Nostr client for exploring relay feeds
       </div>
       <div>
-        Made by <Username userId={CODY_PUBKEY} className="inline-block text-primary" showAt />
+        Made by <Username userId={DEV_PUBKEY} className="inline-block text-primary" showAt />
       </div>
       <div>
         Source code:{' '}
         <a
-          href="https://github.com/CodyTseng/fevela"
+          href="https://github.com/dtonon/fevela"
           target="_blank"
           rel="noreferrer"
           className="text-primary hover:underline"
