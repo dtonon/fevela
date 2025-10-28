@@ -60,7 +60,7 @@ type TGroupedNotesContext = {
 }
 
 const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSettings => ({
-  enabled: false,
+  enabled: true,
   timeFrame: timeFrameOptions[23], // 24 hours
   wordFilter: '',
   maxNotesFilter: 0, // Disabled
