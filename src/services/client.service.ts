@@ -348,9 +348,8 @@ class ClientService extends EventTarget {
         events.push(evt)
       })
     })
-    return events.sort((a, b) => b.created_at - a.created_at).slice(0, limit)
+    return events.sort((a, b) => b.created_at - a.created_at)
   }
-
 
   subscribe(
     urls: string[],
