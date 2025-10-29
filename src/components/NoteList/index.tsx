@@ -21,7 +21,7 @@ import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, kinds } from 'nostr-tools'
-import { decode } from 'nostr-tools/nip19'
+import { decode } from '@nostr/tools/nip19'
 import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,

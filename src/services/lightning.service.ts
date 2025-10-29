@@ -7,9 +7,9 @@ import { bech32 } from '@scure/base'
 import { WebLNProvider } from '@webbtc/webln-types'
 import dayjs from 'dayjs'
 import { Filter, kinds, NostrEvent } from 'nostr-tools'
-import { SubCloser } from 'nostr-tools/abstract-pool'
-import { makeZapRequest } from 'nostr-tools/nip57'
-import { utf8Decoder } from 'nostr-tools/utils'
+import { SubCloser } from '@nostr/tools/abstract-pool'
+import { makeZapRequest } from '@nostr/tools/nip57'
+import { utf8Decoder } from '@nostr/tools/utils'
 import client from './client.service'
 
 export type TRecentSupporter = { pubkey: string; amount: number; comment?: string }
