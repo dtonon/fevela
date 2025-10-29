@@ -1,4 +1,9 @@
+import { usePrimaryPage } from '@/PageManager'
+import { cn } from '@/lib/utils'
+
 export default function Logo({ className }: { className?: string }) {
+  const { navigate } = usePrimaryPage()
+
   return (
     <svg
       width="100%"
@@ -15,7 +20,8 @@ export default function Logo({ className }: { className?: string }) {
         strokeLinejoin: 'round',
         strokeMiterlimit: 2
       }}
-      className={className}
+      className={cn('cursor-pointer', className)}
+      onClick={() => navigate('home')}
     >
       <g transform="matrix(1,0,0,1,-860.377,1400.56)">
         <g transform="matrix(1562.47,0,0,1502.37,857.458,-331.462)">

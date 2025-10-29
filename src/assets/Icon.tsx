@@ -1,4 +1,9 @@
+import { usePrimaryPage } from '@/PageManager'
+import { cn } from '@/lib/utils'
+
 export default function Icon({ className }: { className?: string }) {
+  const { navigate } = usePrimaryPage()
+
   return (
     <svg
       viewBox="0 0 1080 1228"
@@ -13,7 +18,8 @@ export default function Icon({ className }: { className?: string }) {
         strokeLinejoin: 'round',
         strokeMiterlimit: 2
       }}
-      className={className}
+      className={cn('cursor-pointer', className)}
+      onClick={() => navigate('home')}
     >
       <g transform="matrix(32.3698,0,0,32.3698,-30418.6,-9846.66)">
         <g transform="matrix(54,0,0,50,939.336,340.106)">
