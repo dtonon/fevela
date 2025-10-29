@@ -59,7 +59,8 @@ const NoteList = forwardRef(
       sinceTimestamp,
       onNotesLoaded,
       pinnedEventIds = [],
-      userFilter = ''
+      userFilter = '',
+      filterFn
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -71,9 +72,15 @@ const NoteList = forwardRef(
       showRelayCloseReason?: boolean
       groupedMode?: boolean
       sinceTimestamp?: number
-      onNotesLoaded?: (hasNotes: boolean, hasReplies: boolean, notesCount: number, repliesCount: number) => void
+      onNotesLoaded?: (
+        hasNotes: boolean,
+        hasReplies: boolean,
+        notesCount: number,
+        repliesCount: number
+      ) => void
       pinnedEventIds?: string[]
       userFilter?: string
+      filterFn?: (event: Event) => boolean
     },
     ref
   ) => {
@@ -147,6 +154,9 @@ const NoteList = forwardRef(
         ) {
           return true
         }
+        if (filterFn && !filterFn(evt)) {
+          return true
+        }
 
         return false
       },
@@ -157,7 +167,8 @@ const NoteList = forwardRef(
         mutePubkeySet,
         pinnedEventIds,
         isEventDeleted,
-        groupedNotesSettings
+        groupedNotesSettings,
+        filterFn
       ]
     )
 

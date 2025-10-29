@@ -436,7 +436,7 @@ export default {
     Grouped: 'Groupé',
     GroupedNotesEnable: 'Activer le mode notes groupées',
     GroupedNotesCompact: 'Vue compacte : afficher uniquement les auteurs',
-    GroupedNotesShowPreview: 'Afficher l\'aperçu de la dernière note',
+    GroupedNotesShowPreview: "Afficher l'aperçu de la dernière note",
     GroupedNotesIncludeReplies: 'Inclure les réponses',
     GroupedNotesShowOnlyFirstLevelReplies: 'Afficher uniquement les réponses de premier niveau',
     GroupedNotesFilter: 'Rechercher des utilisateurs...',
@@ -513,6 +513,10 @@ export default {
     Layout: 'Disposition',
     'Two-column': 'Deux colonnes',
     'Single-column': 'Une seule colonne',
-    Reviews: 'Avis'
+    Reviews: 'Avis',
+    Extension: 'Extension',
+    Remote: 'Distant',
+    'Encrypted Key': 'Clé chiffrée',
+    'Private Key': 'Clé privée'
   }
 }

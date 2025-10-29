@@ -498,6 +498,10 @@ export default {
     Layout: 'التخطيط',
     'Two-column': 'عمودين',
     'Single-column': 'عمود واحد',
-    Reviews: 'المراجعات'
+    Reviews: 'المراجعات',
+    Extension: 'امتداد',
+    Remote: 'عن بُعد',
+    'Encrypted Key': 'مفتاح مشفر',
+    'Private Key': 'مفتاح خاص'
   }
 }
