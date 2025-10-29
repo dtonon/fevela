@@ -51,20 +51,22 @@ export default function PrimaryPageSidebar() {
         <PostButton collapse={sidebarCollapse} />
       </div>
       <div className="space-y-4">
+        <div className="block">
+          <button
+            className={cn(
+              'absolute right-0 bottom-14 flex flex-col justify-center items-center w-5 h-6 p-0 rounded-l-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
+              enableSingleColumnLayout ? '' : 'hover:shadow-md'
+            )}
+            onClick={(e) => {
+              e.stopPropagation()
+              updateSidebarCollapse(!sidebarCollapse)
+            }}
+          >
+            {sidebarCollapse ? <ChevronsRight /> : <ChevronsLeft />}
+          </button>
+        </div>
         <AccountButton collapse={sidebarCollapse} />
       </div>
-      <button
-        className={cn(
-          'absolute flex flex-col justify-center items-center right-0 w-5 h-6 p-0 rounded-l-md hover:shadow-md text-muted-foreground hover:text-foreground hover:bg-background transition-colors [&_svg]:size-4',
-          themeSetting === 'pure-black' || enableSingleColumnLayout ? 'top-3' : 'top-5'
-        )}
-        onClick={(e) => {
-          e.stopPropagation()
-          updateSidebarCollapse(!sidebarCollapse)
-        }}
-      >
-        {sidebarCollapse ? <ChevronsRight /> : <ChevronsLeft />}
-      </button>
     </div>
   )
 }
