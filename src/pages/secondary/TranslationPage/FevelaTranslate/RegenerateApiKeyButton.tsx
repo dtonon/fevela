@@ -11,11 +11,11 @@ import {
 import { Loader, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useJumbleTranslateAccount } from './JumbleTranslateAccountProvider'
+import { useFevelaTranslateAccount } from './FevelaTranslateAccountProvider'
 
 export default function RegenerateApiKeyButton() {
   const { t } = useTranslation()
-  const { account, regenerateApiKey } = useJumbleTranslateAccount()
+  const { account, regenerateApiKey } = useFevelaTranslateAccount()
   const [resettingApiKey, setResettingApiKey] = useState(false)
   const [showResetDialog, setShowResetDialog] = useState(false)
 

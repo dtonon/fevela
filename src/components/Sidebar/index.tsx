@@ -34,11 +34,11 @@ export default function PrimaryPageSidebar() {
     >
       <div className="space-y-2">
         {sidebarCollapse ? (
-          <div className="px-3 py-1 mb-6 w-full">
+          <div className="px-3 py-1 ml-1 mb-6 w-full">
             <Icon />
           </div>
         ) : (
-          <div className="px-4 mb-6 w-full">
+          <div className="ml-3 pr-8 mt-2 mb-6 w-full">
             <Logo />
           </div>
         )}

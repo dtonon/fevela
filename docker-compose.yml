@@ -1,30 +1,30 @@
-version: "3.8"
+version: '3.8'
 
 services:
-  jumble:
-    container_name: jumble-nginx
+  fevela:
+    container_name: fevela-nginx
     build:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_PROXY_SERVER: ${JUMBLE_PROXY_SERVER_URL:-http://localhost:8090}
+        VITE_PROXY_SERVER: ${FEVELA_PROXY_SERVER_URL:-http://localhost:8090}
     ports:
-      - "8089:80"
+      - '8089:80'
     restart: unless-stopped
     networks:
-      - jumble
+      - fevela
 
   proxy-server:
-    image: ghcr.io/danvergara/jumble-proxy-server:latest
+    image: ghcr.io/danvergara/fevela-proxy-server:latest
     environment:
-      - ALLOW_ORIGIN=${JUMBLE_SOCIAL_URL:-http://localhost:8089}
-      - JUMBLE_PROXY_GITHUB_TOKEN=${JUMBLE_PROXY_GITHUB_TOKEN}
+      - ALLOW_ORIGIN=${FEVELA_SOCIAL_URL:-http://localhost:8089}
+      - FEVELA_PROXY_GITHUB_TOKEN=${FEVELA_PROXY_GITHUB_TOKEN}
       - ENABLE_PPROF=true
       - PORT=8080
     ports:
-      - "8090:8080"
+      - '8090:8080'
     networks:
-      - jumble
+      - fevela
 
 networks:
-  jumble:
+  fevela:

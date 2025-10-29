@@ -1,6 +1,6 @@
 import { kinds } from 'nostr-tools'
 
-export const JUMBLE_API_BASE_URL = 'https://api.jumble.social'
+export const FEVELA_API_BASE_URL = 'https://api.fevela.social'
 
 export const DEFAULT_FAVORITE_RELAYS = [
   'wss://nostr.wine/',
@@ -123,8 +123,8 @@ export const EMOJI_REGEX =
 export const YOUTUBE_URL_REGEX =
   /https?:\/\/(?:(?:www|m)\.)?(?:youtube\.com\/(?:watch\?[^#\s]*|embed\/[\w-]+|shorts\/[\w-]+|live\/[\w-]+)|youtu\.be\/[\w-]+)(?:\?[^#\s]*)?(?:#[^\s]*)?/gi
 
-export const JUMBLE_PUBKEY = 'f4eb8e62add1340b9cadcd9861e669b2e907cea534e0f7f3ac974c11c758a51a'
-export const CODY_PUBKEY = '8125b911ed0e94dbe3008a0be48cfe5cd0c0b05923cfff917ae7e87da8400883'
+export const FEVELA_PUBKEY = '8adab951da7d88367ed86731eeb7b4e2f8582efaac81a6459a5d580213b89a6e'
+export const DEV_PUBKEY = '7bdef7be22dd8e59f4600e044aa53a1cf975a9dc7d27df5833bc77db784a5805'
 
 export const NIP_96_SERVICE = [
   'https://mockingyou.com',
@@ -164,16 +164,16 @@ export const PRIMARY_COLORS = {
   DEFAULT: {
     name: 'Default',
     light: {
-      primary: '259 43% 56%',
-      'primary-hover': '259 43% 65%',
+      primary: '338 77% 53%',
+      'primary-hover': '338 77% 62%',
       'primary-foreground': '0 0% 98%',
-      ring: '259 43% 56%'
+      ring: '338 77% 53%'
     },
     dark: {
-      primary: '259 43% 56%',
-      'primary-hover': '259 43% 65%',
-      'primary-foreground': '240 5.9% 10%',
-      ring: '259 43% 56%'
+      primary: '338 77% 53%',
+      'primary-hover': '338 77% 62%',
+      'primary-foreground': '0 0% 98%',
+      ring: '338 77% 53%'
     }
   },
   RED: {

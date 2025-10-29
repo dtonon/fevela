@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
-import { CODY_PUBKEY } from '@/constants'
+import { DEV_PUBKEY } from '@/constants'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useState } from 'react'
 import Username from '../Username'
@@ -11,17 +11,17 @@ export default function AboutInfoDialog({ children }: { children: React.ReactNod
 
   const content = (
     <>
-      <div className="text-xl font-semibold">Jumble</div>
+      <div className="text-xl font-semibold">Fevela</div>
       <div className="text-muted-foreground">
         A user-friendly Nostr client for exploring relay feeds
       </div>
       <div>
-        Made by <Username userId={CODY_PUBKEY} className="inline-block text-primary" showAt />
+        Made by <Username userId={DEV_PUBKEY} className="inline-block text-primary" showAt />
       </div>
       <div>
         Source code:{' '}
         <a
-          href="https://github.com/CodyTseng/jumble"
+          href="https://github.com/dtonon/fevela"
           target="_blank"
           rel="noreferrer"
           className="text-primary hover:underline"
@@ -29,7 +29,7 @@ export default function AboutInfoDialog({ children }: { children: React.ReactNod
           GitHub
         </a>
         <div className="text-sm text-muted-foreground">
-          If you like Jumble, please consider giving it a star ⭐
+          If you like Fevela, please consider giving it a star ⭐
         </div>
       </div>
     </>

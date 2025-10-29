@@ -91,7 +91,7 @@ export default {
     'Add an Account': '添加账户',
     'More options': '更多选项',
     'Add client tag': '添加客户端标签',
-    'Show others this was sent via Jumble': '告诉别人这是通过 Jumble 发送的',
+    'Show others this was sent via Fevela': '告诉别人这是通过 Fevela 发送的',
     'Are you sure you want to logout?': '确定要退出登录吗？',
     'relay sets': '服务器组',
     edit: '编辑',
@@ -194,9 +194,9 @@ export default {
     All: '全部',
     Reactions: '互动',
     Zaps: '打闪',
-    'Enjoying Jumble?': '喜欢 Jumble 吗？',
-    'Your donation helps me maintain Jumble and make it better! 😊':
-      '您的捐赠帮助我维护 Jumble 并使其更好！😊',
+    'Enjoying Fevela?': '喜欢 Fevela 吗？',
+    'Your donation helps me maintain Fevela and make it better! 😊':
+      '您的捐赠帮助我维护 Fevela 并使其更好！😊',
     'Earlier notifications': '更早的通知',
     'Temporarily display this note': '临时显示此笔记',
     buttonFollowing: '已关注',
@@ -248,7 +248,7 @@ export default {
     Translation: '翻译',
     Balance: '余额',
     characters: '字符',
-    jumbleTranslateApiKeyDescription:
+    fevelaTranslateApiKeyDescription:
       '您可以在任何支持 LibreTranslate 的地方使用此 API key。服务地址是 {{serviceUrl}}',
     'Top up': '充值',
     'Will receive: {n} characters': '将获得: {{n}} 字符',

@@ -1,32 +1,23 @@
 <div align="center">
   <picture>
-    <img src="./resources/logo-light.svg" alt="Jumble Logo" width="400" />
+    <img src="./resources/logo-light.svg" alt="Fevela Logo" width="400" />
   </picture>
-  <p>logo designed by <a href="http://wolfertdan.com/">Daniel David</a></p>
 </div>
 
-# Jumble
+# Fevela
 
-A user-friendly Nostr client for exploring relay feeds
+A Nostr client that try to give you back full control of your attention and time with a innovative interface that promote exploring of interesting content, over doomscrolling.
 
-Experience Jumble at [https://jumble.social](https://jumble.social)
-
-## Forks
-
-> Some interesting forks of Jumble.
-
-- [https://jumblekat.com/](https://jumblekat.com/) - by [@Karnage](https://jumble.social/users/npub1r0rs5q2gk0e3dk3nlc7gnu378ec6cnlenqp8a3cjhyzu6f8k5sgs4sq9ac)
-- [https://grouped-notes.dtonon.com/](https://grouped-notes.dtonon.com/) - by [@daniele](https://jumble.social/users/npub10000003zmk89narqpczy4ff6rnuht2wu05na7kpnh3mak7z2tqzsv8vwqk)
-- [https://jumble.imwald.eu/](https://jumble.imwald.eu/) Repo: [Silberengel/jumble](https://github.com/Silberengel/jumble) - by [@Silberengel](https://jumble.social/users/npub1l5sga6xg72phsz5422ykujprejwud075ggrr3z2hwyrfgr7eylqstegx9z)
+Experience Fevela at [https://fevela.me](https://fevela.me)
 
 ## Run Locally
 
 ```bash
 # Clone this repository
-git clone https://github.com/CodyTseng/jumble.git
+git clone https://github.com/dtonon/fevela.git
 
 # Go into the repository
-cd jumble
+cd fevela
 
 # Install dependencies
 npm install
@@ -39,10 +30,10 @@ npm run dev
 
 ```bash
 # Clone this repository
-git clone https://github.com/CodyTseng/jumble.git
+git clone https://github.com/dtonon/fevela.git
 
 # Go into the repository
-cd jumble
+cd fevela
 
 # Run the docker compose
 docker compose up --build -d
@@ -50,19 +41,16 @@ docker compose up --build -d
 
 After finishing, access: http://localhost:8089
 
-## Sponsors
+## Credits
 
-<a target="_blank" href="https://opensats.org/">
-  <img alt="open-sats-logo" src="./resources/open-sats-logo.svg" height="44"> 
-</a>
+Fevela is a fork of the great [Jumble](https://github.com/CodyTseng/jumble)
 
 ## Donate
 
 If you like this project, you can buy me a coffee :)
 
-- **Lightning:** ⚡️ codytseng@getalby.com ⚡️
-- **Bitcoin:** bc1qwp2uqjd2dy32qfe39kehnlgx3hyey0h502fvht
-- **Geyser:** https://geyser.fund/project/jumble
+- **Lightning:** ⚡️ tips@dtonon.com ⚡️
+- **Bitcoin:** bc1qm6ttjjlq7zqwqmtzq3lqzujr3c9cr53l6097pt
 
 ## License
 

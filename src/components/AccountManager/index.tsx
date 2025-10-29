@@ -79,7 +79,7 @@ function AccountManagerNav({
           onClick={() => {
             const wizard = new NstartModal({
               baseUrl: 'https://nstart.me',
-              an: 'Jumble',
+              an: 'Fevela',
               am: themeSetting === 'pure-black' ? 'dark' : themeSetting,
               al: i18n.language.slice(0, 2),
               onComplete: ({ nostrLogin }) => {

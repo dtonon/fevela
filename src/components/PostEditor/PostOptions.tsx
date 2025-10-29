@@ -54,7 +54,7 @@ export default function PostOptions({
           />
         </div>
         <div className="text-muted-foreground text-xs">
-          {t('Show others this was sent via Jumble')}
+          {t('Show others this was sent via Fevela')}
         </div>
       </div>
 

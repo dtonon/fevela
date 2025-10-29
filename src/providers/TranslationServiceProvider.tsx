@@ -36,7 +36,7 @@ export const useTranslationService = () => {
 
 export function TranslationServiceProvider({ children }: { children: React.ReactNode }) {
   const { i18n } = useTranslation()
-  const [config, setConfig] = useState<TTranslationServiceConfig>({ service: 'jumble' })
+  const [config, setConfig] = useState<TTranslationServiceConfig>({ service: 'fevela' })
   const { pubkey, startLogin } = useNostr()
   const [translatedEventIdSet, setTranslatedEventIdSet] = useState<Set<string>>(new Set())
 
@@ -47,7 +47,7 @@ export function TranslationServiceProvider({ children }: { children: React.React
   }, [pubkey])
 
   const getAccount = async (): Promise<TTranslationAccount | void> => {
-    if (config.service !== 'jumble') return
+    if (config.service !== 'fevela') return
     if (!pubkey) {
       startLogin()
       return
@@ -56,7 +56,7 @@ export function TranslationServiceProvider({ children }: { children: React.React
   }
 
   const regenerateApiKey = async (): Promise<string | undefined> => {
-    if (config.service !== 'jumble') return
+    if (config.service !== 'fevela') return
     if (!pubkey) {
       startLogin()
       return
@@ -71,7 +71,7 @@ export function TranslationServiceProvider({ children }: { children: React.React
   }
 
   const translate = async (text: string, target: string): Promise<string> => {
-    if (config.service === 'jumble') {
+    if (config.service === 'fevela') {
       return await translation.translate(text, target)
     } else {
       return await libreTranslate.translate(text, target, config.server, config.api_key)
@@ -146,7 +146,7 @@ export function TranslationServiceProvider({ children }: { children: React.React
   }
 
   const translateEvent = async (event: Event): Promise<Event | void> => {
-    if (config.service === 'jumble' && !pubkey) {
+    if (config.service === 'fevela' && !pubkey) {
       startLogin()
       return
     }
