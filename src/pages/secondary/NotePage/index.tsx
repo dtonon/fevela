@@ -4,6 +4,7 @@ import Note from '@/components/Note'
 import NoteInteractions from '@/components/NoteInteractions'
 import NoteStats from '@/components/NoteStats'
 import UserAvatar from '@/components/UserAvatar'
+import RepostNoteCard from '@/components/NoteCard/RepostNoteCard'
 import { Card } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,7 +16,7 @@ import { toNote, toNoteList } from '@/lib/link'
 import { tagNameEquals } from '@/lib/tag'
 import { cn } from '@/lib/utils'
 import { Ellipsis } from 'lucide-react'
-import { Event } from 'nostr-tools'
+import { Event, kinds } from 'nostr-tools'
 import { forwardRef, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFound from './NotFound'
@@ -63,6 +64,17 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
     return (
       <SecondaryPageLayout ref={ref} index={index} title={t('Note')} displayScrollToTopButton>
         <NotFound bech32Id={id} />
+      </SecondaryPageLayout>
+    )
+  }
+
+  // Handle repost events specially
+  if (event.kind === kinds.Repost) {
+    return (
+      <SecondaryPageLayout ref={ref} index={index} title={t('Note')} displayScrollToTopButton>
+        <div className="pt-3">
+          <RepostNoteCard event={event} className="" filterMutedNotes={false} />
+        </div>
       </SecondaryPageLayout>
     )
   }

@@ -36,6 +36,19 @@ export function isReplyNoteEvent(event: Event) {
   return isReply
 }
 
+export function isFirstLevelReply(event: Event) {
+  if (!isReplyNoteEvent(event)) return false
+
+  const parentETag = getParentETag(event)
+  const rootETag = getRootETag(event)
+
+  // If there's no root tag, or root is the same as parent, it's a first-level reply
+  if (!rootETag || !parentETag) return true
+
+  // First-level reply: parent and root point to the same event
+  return parentETag[1] === rootETag[1]
+}
+
 export function isReplaceableEvent(kind: number) {
   return kinds.isReplaceableKind(kind) || kinds.isAddressableKind(kind)
 }

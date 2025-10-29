@@ -8,10 +8,12 @@ import { DeletedEventProvider } from '@/providers/DeletedEventProvider'
 import { FavoriteRelaysProvider } from '@/providers/FavoriteRelaysProvider'
 import { FeedProvider } from '@/providers/FeedProvider'
 import { FollowListProvider } from '@/providers/FollowListProvider'
+import { GroupedNotesProvider } from '@/providers/GroupedNotesProvider'
 import { KindFilterProvider } from '@/providers/KindFilterProvider'
 import { MediaUploadServiceProvider } from '@/providers/MediaUploadServiceProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
+import { PinBuryProvider } from '@/providers/PinBuryProvider'
 import { PinListProvider } from '@/providers/PinListProvider'
 import { ReplyProvider } from '@/providers/ReplyProvider'
 import { ScreenSizeProvider } from '@/providers/ScreenSizeProvider'
@@ -34,24 +36,28 @@ export default function App(): JSX.Element {
                   <TranslationServiceProvider>
                     <FavoriteRelaysProvider>
                       <FollowListProvider>
-                        <MuteListProvider>
-                          <UserTrustProvider>
+                        <PinBuryProvider>
+                          <MuteListProvider>
+                            <UserTrustProvider>
                             <BookmarksProvider>
                               <PinListProvider>
                                 <FeedProvider>
                                   <ReplyProvider>
                                     <MediaUploadServiceProvider>
                                       <KindFilterProvider>
-                                        <PageManager />
-                                        <Toaster />
+                                        <GroupedNotesProvider>
+                                          <PageManager />
+                                          <Toaster />
+                                        </GroupedNotesProvider>
                                       </KindFilterProvider>
                                     </MediaUploadServiceProvider>
                                   </ReplyProvider>
                                 </FeedProvider>
                               </PinListProvider>
                             </BookmarksProvider>
-                          </UserTrustProvider>
-                        </MuteListProvider>
+                            </UserTrustProvider>
+                          </MuteListProvider>
+                        </PinBuryProvider>
                       </FollowListProvider>
                     </FavoriteRelaysProvider>
                   </TranslationServiceProvider>

@@ -21,6 +21,7 @@ import {
   TThemeSetting,
   TTranslationServiceConfig
 } from '@/types'
+import { TStoredGroupedNotesSettings } from '@/providers/GroupedNotesProvider'
 
 class LocalStorageService {
   static instance: LocalStorageService
@@ -48,6 +49,7 @@ class LocalStorageService {
   private hideContentMentioningMutedUsers: boolean = false
   private notificationListStyle: TNotificationStyle = NOTIFICATION_LIST_STYLE.DETAILED
   private mediaAutoLoadPolicy: TMediaAutoLoadPolicy = MEDIA_AUTO_LOAD_POLICY.ALWAYS
+  private groupedNotesSettings: TStoredGroupedNotesSettings | null = null
   private shownCreateWalletGuideToastPubkeys: Set<string> = new Set()
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
@@ -190,6 +192,15 @@ class LocalStorageService {
       this.mediaAutoLoadPolicy = mediaAutoLoadPolicy as TMediaAutoLoadPolicy
     }
 
+    const groupedNotesSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
+    if (groupedNotesSettingsStr) {
+      try {
+        this.groupedNotesSettings = JSON.parse(groupedNotesSettingsStr)
+      } catch {
+        // Invalid JSON, ignore and use defaults
+        this.groupedNotesSettings = null
+      }
+    }
     const shownCreateWalletGuideToastPubkeysStr = window.localStorage.getItem(
       StorageKey.SHOWN_CREATE_WALLET_GUIDE_TOAST_PUBKEYS
     )
@@ -472,6 +483,15 @@ class LocalStorageService {
   setMediaAutoLoadPolicy(policy: TMediaAutoLoadPolicy) {
     this.mediaAutoLoadPolicy = policy
     window.localStorage.setItem(StorageKey.MEDIA_AUTO_LOAD_POLICY, policy)
+  }
+
+  getGroupedNotesSettings() {
+    return this.groupedNotesSettings
+  }
+
+  setGroupedNotesSettings(settings: TStoredGroupedNotesSettings) {
+    this.groupedNotesSettings = settings
+    window.localStorage.setItem(StorageKey.GROUPED_NOTES_SETTINGS, JSON.stringify(settings))
   }
 
   hasShownCreateWalletGuideToast(pubkey: string) {

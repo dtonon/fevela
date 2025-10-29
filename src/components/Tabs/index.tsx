@@ -14,13 +14,15 @@ export default function Tabs({
   value,
   onTabChange,
   threshold = 800,
-  options = null
+  options = null,
+  hideTabs = false
 }: {
   tabs: TabDefinition[]
   value: string
   onTabChange?: (tab: string) => void
   threshold?: number
   options?: ReactNode
+  hideTabs?: boolean
 }) {
   const { t } = useTranslation()
   const { deepBrowsing, lastScrollTop } = useDeepBrowsing()
@@ -88,36 +90,39 @@ export default function Tabs({
       ref={containerRef}
       className={cn(
         'sticky flex justify-between top-12 bg-background z-30 px-1 w-full transition-transform border-b',
-        deepBrowsing && lastScrollTop > threshold ? '-translate-y-[calc(100%+12rem)]' : ''
+        deepBrowsing && lastScrollTop > threshold ? '-translate-y-[calc(100%+12rem)]' : '',
+        hideTabs && 'justify-end' // Right-align options when tabs are hidden
       )}
     >
-      <ScrollArea className="flex-1 w-0">
-        <div className="flex w-fit relative">
-          {tabs.map((tab, index) => (
+      {!hideTabs && (
+        <ScrollArea className="flex-1 w-0">
+          <div className="flex w-fit relative">
+            {tabs.map((tab, index) => (
+              <div
+                key={tab.value}
+                ref={(el) => (tabRefs.current[index] = el)}
+                className={cn(
+                  `w-fit text-center py-2 px-6 my-1 font-semibold whitespace-nowrap clickable cursor-pointer rounded-lg`,
+                  value === tab.value ? '' : 'text-muted-foreground'
+                )}
+                onClick={() => {
+                  onTabChange?.(tab.value)
+                }}
+              >
+                {t(tab.label)}
+              </div>
+            ))}
             <div
-              key={tab.value}
-              ref={(el) => (tabRefs.current[index] = el)}
-              className={cn(
-                `w-fit text-center py-2 px-6 my-1 font-semibold whitespace-nowrap clickable cursor-pointer rounded-lg`,
-                value === tab.value ? '' : 'text-muted-foreground'
-              )}
-              onClick={() => {
-                onTabChange?.(tab.value)
+              className="absolute bottom-0 h-1 bg-primary rounded-full transition-all duration-500"
+              style={{
+                width: `${indicatorStyle.width}px`,
+                left: `${indicatorStyle.left}px`
               }}
-            >
-              {t(tab.label)}
-            </div>
-          ))}
-          <div
-            className="absolute bottom-0 h-1 bg-primary rounded-full transition-all duration-500"
-            style={{
-              width: `${indicatorStyle.width}px`,
-              left: `${indicatorStyle.left}px`
-            }}
-          />
-        </div>
-        <ScrollBar orientation="horizontal" className="opacity-0 pointer-events-none" />
-      </ScrollArea>
+            />
+          </div>
+          <ScrollBar orientation="horizontal" className="opacity-0 pointer-events-none" />
+        </ScrollArea>
+      )}
       {options && <div className="py-1 flex items-center">{options}</div>}
     </div>
   )

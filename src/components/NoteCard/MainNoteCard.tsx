@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
 import { Event } from 'nostr-tools'
 import Collapsible from '../Collapsible'
+import GroupedNotesIndicator from '../GroupedNotesIndicator'
 import Note from '../Note'
 import NoteStats from '../NoteStats'
 import PinnedButton from './PinnedButton'
@@ -15,6 +16,10 @@ export default function MainNoteCard({
   reposter,
   embedded,
   originalNoteId,
+  groupedNotesTotalCount,
+  groupedNotesOldestTimestamp,
+  onAllNotesRead,
+  areAllNotesRead,
   pinned = false
 }: {
   event: Event
@@ -22,6 +27,10 @@ export default function MainNoteCard({
   reposter?: string
   embedded?: boolean
   originalNoteId?: string
+  groupedNotesTotalCount?: number
+  groupedNotesOldestTimestamp?: number
+  onAllNotesRead?: () => void
+  areAllNotesRead?: boolean
   pinned?: boolean
 }) {
   const { push } = useSecondaryPage()
@@ -45,7 +54,16 @@ export default function MainNoteCard({
             originalNoteId={originalNoteId}
           />
         </Collapsible>
-        {!embedded && <NoteStats className="mt-3 px-4" event={event} />}
+        {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}
+        {!embedded && groupedNotesTotalCount && (
+          <GroupedNotesIndicator
+            event={event}
+            totalNotesInTimeframe={groupedNotesTotalCount}
+            oldestTimestamp={groupedNotesOldestTimestamp}
+            onAllNotesRead={onAllNotesRead}
+            areAllNotesRead={areAllNotesRead}
+          />
+        )}
       </div>
       {!embedded && <Separator />}
     </div>

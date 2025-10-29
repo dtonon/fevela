@@ -348,7 +348,7 @@ class ClientService extends EventTarget {
         events.push(evt)
       })
     })
-    return events.sort((a, b) => b.created_at - a.created_at).slice(0, limit)
+    return events.sort((a, b) => b.created_at - a.created_at)
   }
 
   subscribe(
@@ -387,7 +387,11 @@ class ClientService extends EventTarget {
 
       async function startSub() {
         startedCount++
-        const relay = await that.pool.ensureRelay(url, { connectionTimeout: 5000 }).catch(() => {
+        const relay = await that.pool.ensureRelay(url, { connectionTimeout: 5000 }).catch((err) => {
+          console.warn(
+            `⚠️ [Relay Connection Failed] ${url}`,
+            err?.message || err || 'Unknown error'
+          )
           return undefined
         })
         // cannot connect to relay
@@ -1395,7 +1399,7 @@ class ClientService extends EventTarget {
         if (
           relayCount > 10 &&
           pubkeys.size < 10 &&
-          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 2)
+          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 3)
         ) {
           delete group[url]
         } else {
