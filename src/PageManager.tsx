@@ -469,7 +469,7 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                     ))}
                     <div
                       key="home"
-                      className="w-full"
+                      className="flex flex-col h-full w-full"
                       style={{ display: secondaryStack.length === 0 ? 'block' : 'none' }}
                     >
                       <HomePage />
