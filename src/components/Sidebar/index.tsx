@@ -3,7 +3,6 @@ import Logo from '@/assets/Logo'
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { useTheme } from '@/providers/ThemeProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import AccountButton from './AccountButton'
@@ -18,7 +17,6 @@ import SettingsButton from './SettingsButton'
 
 export default function PrimaryPageSidebar() {
   const { isSmallScreen } = useScreenSize()
-  const { themeSetting } = useTheme()
   const { sidebarCollapse, updateSidebarCollapse, enableSingleColumnLayout } = useUserPreferences()
   const { pubkey } = useNostr()
 
