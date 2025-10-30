@@ -6,6 +6,7 @@ import { LocalizedLanguageNames, TLanguage } from '@/i18n'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn, isSupportCheckConnectionType } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { TLinkPreviewMode, TMediaAutoLoadPolicy } from '@/types'
@@ -16,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t, i18n } = useTranslation()
+  const { isSmallScreen } = useScreenSize()
   const [language, setLanguage] = useState<TLanguage>(i18n.language as TLanguage)
   const {
     autoplay,
@@ -99,7 +101,9 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
             <SelectContent>
               <SelectItem value={LINK_PREVIEW_MODE.NEVER}>{t('Never')}</SelectItem>
               <SelectItem value={LINK_PREVIEW_MODE.ENABLED}>{t('Enabled')}</SelectItem>
-              <SelectItem value={LINK_PREVIEW_MODE.ON_MOUSEOVER}>{t('On mouseover')}</SelectItem>
+              <SelectItem value={LINK_PREVIEW_MODE.ON_MOUSEOVER}>
+                {isSmallScreen ? t('On long press') : t('On mouseover')}
+              </SelectItem>
             </SelectContent>
           </Select>
         </SettingItem>

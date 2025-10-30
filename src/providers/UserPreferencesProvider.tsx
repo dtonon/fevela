@@ -1,5 +1,4 @@
 import storage from '@/services/local-storage.service'
-import { LINK_PREVIEW_MODE } from '@/constants'
 import { TLinkPreviewMode, TNotificationStyle } from '@/types'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useScreenSize } from './ScreenSizeProvider'
@@ -71,12 +70,6 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.setLinkPreviewMode(mode)
   }
 
-  // On mobile, fallback 'on-mouseover' to 'enabled' since hover doesn't make sense on touch
-  const effectiveLinkPreviewMode =
-    isSmallScreen && linkPreviewMode === LINK_PREVIEW_MODE.ON_MOUSEOVER
-      ? LINK_PREVIEW_MODE.ENABLED
-      : linkPreviewMode
-
   return (
     <UserPreferencesContext.Provider
       value={{
@@ -88,7 +81,7 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         updateSidebarCollapse,
         enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
         updateEnableSingleColumnLayout,
-        linkPreviewMode: effectiveLinkPreviewMode,
+        linkPreviewMode,
         updateLinkPreviewMode
       }}
     >

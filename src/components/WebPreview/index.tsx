@@ -8,15 +8,17 @@ import Image from '../Image'
 export default function WebPreview({
   url,
   className,
-  variant = 'horizontal'
+  variant = 'horizontal',
+  showFallback = false
 }: {
   url: string
   className?: string
   variant?: 'horizontal' | 'vertical'
+  showFallback?: boolean
 }) {
   const { autoLoadMedia } = useContentPolicy()
   const { isSmallScreen } = useScreenSize()
-  const { title, description, image } = useFetchWebMetadata(url)
+  const { title, description, image, isLoading } = useFetchWebMetadata(url)
 
   const hostname = useMemo(() => {
     try {
@@ -26,11 +28,35 @@ export default function WebPreview({
     }
   }, [url])
 
-  if (!autoLoadMedia) {
-    return null
+  // Show loading skeleton while fetching
+  if (showFallback && isLoading) {
+    return (
+      <div className={cn('rounded-lg border overflow-hidden bg-card p-4 animate-pulse', className)}>
+        <div className="h-4 bg-muted rounded w-3/4 mx-auto mb-2"></div>
+        <div className="h-3 bg-muted rounded w-full mb-1"></div>
+        <div className="h-3 bg-muted rounded w-5/6"></div>
+      </div>
+    )
   }
 
-  if (!title) {
+  // Show fallback message only after loading is complete and preview failed
+  const shouldShowFallback = showFallback && !isLoading && (!autoLoadMedia || !title)
+
+  if (shouldShowFallback) {
+    return (
+      <div
+        className={cn(
+          'rounded-lg border overflow-hidden bg-card p-4 text-center text-muted-foreground',
+          className
+        )}
+      >
+        Sorry, no preview available
+      </div>
+    )
+  }
+
+  // While loading or if no preview yet, return null
+  if (isLoading || !autoLoadMedia || !title) {
     return null
   }
 
@@ -49,9 +75,7 @@ export default function WebPreview({
           <div className="font-semibold line-clamp-2 mb-1">{title}</div>
           <div className="text-sm text-muted-foreground line-clamp-3">{description}</div>
         </div>
-        {image && (
-          <Image image={{ url: image }} className="w-full h-48 rounded-none" hideIfError />
-        )}
+        {image && <Image image={{ url: image }} className="w-full h-48 rounded-none" hideIfError />}
       </div>
     )
   }

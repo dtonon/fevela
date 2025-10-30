@@ -6,9 +6,11 @@ type TLinkPreviewHoverContext = {
   linkElement: HTMLElement | null
   showLoading: boolean
   showPreview: boolean
+  clickedUrls: Set<string>
   startHover: (url: string, cursorPos: { x: number; y: number }, element: HTMLElement) => void
   updateCursorPosition: (cursorPos: { x: number; y: number }) => void
   cancelHover: () => void
+  toggleClickedUrl: (url: string) => void
 }
 
 const LinkPreviewHoverContext = createContext<TLinkPreviewHoverContext | undefined>(undefined)
@@ -27,6 +29,7 @@ export function LinkPreviewHoverProvider({ children }: { children: React.ReactNo
   const [linkElement, setLinkElement] = useState<HTMLElement | null>(null)
   const [showLoading, setShowLoading] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
+  const [clickedUrls, setClickedUrls] = useState<Set<string>>(new Set())
 
   const loadingTimerRef = useRef<NodeJS.Timeout | null>(null)
   const previewTimerRef = useRef<NodeJS.Timeout | null>(null)
@@ -49,6 +52,18 @@ export function LinkPreviewHoverProvider({ children }: { children: React.ReactNo
 
   const updateCursorPosition = (cursorPos: { x: number; y: number }) => {
     setCursorPosition(cursorPos)
+  }
+
+  const toggleClickedUrl = (url: string) => {
+    setClickedUrls((prev) => {
+      const newSet = new Set(prev)
+      if (newSet.has(url)) {
+        newSet.delete(url)
+      } else {
+        newSet.add(url)
+      }
+      return newSet
+    })
   }
 
   const startHover = (url: string, cursorPos: { x: number; y: number }, element: HTMLElement) => {
@@ -84,9 +99,11 @@ export function LinkPreviewHoverProvider({ children }: { children: React.ReactNo
         linkElement,
         showLoading,
         showPreview,
+        clickedUrls,
         startHover,
         updateCursorPosition,
-        cancelHover
+        cancelHover,
+        toggleClickedUrl
       }}
     >
       {children}

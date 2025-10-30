@@ -1,4 +1,5 @@
 import { useLinkPreviewHover } from '@/providers/LinkPreviewHoverProvider'
+import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import WebPreview from '../WebPreview'
@@ -6,13 +7,15 @@ import WebPreview from '../WebPreview'
 export default function LinkPreviewHoverUI() {
   const { activeUrl, cursorPosition, linkElement, showLoading, showPreview } =
     useLinkPreviewHover()
+  const { isSmallScreen } = useScreenSize()
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  if (!mounted) return null
+  // Only show popup on desktop (not mobile)
+  if (!mounted || isSmallScreen) return null
 
   return createPortal(
     <>
