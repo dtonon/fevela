@@ -6,6 +6,7 @@ import { LocalizedLanguageNames, TLanguage } from '@/i18n'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn, isSupportCheckConnectionType } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { TMediaAutoLoadPolicy } from '@/types'
 import { SelectValue } from '@radix-ui/react-select'
@@ -26,6 +27,7 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
     mediaAutoLoadPolicy,
     setMediaAutoLoadPolicy
   } = useContentPolicy()
+  const { showLinkPreviews, updateShowLinkPreviews } = useUserPreferences()
   const { hideUntrustedNotes, updateHideUntrustedNotes } = useUserTrust()
 
   const handleLanguageChange = (value: TLanguage) => {
@@ -82,6 +84,13 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
             <div className="text-muted-foreground">{t('Enable video autoplay on this device')}</div>
           </Label>
           <Switch id="autoplay" checked={autoplay} onCheckedChange={setAutoplay} />
+        </SettingItem>
+        <SettingItem>
+          <Label htmlFor="show-link-previews" className="text-base font-normal">
+            <div>{t('Show link previews')}</div>
+            <div className="text-muted-foreground">{t('Display preview cards for links in notes')}</div>
+          </Label>
+          <Switch id="show-link-previews" checked={showLinkPreviews} onCheckedChange={updateShowLinkPreviews} />
         </SettingItem>
         <SettingItem>
           <Label htmlFor="hide-untrusted-notes" className="text-base font-normal">

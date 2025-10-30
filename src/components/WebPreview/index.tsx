@@ -2,10 +2,12 @@ import { useFetchWebMetadata } from '@/hooks/useFetchWebMetadata'
 import { cn } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
+import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useMemo } from 'react'
 import Image from '../Image'
 
 export default function WebPreview({ url, className }: { url: string; className?: string }) {
+  const { showLinkPreviews } = useUserPreferences()
   const { autoLoadMedia } = useContentPolicy()
   const { isSmallScreen } = useScreenSize()
   const { title, description, image } = useFetchWebMetadata(url)
@@ -17,6 +19,10 @@ export default function WebPreview({ url, className }: { url: string; className?
       return ''
     }
   }, [url])
+
+  if (!showLinkPreviews) {
+    return null
+  }
 
   if (!autoLoadMedia) {
     return null

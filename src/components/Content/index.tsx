@@ -9,6 +9,7 @@ import {
   EmbeddedWebsocketUrlParser,
   parseContent
 } from '@/lib/content-parser'
+import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { getImetaInfosFromEvent } from '@/lib/event'
 import { getEmojiInfosFromEmojiTags, getImetaInfoFromImetaTag } from '@/lib/tag'
 import { cn } from '@/lib/utils'
@@ -41,6 +42,7 @@ export default function Content({
   className?: string
   mustLoadMedia?: boolean
 }) {
+  const { showLinkPreviews } = useUserPreferences()
   const translatedEvent = useTranslatedEvent(event?.id)
   const { nodes, allImages, lastNormalUrl, emojiInfos } = useMemo(() => {
     const _content = translatedEvent?.content ?? event?.content ?? content
@@ -158,7 +160,7 @@ export default function Content({
         }
         return null
       })}
-      {lastNormalUrl && <WebPreview className="mt-2" url={lastNormalUrl} />}
+      {showLinkPreviews && lastNormalUrl && <WebPreview className="mt-2" url={lastNormalUrl} />}
     </div>
   )
 }

@@ -15,6 +15,9 @@ type TUserPreferencesContext = {
 
   enableSingleColumnLayout: boolean
   updateEnableSingleColumnLayout: (enable: boolean) => void
+
+  showLinkPreviews: boolean
+  updateShowLinkPreviews: (show: boolean) => void
 }
 
 const UserPreferencesContext = createContext<TUserPreferencesContext | undefined>(undefined)
@@ -37,6 +40,7 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
   const [enableSingleColumnLayout, setEnableSingleColumnLayout] = useState(
     storage.getEnableSingleColumnLayout()
   )
+  const [showLinkPreviews, setShowLinkPreviews] = useState(storage.getShowLinkPreviews())
 
   useEffect(() => {
     if (!isSmallScreen && enableSingleColumnLayout) {
@@ -61,6 +65,11 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.setEnableSingleColumnLayout(enable)
   }
 
+  const updateShowLinkPreviews = (show: boolean) => {
+    setShowLinkPreviews(show)
+    storage.setShowLinkPreviews(show)
+  }
+
   return (
     <UserPreferencesContext.Provider
       value={{
@@ -71,7 +80,9 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         sidebarCollapse,
         updateSidebarCollapse,
         enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
-        updateEnableSingleColumnLayout
+        updateEnableSingleColumnLayout,
+        showLinkPreviews,
+        updateShowLinkPreviews
       }}
     >
       {children}

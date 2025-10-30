@@ -54,6 +54,7 @@ class LocalStorageService {
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
   private enableSingleColumnLayout: boolean = false
+  private showLinkPreviews: boolean = false
 
   constructor() {
     if (!LocalStorageService.instance) {
@@ -215,6 +216,8 @@ class LocalStorageService {
 
     this.enableSingleColumnLayout =
       window.localStorage.getItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT) === 'true'
+
+    this.showLinkPreviews = window.localStorage.getItem(StorageKey.SHOW_LINK_PREVIEWS) === 'true'
 
     // Clean up deprecated data
     window.localStorage.removeItem(StorageKey.ACCOUNT_PROFILE_EVENT_MAP)
@@ -534,6 +537,15 @@ class LocalStorageService {
   setEnableSingleColumnLayout(enable: boolean) {
     this.enableSingleColumnLayout = enable
     window.localStorage.setItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT, enable.toString())
+  }
+
+  getShowLinkPreviews() {
+    return this.showLinkPreviews
+  }
+
+  setShowLinkPreviews(show: boolean) {
+    this.showLinkPreviews = show
+    window.localStorage.setItem(StorageKey.SHOW_LINK_PREVIEWS, show.toString())
   }
 }
 
