@@ -1,5 +1,6 @@
 import storage from '@/services/local-storage.service'
-import { TNotificationStyle } from '@/types'
+import { LINK_PREVIEW_MODE } from '@/constants'
+import { TLinkPreviewMode, TNotificationStyle } from '@/types'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useScreenSize } from './ScreenSizeProvider'
 
@@ -16,8 +17,8 @@ type TUserPreferencesContext = {
   enableSingleColumnLayout: boolean
   updateEnableSingleColumnLayout: (enable: boolean) => void
 
-  showLinkPreviews: boolean
-  updateShowLinkPreviews: (show: boolean) => void
+  linkPreviewMode: TLinkPreviewMode
+  updateLinkPreviewMode: (mode: TLinkPreviewMode) => void
 }
 
 const UserPreferencesContext = createContext<TUserPreferencesContext | undefined>(undefined)
@@ -40,7 +41,7 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
   const [enableSingleColumnLayout, setEnableSingleColumnLayout] = useState(
     storage.getEnableSingleColumnLayout()
   )
-  const [showLinkPreviews, setShowLinkPreviews] = useState(storage.getShowLinkPreviews())
+  const [linkPreviewMode, setLinkPreviewMode] = useState(storage.getLinkPreviewMode())
 
   useEffect(() => {
     if (!isSmallScreen && enableSingleColumnLayout) {
@@ -65,10 +66,16 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.setEnableSingleColumnLayout(enable)
   }
 
-  const updateShowLinkPreviews = (show: boolean) => {
-    setShowLinkPreviews(show)
-    storage.setShowLinkPreviews(show)
+  const updateLinkPreviewMode = (mode: TLinkPreviewMode) => {
+    setLinkPreviewMode(mode)
+    storage.setLinkPreviewMode(mode)
   }
+
+  // On mobile, fallback 'on-mouseover' to 'enabled' since hover doesn't make sense on touch
+  const effectiveLinkPreviewMode =
+    isSmallScreen && linkPreviewMode === LINK_PREVIEW_MODE.ON_MOUSEOVER
+      ? LINK_PREVIEW_MODE.ENABLED
+      : linkPreviewMode
 
   return (
     <UserPreferencesContext.Provider
@@ -81,8 +88,8 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         updateSidebarCollapse,
         enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
         updateEnableSingleColumnLayout,
-        showLinkPreviews,
-        updateShowLinkPreviews
+        linkPreviewMode: effectiveLinkPreviewMode,
+        updateLinkPreviewMode
       }}
     >
       {children}

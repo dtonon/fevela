@@ -1,14 +1,14 @@
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { MEDIA_AUTO_LOAD_POLICY } from '@/constants'
+import { LINK_PREVIEW_MODE, MEDIA_AUTO_LOAD_POLICY } from '@/constants'
 import { LocalizedLanguageNames, TLanguage } from '@/i18n'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn, isSupportCheckConnectionType } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
-import { TMediaAutoLoadPolicy } from '@/types'
+import { TLinkPreviewMode, TMediaAutoLoadPolicy } from '@/types'
 import { SelectValue } from '@radix-ui/react-select'
 import { ExternalLink } from 'lucide-react'
 import { forwardRef, HTMLProps, useState } from 'react'
@@ -27,7 +27,7 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
     mediaAutoLoadPolicy,
     setMediaAutoLoadPolicy
   } = useContentPolicy()
-  const { showLinkPreviews, updateShowLinkPreviews } = useUserPreferences()
+  const { linkPreviewMode, updateLinkPreviewMode } = useUserPreferences()
   const { hideUntrustedNotes, updateHideUntrustedNotes } = useUserTrust()
 
   const handleLanguageChange = (value: TLanguage) => {
@@ -86,11 +86,22 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
           <Switch id="autoplay" checked={autoplay} onCheckedChange={setAutoplay} />
         </SettingItem>
         <SettingItem>
-          <Label htmlFor="show-link-previews" className="text-base font-normal">
-            <div>{t('Show link previews')}</div>
-            <div className="text-muted-foreground">{t('Display preview cards for links in notes')}</div>
+          <Label htmlFor="link-preview-mode" className="text-base font-normal">
+            {t('Link previews')}
           </Label>
-          <Switch id="show-link-previews" checked={showLinkPreviews} onCheckedChange={updateShowLinkPreviews} />
+          <Select
+            value={linkPreviewMode}
+            onValueChange={(value: TLinkPreviewMode) => updateLinkPreviewMode(value)}
+          >
+            <SelectTrigger id="link-preview-mode" className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={LINK_PREVIEW_MODE.NEVER}>{t('Never')}</SelectItem>
+              <SelectItem value={LINK_PREVIEW_MODE.ENABLED}>{t('Enabled')}</SelectItem>
+              <SelectItem value={LINK_PREVIEW_MODE.ON_MOUSEOVER}>{t('On mouseover')}</SelectItem>
+            </SelectContent>
+          </Select>
         </SettingItem>
         <SettingItem>
           <Label htmlFor="hide-untrusted-notes" className="text-base font-normal">

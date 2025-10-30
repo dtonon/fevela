@@ -159,6 +159,12 @@ export const MEDIA_AUTO_LOAD_POLICY = {
   NEVER: 'never'
 } as const
 
+export const LINK_PREVIEW_MODE = {
+  NEVER: 'never',
+  ENABLED: 'enabled',
+  ON_MOUSEOVER: 'on-mouseover'
+} as const
+
 export const MAX_PINNED_NOTES = 10
 
 export const PRIMARY_COLORS = {

@@ -1,4 +1,5 @@
 import { useTranslatedEvent } from '@/hooks'
+import { LINK_PREVIEW_MODE } from '@/constants'
 import {
   EmbeddedEmojiParser,
   EmbeddedEventParser,
@@ -42,7 +43,7 @@ export default function Content({
   className?: string
   mustLoadMedia?: boolean
 }) {
-  const { showLinkPreviews } = useUserPreferences()
+  const { linkPreviewMode } = useUserPreferences()
   const translatedEvent = useTranslatedEvent(event?.id)
   const { nodes, allImages, lastNormalUrl, emojiInfos } = useMemo(() => {
     const _content = translatedEvent?.content ?? event?.content ?? content
@@ -160,7 +161,9 @@ export default function Content({
         }
         return null
       })}
-      {showLinkPreviews && lastNormalUrl && <WebPreview className="mt-2" url={lastNormalUrl} />}
+      {linkPreviewMode === LINK_PREVIEW_MODE.ENABLED && lastNormalUrl && (
+        <WebPreview className="mt-2" url={lastNormalUrl} />
+      )}
     </div>
   )
 }

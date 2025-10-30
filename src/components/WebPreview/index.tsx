@@ -2,12 +2,18 @@ import { useFetchWebMetadata } from '@/hooks/useFetchWebMetadata'
 import { cn } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useMemo } from 'react'
 import Image from '../Image'
 
-export default function WebPreview({ url, className }: { url: string; className?: string }) {
-  const { showLinkPreviews } = useUserPreferences()
+export default function WebPreview({
+  url,
+  className,
+  variant = 'horizontal'
+}: {
+  url: string
+  className?: string
+  variant?: 'horizontal' | 'vertical'
+}) {
   const { autoLoadMedia } = useContentPolicy()
   const { isSmallScreen } = useScreenSize()
   const { title, description, image } = useFetchWebMetadata(url)
@@ -20,10 +26,6 @@ export default function WebPreview({ url, className }: { url: string; className?
     }
   }, [url])
 
-  if (!showLinkPreviews) {
-    return null
-  }
-
   if (!autoLoadMedia) {
     return null
   }
@@ -32,6 +34,29 @@ export default function WebPreview({ url, className }: { url: string; className?
     return null
   }
 
+  // Vertical layout (for popups)
+  if (variant === 'vertical') {
+    return (
+      <div
+        className={cn('rounded-lg border overflow-hidden bg-card', className)}
+        onClick={(e) => {
+          e.stopPropagation()
+          window.open(url, '_blank')
+        }}
+      >
+        <div className="p-3">
+          <div className="text-xs text-muted-foreground mb-1">{hostname}</div>
+          <div className="font-semibold line-clamp-2 mb-1">{title}</div>
+          <div className="text-sm text-muted-foreground line-clamp-3">{description}</div>
+        </div>
+        {image && (
+          <Image image={{ url: image }} className="w-full h-48 rounded-none" hideIfError />
+        )}
+      </div>
+    )
+  }
+
+  // Small screen layout (vertical)
   if (isSmallScreen && image) {
     return (
       <div
@@ -50,6 +75,7 @@ export default function WebPreview({ url, className }: { url: string; className?
     )
   }
 
+  // Horizontal layout (default)
   return (
     <div
       className={cn('p-0 clickable flex w-full border rounded-lg overflow-hidden', className)}

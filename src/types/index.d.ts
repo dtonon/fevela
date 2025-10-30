@@ -1,5 +1,10 @@
 import { Event, Filter, VerifiedEvent } from 'nostr-tools'
-import { MEDIA_AUTO_LOAD_POLICY, NOTIFICATION_LIST_STYLE, POLL_TYPE } from '../constants'
+import {
+  LINK_PREVIEW_MODE,
+  MEDIA_AUTO_LOAD_POLICY,
+  NOTIFICATION_LIST_STYLE,
+  POLL_TYPE
+} from '../constants'
 
 export type TSubRequestFilter = Omit<Filter, 'since' | 'until'> & { limit: number }
 
@@ -189,3 +194,5 @@ export type TAwesomeRelayCollection = {
 
 export type TMediaAutoLoadPolicy =
   (typeof MEDIA_AUTO_LOAD_POLICY)[keyof typeof MEDIA_AUTO_LOAD_POLICY]
+
+export type TLinkPreviewMode = (typeof LINK_PREVIEW_MODE)[keyof typeof LINK_PREVIEW_MODE]
