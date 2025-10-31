@@ -1,6 +1,6 @@
 import { ISigner, TDraftEvent } from '@/types'
 import { bytesToHex } from '@noble/hashes/utils'
-import { BunkerSigner as NBunkerSigner, toBunkerURL } from 'nostr-tools/nip46'
+import { BunkerSigner as NBunkerSigner, toBunkerURL } from '@nostr/tools/nip46'
 
 export class NostrConnectionSigner implements ISigner {
   signer: NBunkerSigner | null = null

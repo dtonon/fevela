@@ -25,15 +25,14 @@ import {
   TAccount,
   TAccountPointer,
   TDraftEvent,
-  TProfile,
   TPublishOptions,
   TRelayList
 } from '@/types'
 import { hexToBytes } from '@noble/hashes/utils'
 import dayjs from 'dayjs'
 import { Event, kinds, VerifiedEvent } from 'nostr-tools'
-import * as nip19 from 'nostr-tools/nip19'
-import * as nip49 from 'nostr-tools/nip49'
+import * as nip19 from '@nostr/tools/nip19'
+import * as nip49 from '@nostr/tools/nip49'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'

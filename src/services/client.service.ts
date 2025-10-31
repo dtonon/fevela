@@ -28,7 +28,8 @@ import {
   validateEvent,
   VerifiedEvent
 } from 'nostr-tools'
-import { AbstractRelay } from 'nostr-tools/abstract-relay'
+import { AbstractRelay } from '@nostr/tools/abstract-relay'
+import { pool } from '@nostr/gadgets/global'
 import indexedDb from './indexed-db.service'
 
 type TTimelineRef = [string, number]
@@ -68,7 +69,7 @@ class ClientService extends EventTarget {
 
   constructor() {
     super()
-    this.pool = new SimplePool()
+    this.pool = pool
     this.pool.trackRelays = true
   }
 
