@@ -1,6 +1,6 @@
 import { useLinkPreviewHover } from '@/providers/LinkPreviewHoverProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import WebPreview from '../WebPreview'
 
@@ -53,31 +53,44 @@ export default function LinkPreviewHoverUI() {
 
 function LinkPreviewPopup({ url, linkElement }: { url: string; linkElement: HTMLElement }) {
   const [position, setPosition] = useState<{ top: number; left: number } | null>(null)
+  const previewRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    const rect = linkElement.getBoundingClientRect()
-    const viewportHeight = window.innerHeight
-    const previewHeight = 350 // Estimated height of preview
-    const previewWidth = 500 // Width of preview
+    const updatePosition = () => {
+      if (!previewRef.current) return
 
-    // Position below the link if there's space, otherwise above
-    const spaceBelow = viewportHeight - rect.bottom
-    const top = spaceBelow > previewHeight ? rect.bottom + 8 : rect.top - previewHeight - 8
+      const rect = linkElement.getBoundingClientRect()
+      const viewportHeight = window.innerHeight
+      const previewHeight = previewRef.current.offsetHeight
+      const previewWidth = 500 // Width of preview
 
-    setPosition({
-      top,
-      left: Math.max(16, Math.min(rect.left, window.innerWidth - previewWidth - 16)) // Keep within viewport with padding
-    })
+      // Position below the link if there's space, otherwise above
+      const spaceBelow = viewportHeight - rect.bottom
+      const top = spaceBelow > previewHeight + 16 ? rect.bottom + 8 : rect.top - previewHeight - 8
+
+      setPosition({
+        top,
+        left: Math.max(16, Math.min(rect.left, window.innerWidth - previewWidth - 16)) // Keep within viewport with padding
+      })
+    }
+
+    // Initial position calculation
+    updatePosition()
+
+    // Recalculate after a short delay to account for content rendering
+    const timeoutId = setTimeout(updatePosition, 100)
+
+    return () => clearTimeout(timeoutId)
   }, [linkElement])
-
-  if (!position) return null
 
   return (
     <div
+      ref={previewRef}
       className="fixed z-[9998] w-[500px] max-w-[calc(100vw-32px)] transition-opacity duration-300 ease-in-out opacity-0 animate-[fadeIn_0.3s_ease-in-out_forwards]"
       style={{
-        top: position.top,
-        left: position.left
+        top: position?.top ?? 0,
+        left: position?.left ?? 0,
+        visibility: position ? 'visible' : 'hidden'
       }}
     >
       <style>{`
