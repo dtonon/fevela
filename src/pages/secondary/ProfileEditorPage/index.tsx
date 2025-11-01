@@ -7,6 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { createProfileDraftEvent } from '@/lib/draft-event'
+import { username } from '@/lib/event-metadata'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { generateImageByPubkey } from '@/lib/pubkey'
 import { isEmail } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
@@ -21,7 +23,7 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { account, profile, profileEvent, publish, updateProfileEvent } = useNostr()
   const [banner, setBanner] = useState<string>('')
   const [avatar, setAvatar] = useState<string>('')
-  const [username, setUsername] = useState<string>('')
+  const [name, setName] = useState<string>('')
   const [about, setAbout] = useState<string>('')
   const [website, setWebsite] = useState<string>('')
   const [nip05, setNip05] = useState<string>('')
@@ -39,17 +41,17 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
 
   useEffect(() => {
     if (profile) {
-      setBanner(profile.banner ?? '')
-      setAvatar(profile.avatar ?? '')
-      setUsername(profile.original_username ?? '')
-      setAbout(profile.about ?? '')
-      setWebsite(profile.website ?? '')
-      setNip05(profile.nip05 ?? '')
-      setLightningAddress(profile.lightningAddress || '')
+      setBanner(profile.metadata.banner ?? '')
+      setAvatar(profile.metadata.picture ?? '')
+      setName(profile.metadata.name ?? '')
+      setAbout(profile.metadata.about ?? '')
+      setWebsite(profile.metadata.website ?? '')
+      setNip05(profile.metadata.nip05 ?? '')
+      setLightningAddress(getLightningAddressFromProfile(profile) || '')
     } else {
       setBanner('')
       setAvatar('')
-      setUsername('')
+      setName('')
       setAbout('')
       setWebsite('')
       setNip05('')
@@ -68,9 +70,8 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
     const oldProfileContent = profileEvent ? JSON.parse(profileEvent.content) : {}
     const newProfileContent = {
       ...oldProfileContent,
-      display_name: username,
-      displayName: username,
-      name: oldProfileContent.name ?? username,
+      display_name: oldProfileContent.display_name || undefined,
+      name,
       about,
       website,
       nip05,
@@ -122,7 +123,7 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
   )
 
   return (
-    <SecondaryPageLayout ref={ref} index={index} title={profile.username} controls={controls}>
+    <SecondaryPageLayout ref={ref} index={index} title={username(profile)} controls={controls}>
       <div className="relative bg-cover bg-center mb-2">
         <Uploader
           onUploadSuccess={onBannerUploadSuccess}
@@ -157,9 +158,9 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
           <Label htmlFor="profile-username-input">{t('Display Name')}</Label>
           <Input
             id="profile-username-input"
-            value={username}
+            value={name}
             onChange={(e) => {
-              setUsername(e.target.value)
+              setName(e.target.value)
               setHasChanged(true)
             }}
           />

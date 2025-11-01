@@ -1,6 +1,7 @@
 import { ExtendedKind } from '@/constants'
 import { tagNameEquals } from '@/lib/tag'
 import { TRelayInfo } from '@/types'
+import { NostrUser } from '@nostr/gadgets/metadata'
 import { Event, kinds } from 'nostr-tools'
 
 type TValue<T = any> = {
@@ -306,33 +307,38 @@ class IndexedDbService {
     })
   }
 
-  async iterateProfileEvents(callback: (event: Event) => Promise<void>): Promise<void> {
-    await this.initPromise
-    if (!this.db) {
-      return
-    }
-
-    return new Promise<void>((resolve, reject) => {
-      const transaction = this.db!.transaction(StoreNames.PROFILE_EVENTS, 'readwrite')
-      const store = transaction.objectStore(StoreNames.PROFILE_EVENTS)
-      const request = store.openCursor()
-      request.onsuccess = (event) => {
-        const cursor = (event.target as IDBRequest).result
-        if (cursor) {
-          const value = (cursor.value as TValue<Event>).value
-          if (value) {
-            callback(value)
-          }
-          cursor.continue()
-        } else {
-          transaction.commit()
-          resolve()
-        }
-      }
+  async getAllProfiles(): Promise<NostrUser[]> {
+    return new Promise<NostrUser[]>((resolve, reject) => {
+      const request = window.indexedDB.open('@nostr/gadgets/metadata')
 
       request.onerror = (event) => {
-        transaction.commit()
         reject(event)
+      }
+
+      request.onsuccess = () => {
+        const db = request.result
+        const transaction = db.transaction('cache', 'readonly')
+        const store = transaction.objectStore('cache')
+        const getAllRequest = store.getAll()
+
+        getAllRequest.onsuccess = async (event) => {
+          const values = (event.target as IDBRequest).result as NostrUser[]
+          try {
+            transaction.commit()
+            db.close()
+            resolve(values)
+          } catch (error) {
+            transaction.commit()
+            db.close()
+            reject(error)
+          }
+        }
+
+        getAllRequest.onerror = (event) => {
+          transaction.commit()
+          db.close()
+          reject(event)
+        }
       }
     })
   }

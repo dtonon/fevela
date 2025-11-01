@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { createProfileDraftEvent } from '@/lib/draft-event'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { isEmail } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { useZap } from '@/providers/ZapProvider'
@@ -42,7 +43,7 @@ const RizfulPage = forwardRef(({ index }: { index?: number }, ref) => {
   const updateUserProfile = async (address: string) => {
     try {
       // If the profile already has a lightning address, do nothing
-      if (profile?.lightningAddress) {
+      if (profile && getLightningAddressFromProfile(profile)) {
         return
       }
 

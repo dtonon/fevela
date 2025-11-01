@@ -13,8 +13,7 @@ import {
   isProtectedEvent,
   minePow
 } from '@/lib/event'
-import { getProfileFromEvent, getRelayListFromEvent } from '@/lib/event-metadata'
-import { formatPubkey, pubkeyToNpub } from '@/lib/pubkey'
+import { getRelayListFromEvent, username } from '@/lib/event-metadata'
 import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
 import indexedDb from '@/services/indexed-db.service'
@@ -42,11 +41,12 @@ import { Nip07Signer } from './nip-07.signer'
 import { NostrConnectionSigner } from './nostrConnection.signer'
 import { NpubSigner } from './npub.signer'
 import { NsecSigner } from './nsec.signer'
+import { bareNostrUser, NostrUser, nostrUserFromEvent } from '@nostr/gadgets/metadata'
 
 type TNostrContext = {
   isInitialized: boolean
   pubkey: string | null
-  profile: TProfile | null
+  profile: NostrUser | null
   profileEvent: Event | null
   relayList: TRelayList | null
   followListEvent: Event | null
@@ -112,7 +112,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [ncryptsec, setNcryptsec] = useState<string | null>(null)
   const [signer, setSigner] = useState<ISigner | null>(null)
   const [openLoginDialog, setOpenLoginDialog] = useState(false)
-  const [profile, setProfile] = useState<TProfile | null>(null)
+  const [profile, setProfile] = useState<NostrUser | null>(null)
   const [profileEvent, setProfileEvent] = useState<Event | null>(null)
   const [relayList, setRelayList] = useState<TRelayList | null>(null)
   const [followListEvent, setFollowListEvent] = useState<Event | null>(null)
@@ -154,7 +154,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
-    const init = async () => {
+    ;(async () => {
       setRelayList(null)
       setProfile(null)
       setProfileEvent(null)
@@ -169,7 +169,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const controller = new AbortController()
       const storedNsec = storage.getAccountNsec(account.pubkey)
       if (storedNsec) {
         setNsec(storedNsec)
@@ -209,7 +208,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       }
       if (storedProfileEvent) {
         setProfileEvent(storedProfileEvent)
-        setProfile(getProfileFromEvent(storedProfileEvent))
+        setProfile(nostrUserFromEvent(storedProfileEvent))
       }
       if (storedFollowListEvent) {
         setFollowListEvent(storedFollowListEvent)
@@ -282,14 +281,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         const updatedProfileEvent = await indexedDb.putReplaceableEvent(profileEvent)
         if (updatedProfileEvent.id === profileEvent.id) {
           setProfileEvent(updatedProfileEvent)
-          setProfile(getProfileFromEvent(updatedProfileEvent))
+          setProfile(nostrUserFromEvent(updatedProfileEvent))
         }
       } else if (!storedProfileEvent) {
-        setProfile({
-          pubkey: account.pubkey,
-          npub: pubkeyToNpub(account.pubkey) ?? '',
-          username: formatPubkey(account.pubkey)
-        })
+        setProfile(bareNostrUser(account.pubkey))
       }
       if (followListEvent) {
         const updatedFollowListEvent = await indexedDb.putReplaceableEvent(followListEvent)
@@ -338,15 +333,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setNotificationsSeenAt(notificationsSeenAt)
       storage.setLastReadNotificationTime(account.pubkey, notificationsSeenAt)
 
-      client.initUserIndexFromFollowings(account.pubkey, controller.signal)
-      return controller
-    }
-    const promise = init()
-    return () => {
-      promise.then((controller) => {
-        controller?.abort()
-      })
-    }
+      client.initUserIndexFromFollowings(account.pubkey)
+    })()
   }, [account])
 
   useEffect(() => {
@@ -619,7 +607,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     draftEvent: TDraftEvent,
     { minPow = 0, ...options }: TPublishOptions = {}
   ) => {
-    if (!account || !signer || account.signerType === 'npub') {
+    if (!account || !profile || !signer || account.signerType === 'npub') {
       throw new Error('You need to login first')
     }
 
@@ -637,7 +625,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       const result = confirm(
         t(
           'You are about to publish an event signed by [{{eventAuthorName}}]. You are currently logged in as [{{currentUsername}}]. Are you sure?',
-          { eventAuthorName: eventAuthor?.username, currentUsername: profile?.username }
+          { eventAuthorName: username(eventAuthor), currentUsername: username(profile) }
         )
       )
       if (!result) {
@@ -709,7 +697,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const updateProfileEvent = async (profileEvent: Event) => {
     const newProfileEvent = await indexedDb.putReplaceableEvent(profileEvent)
     setProfileEvent(newProfileEvent)
-    setProfile(getProfileFromEvent(newProfileEvent))
+    setProfile(nostrUserFromEvent(newProfileEvent))
   }
 
   const updateFollowListEvent = async (followListEvent: Event) => {

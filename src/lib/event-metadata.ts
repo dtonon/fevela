@@ -8,6 +8,7 @@ import { formatPubkey, pubkeyToNpub } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
 import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
 import { isTorBrowser } from './utils'
+import { NostrUser } from '@nostr/gadgets/metadata'
 
 export function getRelayListFromEvent(event?: Event | null) {
   if (!event) {
@@ -45,6 +46,11 @@ export function getRelayListFromEvent(event?: Event | null) {
     read: relayList.read.length && relayList.write.length <= 8 ? relayList.read : BIG_RELAY_URLS,
     originalRelays: relayList.originalRelays
   }
+}
+
+export function username(profile: NostrUser): string {
+  const { name, display_name, nip05, website } = profile.metadata || {}
+  return name || display_name || nip05?.split?.('@')?.[0] || website, profile?.shortName
 }
 
 export function getProfileFromEvent(event: Event) {

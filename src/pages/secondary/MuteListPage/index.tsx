@@ -11,6 +11,7 @@ import { Loader, Lock, Unlock } from 'lucide-react'
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFoundPage from '../NotFoundPage'
+import { username } from '@/lib/event-metadata'
 
 const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
@@ -60,7 +61,7 @@ const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
     <SecondaryPageLayout
       ref={ref}
       index={index}
-      title={t("username's muted", { username: profile.username })}
+      title={t("username's muted", { username: username(profile) })}
       displayScrollToTopButton
     >
       <div className="space-y-2 px-4 pt-2">
@@ -91,7 +92,7 @@ function UserItem({ pubkey }: { pubkey: string }) {
           skeletonClassName="h-4"
         />
         <Nip05 pubkey={pubkey} />
-        <div className="truncate text-muted-foreground text-sm">{profile?.about}</div>
+        <div className="truncate text-muted-foreground text-sm">{profile?.metadata?.about}</div>
       </div>
       <div className="flex gap-2 items-center">
         {switching ? (

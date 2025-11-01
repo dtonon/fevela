@@ -65,7 +65,9 @@ export function SimpleUserAvatar({
       <Skeleton className={cn('shrink-0', UserAvatarSizeCnMap[size], 'rounded-full', className)} />
     )
   }
-  const { avatar, pubkey } = profile || {}
+
+  const { metadata, pubkey } = profile || {}
+  const avatar = metadata?.picture
 
   return (
     <Image

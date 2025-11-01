@@ -1,4 +1,5 @@
 import { useFetchProfile } from '@/hooks'
+import { username } from '@/lib/event-metadata'
 import { formatUserId } from '@/lib/pubkey'
 import { cn } from '@/lib/utils'
 import { NodeViewRendererProps, NodeViewWrapper } from '@tiptap/react'
@@ -11,7 +12,7 @@ export default function MentionNode(props: NodeViewRendererProps & { selected: b
       className={cn('inline text-primary', props.selected ? 'bg-primary/20 rounded-sm' : '')}
     >
       {'@'}
-      {profile ? profile.username : formatUserId(props.node.attrs.id)}
+      {profile ? username(profile) : formatUserId(props.node.attrs.id)}
     </NodeViewWrapper>
   )
 }

@@ -18,6 +18,7 @@ import { toNote, toProfile } from '@/lib/link'
 import { userIdToPubkey } from '@/lib/pubkey'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
+import { username } from '@/lib/event-metadata'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
@@ -43,7 +44,7 @@ async function getPreviewText(event: Event): Promise<string> {
         if (pubkey) {
           const profile = await client.fetchProfile(userId)
           if (profile) {
-            processedContent = processedContent.replace(match, `@${profile.username}`)
+            processedContent = processedContent.replace(match, `@${username(profile)}`)
           } else {
             // If profile not found, show shortened version
             processedContent = processedContent.replace(match, `@${userId.substring(0, 12)}...`)

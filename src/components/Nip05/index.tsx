@@ -9,7 +9,7 @@ import { Favicon } from '../Favicon'
 export default function Nip05({ pubkey, append }: { pubkey: string; append?: string }) {
   const { profile } = useFetchProfile(pubkey)
   const { nip05IsVerified, nip05Name, nip05Domain, isFetching } = useFetchNip05(
-    profile?.nip05,
+    profile?.metadata?.nip05,
     pubkey
   )
 
@@ -21,7 +21,7 @@ export default function Nip05({ pubkey, append }: { pubkey: string; append?: str
     )
   }
 
-  if (!profile?.nip05 || !nip05Name || !nip05Domain) return null
+  if (!profile?.metadata?.nip05 || !nip05Name || !nip05Domain) return null
 
   return (
     <div

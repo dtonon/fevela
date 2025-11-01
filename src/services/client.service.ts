@@ -5,12 +5,12 @@ import {
   getReplaceableCoordinateFromEvent,
   isReplaceableEvent
 } from '@/lib/event'
-import { getProfileFromEvent, getRelayListFromEvent } from '@/lib/event-metadata'
-import { formatPubkey, isValidPubkey, pubkeyToNpub, userIdToPubkey } from '@/lib/pubkey'
+import { getRelayListFromEvent } from '@/lib/event-metadata'
+import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { getPubkeysFromPTags, getServersFromServerTags, tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, isWebsocketUrl, normalizeUrl } from '@/lib/url'
 import { isSafari } from '@/lib/utils'
-import { ISigner, TProfile, TPublishOptions, TRelayList, TSubRequestFilter } from '@/types'
+import { ISigner, TPublishOptions, TRelayList, TSubRequestFilter } from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
 import DataLoader from 'dataloader'
 import dayjs from 'dayjs'
@@ -24,13 +24,18 @@ import {
   Event as NEvent,
   nip19,
   Relay,
-  SimplePool,
   validateEvent,
   VerifiedEvent
 } from 'nostr-tools'
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool } from '@nostr/gadgets/global'
 import indexedDb from './indexed-db.service'
+import {
+  loadNostrUser,
+  NostrUser,
+  nostrUserFromEvent,
+  NostrUserRequest
+} from '@nostr/gadgets/metadata'
 
 type TTimelineRef = [string, number]
 
@@ -39,7 +44,6 @@ class ClientService extends EventTarget {
 
   signer?: ISigner
   pubkey?: string
-  private pool: SimplePool
 
   private timelines: Record<
     string,
@@ -69,8 +73,7 @@ class ClientService extends EventTarget {
 
   constructor() {
     super()
-    this.pool = pool
-    this.pool.trackRelays = true
+    pool.trackRelays = true
   }
 
   public static getInstance(): ClientService {
@@ -82,7 +85,9 @@ class ClientService extends EventTarget {
   }
 
   async init() {
-    await indexedDb.iterateProfileEvents((profileEvent) => this.addUsernameToIndex(profileEvent))
+    ;(await indexedDb.getAllProfiles()).forEach((profile) => {
+      this.addUsernameToIndex(profile)
+    })
   }
 
   async determineTargetRelays(
@@ -155,7 +160,7 @@ class ClientService extends EventTarget {
         uniqueRelayUrls.map(async (url) => {
           // eslint-disable-next-line @typescript-eslint/no-this-alias
           const that = this
-          const relay = await this.pool.ensureRelay(url)
+          const relay = await pool.ensureRelay(url)
           relay.publishTimeout = 10_000 // 10s
           return relay
             .publish(event)
@@ -388,7 +393,7 @@ class ClientService extends EventTarget {
 
       async function startSub() {
         startedCount++
-        const relay = await that.pool.ensureRelay(url, { connectionTimeout: 5000 }).catch((err) => {
+        const relay = await pool.ensureRelay(url, { connectionTimeout: 5000 }).catch((err) => {
           console.warn(
             `⚠️ [Relay Connection Failed] ${url}`,
             err?.message || err || 'Unknown error'
@@ -675,7 +680,7 @@ class ClientService extends EventTarget {
   /** =========== Event =========== */
 
   getSeenEventRelays(eventId: string) {
-    return Array.from(this.pool.seenOn.get(eventId)?.values() || [])
+    return Array.from(pool.seenOn.get(eventId)?.values() || [])
   }
 
   getSeenEventRelayUrls(eventId: string) {
@@ -691,10 +696,10 @@ class ClientService extends EventTarget {
   }
 
   trackEventSeenOn(eventId: string, relay: AbstractRelay) {
-    let set = this.pool.seenOn.get(eventId)
+    let set = pool.seenOn.get(eventId)
     if (!set) {
       set = new Set()
-      this.pool.seenOn.set(eventId, set)
+      pool.seenOn.set(eventId, set)
     }
     set.add(relay)
   }
@@ -972,20 +977,14 @@ class ClientService extends EventTarget {
 
   /** =========== Followings =========== */
 
-  async initUserIndexFromFollowings(pubkey: string, signal: AbortSignal) {
+  async initUserIndexFromFollowings(pubkey: string) {
     const followings = await this.fetchFollowings(pubkey)
-    for (let i = 0; i * 20 < followings.length; i++) {
-      if (signal.aborted) return
-      await Promise.all(
-        followings.slice(i * 20, (i + 1) * 20).map((pubkey) => this.fetchProfileEvent(pubkey))
-      )
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-    }
+    followings.forEach((pubkey) => this.fetchProfile(pubkey))
   }
 
   /** =========== Profile =========== */
 
-  async searchProfiles(relayUrls: string[], filter: Filter): Promise<TProfile[]> {
+  async searchProfiles(relayUrls: string[], filter: Filter): Promise<NostrUser[]> {
     const events = await this.query(relayUrls, {
       ...filter,
       kinds: [kinds.Metadata]
@@ -993,8 +992,7 @@ class ClientService extends EventTarget {
 
     const profileEvents = events.sort((a, b) => b.created_at - a.created_at)
     await Promise.allSettled(profileEvents.map((profile) => this.addUsernameToIndex(profile)))
-    profileEvents.forEach((profile) => this.updateProfileEventCache(profile))
-    return profileEvents.map((profileEvent) => getProfileFromEvent(profileEvent))
+    return profileEvents.map(nostrUserFromEvent)
   }
 
   async searchNpubsFromLocal(query: string, limit: number = 100) {
@@ -1002,105 +1000,53 @@ class ClientService extends EventTarget {
     return result.map((pubkey) => pubkeyToNpub(pubkey as string)).filter(Boolean) as string[]
   }
 
-  async searchProfilesFromLocal(query: string, limit: number = 100) {
+  async searchProfilesFromLocal(query: string, limit: number = 100): Promise<NostrUser[]> {
     const npubs = await this.searchNpubsFromLocal(query, limit)
     const profiles = await Promise.all(npubs.map((npub) => this.fetchProfile(npub)))
-    return profiles.filter((profile) => !!profile) as TProfile[]
+    return profiles.filter((profile) => !!profile)
   }
 
-  private async addUsernameToIndex(profileEvent: NEvent) {
-    try {
-      const profileObj = JSON.parse(profileEvent.content)
-      const text = [
-        profileObj.display_name?.trim() ?? '',
-        profileObj.name?.trim() ?? '',
-        profileObj.nip05
-          ?.split('@')
-          .map((s: string) => s.trim())
-          .join(' ') ?? ''
-      ].join(' ')
-      if (!text) return
+  private async addUsernameToIndex(profile: NostrUser) {
+    const text = [
+      profile.metadata.display_name?.trim() ?? '',
+      profile.metadata.name?.trim() ?? '',
+      profile.metadata.nip05
+        ?.split('@')
+        .map((s: string) => s.trim())
+        .join(' ') ?? ''
+    ].join(' ')
+    if (!text) return
 
-      await this.userIndex.addAsync(profileEvent.pubkey, text)
-    } catch {
-      return
-    }
+    await this.userIndex.addAsync(profile.pubkey, text)
   }
 
-  async fetchProfileEvent(id: string, skipCache: boolean = false): Promise<NEvent | undefined> {
-    let pubkey: string | undefined
-    let relays: string[] = []
-    if (/^[0-9a-f]{64}$/.test(id)) {
-      pubkey = id
+  async fetchProfile(input: string, skipCache = false): Promise<NostrUser> {
+    let req: NostrUserRequest | undefined
+
+    if (isValidPubkey(input)) {
+      req = { pubkey: input }
     } else {
-      const { data, type } = nip19.decode(id)
-      switch (type) {
-        case 'npub':
-          pubkey = data
-          break
-        case 'nprofile':
-          pubkey = data.pubkey
-          if (data.relays) relays = data.relays
-          break
+      try {
+        const { type, data } = nip19.decode(input)
+        if (type === 'npub') {
+          req = { pubkey: data }
+        } else if (type === 'nprofile') {
+          req = data
+        } else {
+          throw new Error('not a profile reference')
+        }
+      } catch (error) {
+        throw new Error('Error decoding user ref input: ' + input + ', error: ' + error)
       }
     }
 
-    if (!pubkey) {
-      throw new Error('Invalid id')
+    if (skipCache) {
+      req!.forceUpdate = true
     }
-    if (!skipCache) {
-      const localProfile = await indexedDb.getReplaceableEvent(pubkey, kinds.Metadata)
-      if (localProfile) {
-        return localProfile
-      }
-    }
-    const profileFromBigRelays = await this.replaceableEventFromBigRelaysDataloader.load({
-      pubkey,
-      kind: kinds.Metadata
-    })
-    if (profileFromBigRelays) {
-      this.addUsernameToIndex(profileFromBigRelays)
-      return profileFromBigRelays
-    }
-
-    if (!relays.length) {
-      return undefined
-    }
-
-    const profileEvent = await this.tryHarderToFetchEvent(
-      relays,
-      {
-        authors: [pubkey],
-        kinds: [kinds.Metadata],
-        limit: 1
-      },
-      true
-    )
-
-    if (profileEvent) {
-      this.addUsernameToIndex(profileEvent)
-      indexedDb.putReplaceableEvent(profileEvent)
-    }
-
-    return profileEvent
-  }
-
-  async fetchProfile(id: string, skipCache: boolean = false): Promise<TProfile | undefined> {
-    const profileEvent = await this.fetchProfileEvent(id, skipCache)
-    if (profileEvent) {
-      return getProfileFromEvent(profileEvent)
-    }
-
-    try {
-      const pubkey = userIdToPubkey(id)
-      return { pubkey, npub: pubkeyToNpub(pubkey) ?? '', username: formatPubkey(pubkey) }
-    } catch {
-      return undefined
-    }
-  }
-
-  async updateProfileEventCache(event: NEvent) {
-    await this.updateReplaceableEventFromBigRelaysCache(event)
+    const profile = await loadNostrUser(req!)
+    // Emit event for profile updates
+    this.dispatchEvent(new CustomEvent('profileFetched:' + profile.pubkey, { detail: profile }))
+    return profile
   }
 
   /** =========== Relay list =========== */
