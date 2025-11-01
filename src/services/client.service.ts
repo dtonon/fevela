@@ -5,7 +5,6 @@ import {
   getReplaceableCoordinateFromEvent,
   isReplaceableEvent
 } from '@/lib/event'
-import { getRelayListFromEvent } from '@/lib/event-metadata'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { getPubkeysFromPTags, getServersFromServerTags, tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, isWebsocketUrl, normalizeUrl } from '@/lib/url'
@@ -36,6 +35,7 @@ import {
   nostrUserFromEvent,
   NostrUserRequest
 } from '@nostr/gadgets/metadata'
+import { loadRelayList } from '@nostr/gadgets/lists'
 
 type TTimelineRef = [string, number]
 
@@ -990,9 +990,9 @@ class ClientService extends EventTarget {
       kinds: [kinds.Metadata]
     })
 
-    const profileEvents = events.sort((a, b) => b.created_at - a.created_at)
-    await Promise.allSettled(profileEvents.map((profile) => this.addUsernameToIndex(profile)))
-    return profileEvents.map(nostrUserFromEvent)
+    const profiles = events.map(nostrUserFromEvent)
+    await Promise.allSettled(profiles.map((profile) => this.addUsernameToIndex(profile)))
+    return profiles
   }
 
   async searchNpubsFromLocal(query: string, limit: number = 100) {
@@ -1050,124 +1050,31 @@ class ClientService extends EventTarget {
   }
 
   /** =========== Relay list =========== */
-
-  async fetchRelayListEvent(pubkey: string) {
-    const [relayEvent] = await this.fetchReplaceableEventsFromBigRelays([pubkey], kinds.RelayList)
-    return relayEvent ?? null
-  }
-
   async fetchRelayList(pubkey: string): Promise<TRelayList> {
     const [relayList] = await this.fetchRelayLists([pubkey])
     return relayList
   }
 
-  async fetchRelayLists(pubkeys: string[]): Promise<TRelayList[]> {
-    const relayEvents = await this.fetchReplaceableEventsFromBigRelays(pubkeys, kinds.RelayList)
-
-    return relayEvents.map((event) => {
-      if (event) {
-        return getRelayListFromEvent(event)
-      }
-      return {
-        write: BIG_RELAY_URLS,
-        read: BIG_RELAY_URLS,
-        originalRelays: []
-      }
-    })
-  }
-
-  async forceUpdateRelayListEvent(pubkey: string) {
-    await this.replaceableEventBatchLoadFn([{ pubkey, kind: kinds.RelayList }])
-  }
-
-  async updateRelayListCache(event: NEvent) {
-    await this.updateReplaceableEventFromBigRelaysCache(event)
-  }
-
-  /** =========== Replaceable event from big relays dataloader =========== */
-
-  private replaceableEventFromBigRelaysDataloader = new DataLoader<
-    { pubkey: string; kind: number },
-    NEvent | null,
-    string
-  >(this.replaceableEventFromBigRelaysBatchLoadFn.bind(this), {
-    batchScheduleFn: (callback) => setTimeout(callback, 50),
-    maxBatchSize: 500,
-    cacheKeyFn: ({ pubkey, kind }) => `${pubkey}:${kind}`
-  })
-
-  private async replaceableEventFromBigRelaysBatchLoadFn(
-    params: readonly { pubkey: string; kind: number }[]
-  ) {
-    const groups = new Map<number, string[]>()
-    params.forEach(({ pubkey, kind }) => {
-      if (!groups.has(kind)) {
-        groups.set(kind, [])
-      }
-      groups.get(kind)!.push(pubkey)
-    })
-
-    const eventsMap = new Map<string, NEvent>()
-    await Promise.allSettled(
-      Array.from(groups.entries()).map(async ([kind, pubkeys]) => {
-        const events = await this.query(BIG_RELAY_URLS, {
-          authors: pubkeys,
-          kinds: [kind]
-        })
-
-        for (const event of events) {
-          const key = `${event.pubkey}:${event.kind}`
-          const existing = eventsMap.get(key)
-          if (!existing || existing.created_at < event.created_at) {
-            eventsMap.set(key, event)
+  async fetchRelayLists(pubkeys: string[], forceUpdate = false): Promise<TRelayList[]> {
+    return Promise.all(
+      pubkeys.map((pk) =>
+        loadRelayList(pk, [], forceUpdate).then((r) => {
+          if (!r.event) {
+            return {
+              write: BIG_RELAY_URLS,
+              read: BIG_RELAY_URLS,
+              originalRelays: []
+            }
+          } else {
+            return {
+              write: r.items.filter((r) => r.write).map((r) => r.url),
+              read: r.items.filter((r) => r.read).map((r) => r.url),
+              originalRelays: []
+            }
           }
-        }
-      })
+        })
+      )
     )
-
-    return params.map(({ pubkey, kind }) => {
-      const key = `${pubkey}:${kind}`
-      const event = eventsMap.get(key)
-      if (event) {
-        indexedDb.putReplaceableEvent(event)
-        return event
-      } else {
-        indexedDb.putNullReplaceableEvent(pubkey, kind)
-        return null
-      }
-    })
-  }
-
-  private async fetchReplaceableEventsFromBigRelays(pubkeys: string[], kind: number) {
-    const events = await indexedDb.getManyReplaceableEvents(pubkeys, kind)
-    const nonExistingPubkeyIndexMap = new Map<string, number>()
-    pubkeys.forEach((pubkey, i) => {
-      if (events[i] === undefined) {
-        nonExistingPubkeyIndexMap.set(pubkey, i)
-      }
-    })
-    const newEvents = await this.replaceableEventFromBigRelaysDataloader.loadMany(
-      Array.from(nonExistingPubkeyIndexMap.keys()).map((pubkey) => ({ pubkey, kind }))
-    )
-    newEvents.forEach((event) => {
-      if (event && !(event instanceof Error)) {
-        const index = nonExistingPubkeyIndexMap.get(event.pubkey)
-        if (index !== undefined) {
-          events[index] = event
-        }
-      }
-    })
-
-    return events
-  }
-
-  private async updateReplaceableEventFromBigRelaysCache(event: NEvent) {
-    this.replaceableEventFromBigRelaysDataloader.clear({ pubkey: event.pubkey, kind: event.kind })
-    this.replaceableEventFromBigRelaysDataloader.prime(
-      { pubkey: event.pubkey, kind: event.kind },
-      Promise.resolve(event)
-    )
-    await indexedDb.putReplaceableEvent(event)
   }
 
   /** =========== Replaceable event dataloader =========== */

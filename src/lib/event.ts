@@ -249,10 +249,6 @@ export function getEmbeddedPubkeys(event: Event) {
   return embeddedPubkeys
 }
 
-export function getLatestEvent(events: Event[]): Event | undefined {
-  return events.sort((a, b) => b.created_at - a.created_at)[0]
-}
-
 export function getReplaceableEventIdentifier(event: Event) {
   return event.tags.find(tagNameEquals('d'))?.[1] ?? ''
 }

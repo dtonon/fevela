@@ -7,12 +7,7 @@ import {
   createRelayListDraftEvent,
   createSeenNotificationsAtDraftEvent
 } from '@/lib/draft-event'
-import {
-  getLatestEvent,
-  getReplaceableEventIdentifier,
-  isProtectedEvent,
-  minePow
-} from '@/lib/event'
+import { getReplaceableEventIdentifier, isProtectedEvent, minePow } from '@/lib/event'
 import { getRelayListFromEvent, username } from '@/lib/event-metadata'
 import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
@@ -229,17 +224,9 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         setPinListEvent(storedPinListEvent)
       }
 
-      const relayListEvents = await client.fetchEvents(BIG_RELAY_URLS, {
-        kinds: [kinds.RelayList],
-        authors: [account.pubkey]
+      client.fetchRelayList(account.pubkey).then((relayList) => {
+        setRelayList(relayList)
       })
-      const relayListEvent = getLatestEvent(relayListEvents) ?? storedRelayListEvent
-      const relayList = getRelayListFromEvent(relayListEvent)
-      if (relayListEvent) {
-        client.updateRelayListCache(relayListEvent)
-        await indexedDb.putReplaceableEvent(relayListEvent)
-      }
-      setRelayList(relayList)
 
       const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), [
         {

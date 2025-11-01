@@ -73,11 +73,6 @@ export default function Profile({
 
   useEffect(() => {
     if (!profile?.pubkey) return
-    client.forceUpdateRelayListEvent(profile.pubkey)
-  }, [profile?.pubkey])
-
-  useEffect(() => {
-    if (!profile?.pubkey) return
     if (Object.keys(profile?.metadata).length > 0) return
     client.fetchProfile(profile.pubkey, true)
   }, [profile?.pubkey])
