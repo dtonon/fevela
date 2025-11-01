@@ -11,7 +11,6 @@ import { getReplaceableEventIdentifier, isProtectedEvent, minePow } from '@/lib/
 import { username } from '@/lib/event-metadata'
 import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
-import indexedDb from '@/services/indexed-db.service'
 import storage from '@/services/local-storage.service'
 import noteStatsService from '@/services/note-stats.service'
 import {
@@ -113,10 +112,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<NostrUser | null>(null)
   const [relayList, setRelayList] = useState<TRelayList | null>(null)
   const [followList, setFollowList] = useState<string[]>([])
-  const [muteList, setMuteList] = useState<TMutedList>([])
+  const [muteList, setMuteList] = useState<TMutedList>({ private: [], public: [] })
   const [bookmarkList, setBookmarkList] = useState<string[]>([])
   const [favoriteRelays, setFavoriteRelays] = useState<(string | AddressPointer)[]>([])
-  const [userEmojiList, setUserEmojiList] = useState<TEmoji[]>([])
+  const [userEmojiList, setUserEmojiList] = useState<(TEmoji | AddressPointer)[]>([])
   const [pinList, setPinList] = useState<string[]>([])
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(-1)
   const [isInitialized, setIsInitialized] = useState(false)
@@ -154,7 +153,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     ;(async () => {
       setRelayList(null)
       setProfile(null)
-      setProfileEvent(null)
       setNsec(null)
       setNotificationsSeenAt(-1)
       if (!account) {
@@ -251,8 +249,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [account])
 
   useEffect(() => {
-    customEmojiService.init(userEmojiListEvent)
-  }, [userEmojiListEvent])
+    customEmojiService.init(userEmojiList)
+  }, [userEmojiList])
 
   const hasNostrLoginHash = () => {
     return window.location.hash && window.location.hash.startsWith('#nostr-login')
@@ -564,8 +562,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateProfileEvent = async (profileEvent: Event) => {
-    const newProfileEvent = await indexedDb.putReplaceableEvent(profileEvent)
-    setProfileEvent(newProfileEvent)
     const profile = await client.fetchProfile(profileEvent.pubkey, profileEvent)
     setProfile(profile)
   }

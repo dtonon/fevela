@@ -50,8 +50,10 @@ import {
   loadFollowsList,
   loadMuteList
 } from '@nostr/gadgets/lists'
+import { makeSetFetcher } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
+import { AddressPointer } from '@nostr/tools/nip19'
 
 type TTimelineRef = [string, number]
 
@@ -1148,10 +1150,24 @@ class ClientService extends EventTarget {
     (_) => []
   )
 
-  loadEmojis = makeListFetcher<TEmoji>(
+  loadEmojis = makeListFetcher<TEmoji | AddressPointer>(
     kinds.UserEmojiList,
     [],
-    (event) => getEmojiInfosFromEmojiTags(event?.tags || []),
+    itemsFromTags<TEmoji | AddressPointer>((tag: string[]): TEmoji | AddressPointer | undefined => {
+      if (tag.length < 2) return
+      if (tag[0] === 'a') {
+        const spl = tag[1].split(':')
+        if (!isHex32(spl[1]) || spl[0] !== '30030') return undefined
+        return {
+          identifier: spl.slice(2).join(':'),
+          pubkey: spl[1],
+          kind: parseInt(spl[0]),
+          relays: tag[2] ? [tag[2]] : []
+        }
+      }
+      if (tag.length < 3 || tag[0] !== 'emoji') return undefined
+      return { shortcode: tag[1], url: tag[2] }
+    }),
     (_) => []
   )
 
@@ -1236,22 +1252,7 @@ class ClientService extends EventTarget {
     })
   }
 
-  /** =========== Replaceable event =========== */
-
-  async fetchEmojiSetEvents(pointers: string[]) {
-    const params = pointers
-      .map((pointer) => {
-        const [kindStr, pubkey, d = ''] = pointer.split(':')
-        if (!pubkey || !kindStr) return null
-
-        const kind = parseInt(kindStr, 10)
-        if (kind !== kinds.Emojisets) return null
-
-        return { pubkey, kind, d }
-      })
-      .filter(Boolean) as { pubkey: string; kind: number; d: string }[]
-    return await this.replaceableEventDataLoader.loadMany(params)
-  }
+  loadEmojiSets = makeSetFetcher(kinds.Emojisets, (event) => getEmojiInfosFromEmojiTags(event.tags))
 
   // ================= Utils =================
 

@@ -1,5 +1,5 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
-import { TEmoji, TPollType, TRelayList, TRelaySet } from '@/types'
+import { TPollType, TRelayList, TRelaySet } from '@/types'
 import { Event, kinds } from 'nostr-tools'
 import { buildATag } from './draft-event'
 import { getReplaceableEventIdentifier } from './event'
@@ -343,39 +343,6 @@ export function getPollResponseFromEvent(
     selectedOptionIds,
     created_at: event.created_at
   }
-}
-
-export function getEmojisAndEmojiSetsFromEvent(event: Event) {
-  const emojis: TEmoji[] = []
-  const emojiSetPointers: string[] = []
-
-  event.tags.forEach(([tagName, ...tagValues]) => {
-    if (tagName === 'emoji' && tagValues.length >= 2) {
-      emojis.push({
-        shortcode: tagValues[0],
-        url: tagValues[1]
-      })
-    } else if (tagName === 'a' && tagValues[0]) {
-      emojiSetPointers.push(tagValues[0])
-    }
-  })
-
-  return { emojis, emojiSetPointers }
-}
-
-export function getEmojisFromEvent(event: Event): TEmoji[] {
-  const emojis: TEmoji[] = []
-
-  event.tags.forEach(([tagName, ...tagValues]) => {
-    if (tagName === 'emoji' && tagValues.length >= 2) {
-      emojis.push({
-        shortcode: tagValues[0],
-        url: tagValues[1]
-      })
-    }
-  })
-
-  return emojis
 }
 
 export function getStarsFromRelayReviewEvent(event: Event): number {

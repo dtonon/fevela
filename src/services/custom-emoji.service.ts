@@ -1,12 +1,11 @@
-import { getEmojisAndEmojiSetsFromEvent, getEmojisFromEvent } from '@/lib/event-metadata'
 import { parseEmojiPickerUnified } from '@/lib/utils'
 import client from '@/services/client.service'
 import { TEmoji } from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
+import { AddressPointer } from '@nostr/tools/nip19'
 import { SkinTones } from 'emoji-picker-react'
 import { getSuggested, setSuggested } from 'emoji-picker-react/src/dataUtils/suggested'
 import FlexSearch from 'flexsearch'
-import { Event } from 'nostr-tools'
 
 class CustomEmojiService {
   static instance: CustomEmojiService
@@ -23,20 +22,20 @@ class CustomEmojiService {
     return CustomEmojiService.instance
   }
 
-  async init(userEmojiListEvent: Event | null) {
-    if (!userEmojiListEvent) return
+  async init(emojiList: (AddressPointer | TEmoji)[]) {
+    const emojis = emojiList.filter((emoji) => 'shortcode' in emoji)
+    const emojiSetAddrs = emojiList.filter((addr) => 'pubkey' in addr)
 
-    const { emojis, emojiSetPointers } = getEmojisAndEmojiSetsFromEvent(userEmojiListEvent)
     await this.addEmojisToIndex(emojis)
 
-    const emojiSetEvents = await client.fetchEmojiSetEvents(emojiSetPointers)
-    await Promise.allSettled(
-      emojiSetEvents.map(async (event) => {
-        if (!event || event instanceof Error) return
-
-        await this.addEmojisToIndex(getEmojisFromEvent(event))
+    emojiSetAddrs.forEach((addr) => {
+      client.loadEmojiSets(addr.pubkey).then((sets) => {
+        const set = sets[addr.identifier]
+        if (set) {
+          this.addEmojisToIndex(set.items)
+        }
       })
-    )
+    })
   }
 
   async searchEmojis(query: string = ''): Promise<string[]> {
