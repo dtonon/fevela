@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
 import {
   compareEvents,
   getReplaceableCoordinate,
@@ -6,10 +6,17 @@ import {
   isReplaceableEvent
 } from '@/lib/event'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
-import { getPubkeysFromPTags, getServersFromServerTags, tagNameEquals } from '@/lib/tag'
-import { isLocalNetworkUrl, isWebsocketUrl, normalizeUrl } from '@/lib/url'
+import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
+import { isLocalNetworkUrl, isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
 import { isSafari } from '@/lib/utils'
-import { ISigner, TPublishOptions, TRelayList, TSubRequestFilter } from '@/types'
+import {
+  ISigner,
+  TPublishOptions,
+  TRelayList,
+  TSubRequestFilter,
+  TEmoji,
+  TMutedList
+} from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
 import DataLoader from 'dataloader'
 import dayjs from 'dayjs'
@@ -22,6 +29,7 @@ import {
   matchFilters,
   Event as NEvent,
   nip19,
+  NostrEvent,
   Relay,
   validateEvent,
   VerifiedEvent
@@ -35,7 +43,15 @@ import {
   nostrUserFromEvent,
   NostrUserRequest
 } from '@nostr/gadgets/metadata'
-import { loadRelayList } from '@nostr/gadgets/lists'
+import {
+  loadRelayList,
+  makeListFetcher,
+  itemsFromTags,
+  loadFollowsList,
+  loadMuteList
+} from '@nostr/gadgets/lists'
+import z from 'zod'
+import { isHex32 } from '@nostr/gadgets/utils'
 
 type TTimelineRef = [string, number]
 
@@ -73,7 +89,6 @@ class ClientService extends EventTarget {
 
   constructor() {
     super()
-    pool.trackRelays = true
   }
 
   public static getInstance(): ClientService {
@@ -930,7 +945,7 @@ class ClientService extends EventTarget {
 
   private async _fetchFollowingFavoriteRelays(pubkey: string) {
     const fetchNewData = async () => {
-      const followings = await this.fetchFollowings(pubkey)
+      const followings = (await loadFollowsList(pubkey)).items
       const events = await this.fetchEvents(BIG_RELAY_URLS, {
         authors: followings,
         kinds: [ExtendedKind.FAVORITE_RELAYS, kinds.Relaysets],
@@ -982,8 +997,7 @@ class ClientService extends EventTarget {
   /** =========== Followings =========== */
 
   async initUserIndexFromFollowings(pubkey: string) {
-    const followings = await this.fetchFollowings(pubkey)
-    followings.forEach((pubkey) => this.fetchProfile(pubkey))
+    ;(await loadFollowsList(pubkey)).items.forEach((pubkey) => this.fetchProfile(pubkey))
   }
 
   /** =========== Profile =========== */
@@ -1024,7 +1038,7 @@ class ClientService extends EventTarget {
     await this.userIndex.addAsync(profile.pubkey, text)
   }
 
-  async fetchProfile(input: string, skipCache = false): Promise<NostrUser> {
+  async fetchProfile(input: string, forceUpdate: boolean | NostrEvent = false): Promise<NostrUser> {
     let req: NostrUserRequest | undefined
 
     if (isValidPubkey(input)) {
@@ -1044,7 +1058,7 @@ class ClientService extends EventTarget {
       }
     }
 
-    if (skipCache) {
+    if (forceUpdate) {
       req!.forceUpdate = true
     }
     const profile = await loadNostrUser(req!)
@@ -1054,32 +1068,103 @@ class ClientService extends EventTarget {
   }
 
   /** =========== Relay list =========== */
-  async fetchRelayList(pubkey: string): Promise<TRelayList> {
-    const [relayList] = await this.fetchRelayLists([pubkey])
-    return relayList
+  async fetchRelayLists(pubkeys: string[], forceUpdate = false): Promise<TRelayList[]> {
+    return Promise.all(pubkeys.map((pk) => this.fetchRelayList(pk, forceUpdate)))
   }
 
-  async fetchRelayLists(pubkeys: string[], forceUpdate = false): Promise<TRelayList[]> {
-    return Promise.all(
-      pubkeys.map((pk) =>
-        loadRelayList(pk, [], forceUpdate).then((r) => {
-          if (!r.event) {
-            return {
-              write: BIG_RELAY_URLS,
-              read: BIG_RELAY_URLS,
-              originalRelays: []
-            }
-          } else {
-            return {
-              write: r.items.filter((r) => r.write).map((r) => r.url),
-              read: r.items.filter((r) => r.read).map((r) => r.url),
-              originalRelays: []
-            }
-          }
-        })
-      )
-    )
+  async fetchRelayList(
+    pubkey: string,
+    forceUpdate: boolean | NostrEvent = false
+  ): Promise<TRelayList> {
+    return loadRelayList(pubkey, [], forceUpdate).then((r) => {
+      if (!r.event) {
+        return structuredClone(DEFAULT_RELAY_LIST)
+      } else {
+        return {
+          write: r.items.filter((r) => r.write).map((r) => r.url),
+          read: r.items.filter((r) => r.read).map((r) => r.url),
+          originalRelays: []
+        }
+      }
+    })
   }
+
+  async fetchMuteList(
+    pubkey: string,
+    nip04Decrypt: undefined | ((pubkey: string, content: string) => Promise<string>),
+    forceUpdate: boolean | NostrEvent = false
+  ): Promise<TMutedList> {
+    const muteList: TMutedList = {
+      public: [],
+      private: []
+    }
+
+    const result = await loadMuteList(pubkey, [], forceUpdate)
+
+    muteList.public = result.items
+      .filter((item) => item.label === 'pubkey')
+      .map((item) => item.value)
+
+    if (result.event && nip04Decrypt) {
+      try {
+        const plainText = await nip04Decrypt(pubkey, result.event.content)
+        const privateTags = z.array(z.array(z.string())).parse(JSON.parse(plainText))
+
+        for (let i = 0; i < privateTags.length; i++) {
+          const tag = privateTags[i]
+          if (tag[0] === 'p' && tag.length >= 2 && isHex32(tag[1])) {
+            muteList.private.push(tag[1])
+          }
+        }
+      } catch (_) {
+        /***/
+      }
+    }
+
+    return muteList
+  }
+
+  loadBookmarks = makeListFetcher<string>(
+    kinds.BookmarkList,
+    [],
+    itemsFromTags<string>((tag: string[]): string | undefined => {
+      if (tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'a') && tag[1]) {
+        return tag[1]
+      }
+    }),
+    (_) => []
+  )
+
+  loadBlossomServers = makeListFetcher<string>(
+    ExtendedKind.BLOSSOM_SERVER_LIST,
+    [],
+    (event) =>
+      event
+        ? event.tags
+            .filter(tagNameEquals('server'))
+            .map(([, url]) => (url ? normalizeHttpUrl(url) : ''))
+            .filter(Boolean)
+        : [],
+    (_) => []
+  )
+
+  loadEmojis = makeListFetcher<TEmoji>(
+    kinds.UserEmojiList,
+    [],
+    (event) => getEmojiInfosFromEmojiTags(event?.tags || []),
+    (_) => []
+  )
+
+  loadPins = makeListFetcher<string>(
+    kinds.Pinlist,
+    [],
+    itemsFromTags<string>((tag: string[]): string | undefined => {
+      if (tag.length >= 2 && tag[0] === 'e' && tag[1]) {
+        return tag[1]
+      }
+    }),
+    (_) => []
+  )
 
   /** =========== Replaceable event dataloader =========== */
 
@@ -1151,63 +1236,7 @@ class ClientService extends EventTarget {
     })
   }
 
-  private async fetchReplaceableEvent(pubkey: string, kind: number, d?: string) {
-    const storedEvent = await indexedDb.getReplaceableEvent(pubkey, kind, d)
-    if (storedEvent !== undefined) {
-      return storedEvent
-    }
-
-    return await this.replaceableEventDataLoader.load({ pubkey, kind, d })
-  }
-
-  private async updateReplaceableEventCache(event: NEvent) {
-    this.replaceableEventDataLoader.clear({ pubkey: event.pubkey, kind: event.kind })
-    this.replaceableEventDataLoader.prime(
-      { pubkey: event.pubkey, kind: event.kind },
-      Promise.resolve(event)
-    )
-    await indexedDb.putReplaceableEvent(event)
-  }
-
   /** =========== Replaceable event =========== */
-
-  async fetchFollowListEvent(pubkey: string) {
-    return await this.fetchReplaceableEvent(pubkey, kinds.Contacts)
-  }
-
-  async fetchFollowings(pubkey: string) {
-    const followListEvent = await this.fetchFollowListEvent(pubkey)
-    return followListEvent ? getPubkeysFromPTags(followListEvent.tags) : []
-  }
-
-  async updateFollowListCache(evt: NEvent) {
-    await this.updateReplaceableEventCache(evt)
-  }
-
-  async fetchMuteListEvent(pubkey: string) {
-    return await this.fetchReplaceableEvent(pubkey, kinds.Mutelist)
-  }
-
-  async fetchBookmarkListEvent(pubkey: string) {
-    return this.fetchReplaceableEvent(pubkey, kinds.BookmarkList)
-  }
-
-  async fetchBlossomServerListEvent(pubkey: string) {
-    return await this.fetchReplaceableEvent(pubkey, ExtendedKind.BLOSSOM_SERVER_LIST)
-  }
-
-  async fetchBlossomServerList(pubkey: string) {
-    const evt = await this.fetchBlossomServerListEvent(pubkey)
-    return evt ? getServersFromServerTags(evt.tags) : []
-  }
-
-  async fetchPinListEvent(pubkey: string) {
-    return this.fetchReplaceableEvent(pubkey, kinds.Pinlist)
-  }
-
-  async updateBlossomServerListEventCache(evt: NEvent) {
-    await this.updateReplaceableEventCache(evt)
-  }
 
   async fetchEmojiSetEvents(pointers: string[]) {
     const params = pointers

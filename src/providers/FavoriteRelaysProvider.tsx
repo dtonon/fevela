@@ -36,8 +36,7 @@ export const useFavoriteRelays = () => {
 }
 
 export function FavoriteRelaysProvider({ children }: { children: React.ReactNode }) {
-  const { favoriteRelaysEvent, updateFavoriteRelaysEvent, pubkey, relayList, publish } = useNostr()
-  const [favoriteRelays, setFavoriteRelays] = useState<string[]>([])
+  const { favoriteRelays, updateFavoriteRelaysEvent, pubkey, relayList, publish } = useNostr()
   const [relaySetEvents, setRelaySetEvents] = useState<Event[]>([])
   const [relaySets, setRelaySets] = useState<TRelaySet[]>([])
 
@@ -62,18 +61,15 @@ export function FavoriteRelaysProvider({ children }: { children: React.ReactNode
       const relays: string[] = []
       const relaySetIds: string[] = []
 
-      favoriteRelaysEvent.tags.forEach(([tagName, tagValue]) => {
-        if (!tagValue) return
-
-        if (tagName === 'relay') {
-          const normalizedUrl = normalizeUrl(tagValue)
+      favoriteRelays.forEach((item) => {
+        if (typeof item === 'string') {
+          const normalizedUrl = normalizeUrl(item)
           if (normalizedUrl && !relays.includes(normalizedUrl)) {
             relays.push(normalizedUrl)
           }
-        } else if (tagName === 'a') {
-          const [kind, author, relaySetId] = tagValue.split(':')
-          if (kind !== kinds.Relaysets.toString()) return
-          if (!pubkey || author !== pubkey) return // TODO: support others relay sets
+        } else {
+          if (item.kind !== kinds.Relaysets) return
+          if (!pubkey || item.pubkey !== pubkey) return // TODO: support others relay sets
           if (!relaySetId) return
 
           if (!relaySetIds.includes(relaySetId)) {

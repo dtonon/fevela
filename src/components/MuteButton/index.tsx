@@ -18,8 +18,7 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { pubkey: accountPubkey, checkLogin } = useNostr()
-  const { mutePubkeySet, changing, mutePubkeyPrivately, mutePubkeyPublicly, unmutePubkey } =
-    useMuteList()
+  const { mutePubkeySet, changing, mutePrivately, mutePublicly, unmute } = useMuteList()
   const [updating, setUpdating] = useState(false)
   const isMuted = useMemo(() => mutePubkeySet.has(pubkey), [mutePubkeySet, pubkey])
 
@@ -33,9 +32,9 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
       setUpdating(true)
       try {
         if (isPrivate) {
-          await mutePubkeyPrivately(pubkey)
+          await mutePrivately(pubkey)
         } else {
-          await mutePubkeyPublicly(pubkey)
+          await mutePublicly(pubkey)
         }
       } catch (error) {
         toast.error(`${t('Mute failed')}: ${(error as Error).message}`)
@@ -52,7 +51,7 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
 
       setUpdating(true)
       try {
-        await unmutePubkey(pubkey)
+        await unmute(pubkey)
       } catch (error) {
         toast.error(`${t('Unmute failed')}: ${(error as Error).message}`)
       } finally {

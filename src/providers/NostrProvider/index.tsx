@@ -1,5 +1,5 @@
 import LoginDialog from '@/components/LoginDialog'
-import { ApplicationDataKey, BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ApplicationDataKey, BIG_RELAY_URLS, MAX_PINNED_NOTES } from '@/constants'
 import {
   createDeletionRequestDraftEvent,
   createFollowListDraftEvent,
@@ -8,7 +8,7 @@ import {
   createSeenNotificationsAtDraftEvent
 } from '@/lib/draft-event'
 import { getReplaceableEventIdentifier, isProtectedEvent, minePow } from '@/lib/event'
-import { getRelayListFromEvent, username } from '@/lib/event-metadata'
+import { username } from '@/lib/event-metadata'
 import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
 import indexedDb from '@/services/indexed-db.service'
@@ -19,6 +19,8 @@ import {
   TAccount,
   TAccountPointer,
   TDraftEvent,
+  TEmoji,
+  TMutedList,
   TPublishOptions,
   TRelayList
 } from '@/types'
@@ -36,20 +38,21 @@ import { Nip07Signer } from './nip-07.signer'
 import { NostrConnectionSigner } from './nostrConnection.signer'
 import { NpubSigner } from './npub.signer'
 import { NsecSigner } from './nsec.signer'
-import { bareNostrUser, NostrUser, nostrUserFromEvent } from '@nostr/gadgets/metadata'
+import { NostrUser } from '@nostr/gadgets/metadata'
+import { loadFavoriteRelays, loadFollowsList } from '@nostr/gadgets/lists'
+import { AddressPointer } from '@nostr/tools/nip19'
 
 type TNostrContext = {
   isInitialized: boolean
   pubkey: string | null
   profile: NostrUser | null
-  profileEvent: Event | null
   relayList: TRelayList | null
-  followListEvent: Event | null
-  muteListEvent: Event | null
-  bookmarkListEvent: Event | null
-  favoriteRelaysEvent: Event | null
-  userEmojiListEvent: Event | null
-  pinListEvent: Event | null
+  followList: string[]
+  muteList: TMutedList
+  bookmarkList: string[]
+  favoriteRelays: (string | AddressPointer)[]
+  userEmojiList: TEmoji[]
+  pinList: string[]
   notificationsSeenAt: number
   account: TAccountPointer | null
   accounts: TAccountPointer[]
@@ -77,10 +80,10 @@ type TNostrContext = {
   updateRelayListEvent: (relayListEvent: Event) => Promise<void>
   updateProfileEvent: (profileEvent: Event) => Promise<void>
   updateFollowListEvent: (followListEvent: Event) => Promise<void>
-  updateMuteListEvent: (muteListEvent: Event, privateTags: string[][]) => Promise<void>
+  updateMuteListEvent: (muteListEvent: Event) => Promise<void>
   updateBookmarkListEvent: (bookmarkListEvent: Event) => Promise<void>
   updateFavoriteRelaysEvent: (favoriteRelaysEvent: Event) => Promise<void>
-  updatePinListEvent: (pinListEvent: Event) => Promise<void>
+  updatePinListEvent: (pinList: Event) => Promise<void>
   updateNotificationsSeenAt: (skipPublish?: boolean) => Promise<void>
 }
 
@@ -108,14 +111,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [signer, setSigner] = useState<ISigner | null>(null)
   const [openLoginDialog, setOpenLoginDialog] = useState(false)
   const [profile, setProfile] = useState<NostrUser | null>(null)
-  const [profileEvent, setProfileEvent] = useState<Event | null>(null)
   const [relayList, setRelayList] = useState<TRelayList | null>(null)
-  const [followListEvent, setFollowListEvent] = useState<Event | null>(null)
-  const [muteListEvent, setMuteListEvent] = useState<Event | null>(null)
-  const [bookmarkListEvent, setBookmarkListEvent] = useState<Event | null>(null)
-  const [favoriteRelaysEvent, setFavoriteRelaysEvent] = useState<Event | null>(null)
-  const [userEmojiListEvent, setUserEmojiListEvent] = useState<Event | null>(null)
-  const [pinListEvent, setPinListEvent] = useState<Event | null>(null)
+  const [followList, setFollowList] = useState<string[]>([])
+  const [muteList, setMuteList] = useState<TMutedList>([])
+  const [bookmarkList, setBookmarkList] = useState<string[]>([])
+  const [favoriteRelays, setFavoriteRelays] = useState<(string | AddressPointer)[]>([])
+  const [userEmojiList, setUserEmojiList] = useState<TEmoji[]>([])
+  const [pinList, setPinList] = useState<string[]>([])
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(-1)
   const [isInitialized, setIsInitialized] = useState(false)
 
@@ -154,11 +156,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setProfile(null)
       setProfileEvent(null)
       setNsec(null)
-      setFavoriteRelaysEvent(null)
-      setFollowListEvent(null)
-      setMuteListEvent(null)
-      setBookmarkListEvent(null)
-      setPinListEvent(null)
       setNotificationsSeenAt(-1)
       if (!account) {
         return
@@ -179,69 +176,18 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
       const storedNotificationsSeenAt = storage.getLastReadNotificationTime(account.pubkey)
 
-      const [
-        storedRelayListEvent,
-        storedProfileEvent,
-        storedFollowListEvent,
-        storedMuteListEvent,
-        storedBookmarkListEvent,
-        storedFavoriteRelaysEvent,
-        storedUserEmojiListEvent,
-        storedPinListEvent
-      ] = await Promise.all([
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.RelayList),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.Metadata),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.Contacts),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.Mutelist),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.BookmarkList),
-        indexedDb.getReplaceableEvent(account.pubkey, ExtendedKind.FAVORITE_RELAYS),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.UserEmojiList),
-        indexedDb.getReplaceableEvent(account.pubkey, kinds.Pinlist)
-      ])
-      if (storedRelayListEvent) {
-        setRelayList(getRelayListFromEvent(storedRelayListEvent))
-      }
-      if (storedProfileEvent) {
-        setProfileEvent(storedProfileEvent)
-        setProfile(nostrUserFromEvent(storedProfileEvent))
-      }
-      if (storedFollowListEvent) {
-        setFollowListEvent(storedFollowListEvent)
-      }
-      if (storedMuteListEvent) {
-        setMuteListEvent(storedMuteListEvent)
-      }
-      if (storedBookmarkListEvent) {
-        setBookmarkListEvent(storedBookmarkListEvent)
-      }
-      if (storedFavoriteRelaysEvent) {
-        setFavoriteRelaysEvent(storedFavoriteRelaysEvent)
-      }
-      if (storedUserEmojiListEvent) {
-        setUserEmojiListEvent(storedUserEmojiListEvent)
-      }
-      if (storedPinListEvent) {
-        setPinListEvent(storedPinListEvent)
-      }
+      const relayList = await client.fetchRelayList(account.pubkey)
+      setRelayList(relayList)
 
-      client.fetchRelayList(account.pubkey).then((relayList) => {
-        setRelayList(relayList)
-      })
+      client.fetchProfile(account.pubkey).then(setProfile)
+      client.loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
+      client.loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
+      client.loadPins(account.pubkey).then(({ items }) => setPinList(items))
+      client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
+      loadFollowsList(account.pubkey).then(({ items }) => setFollowList(items))
+      loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
       const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), [
-        {
-          kinds: [
-            kinds.Metadata,
-            kinds.Contacts,
-            kinds.Mutelist,
-            kinds.BookmarkList,
-            ExtendedKind.FAVORITE_RELAYS,
-            ExtendedKind.BLOSSOM_SERVER_LIST,
-            kinds.UserEmojiList,
-            kinds.Pinlist
-          ],
-          authors: [account.pubkey]
-        },
         {
           kinds: [kinds.Application],
           authors: [account.pubkey],
@@ -249,70 +195,11 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         }
       ])
       const sortedEvents = events.sort((a, b) => b.created_at - a.created_at)
-      const profileEvent = sortedEvents.find((e) => e.kind === kinds.Metadata)
-      const followListEvent = sortedEvents.find((e) => e.kind === kinds.Contacts)
-      const muteListEvent = sortedEvents.find((e) => e.kind === kinds.Mutelist)
-      const bookmarkListEvent = sortedEvents.find((e) => e.kind === kinds.BookmarkList)
-      const favoriteRelaysEvent = sortedEvents.find((e) => e.kind === ExtendedKind.FAVORITE_RELAYS)
-      const blossomServerListEvent = sortedEvents.find(
-        (e) => e.kind === ExtendedKind.BLOSSOM_SERVER_LIST
-      )
-      const userEmojiListEvent = sortedEvents.find((e) => e.kind === kinds.UserEmojiList)
       const notificationsSeenAtEvent = sortedEvents.find(
         (e) =>
           e.kind === kinds.Application &&
           getReplaceableEventIdentifier(e) === ApplicationDataKey.NOTIFICATIONS_SEEN_AT
       )
-      const pinnedNotesEvent = sortedEvents.find((e) => e.kind === kinds.Pinlist)
-      if (profileEvent) {
-        const updatedProfileEvent = await indexedDb.putReplaceableEvent(profileEvent)
-        if (updatedProfileEvent.id === profileEvent.id) {
-          setProfileEvent(updatedProfileEvent)
-          setProfile(nostrUserFromEvent(updatedProfileEvent))
-        }
-      } else if (!storedProfileEvent) {
-        setProfile(bareNostrUser(account.pubkey))
-      }
-      if (followListEvent) {
-        const updatedFollowListEvent = await indexedDb.putReplaceableEvent(followListEvent)
-        if (updatedFollowListEvent.id === followListEvent.id) {
-          setFollowListEvent(followListEvent)
-        }
-      }
-      if (muteListEvent) {
-        const updatedMuteListEvent = await indexedDb.putReplaceableEvent(muteListEvent)
-        if (updatedMuteListEvent.id === muteListEvent.id) {
-          setMuteListEvent(muteListEvent)
-        }
-      }
-      if (bookmarkListEvent) {
-        const updateBookmarkListEvent = await indexedDb.putReplaceableEvent(bookmarkListEvent)
-        if (updateBookmarkListEvent.id === bookmarkListEvent.id) {
-          setBookmarkListEvent(bookmarkListEvent)
-        }
-      }
-      if (favoriteRelaysEvent) {
-        const updatedFavoriteRelaysEvent = await indexedDb.putReplaceableEvent(favoriteRelaysEvent)
-        if (updatedFavoriteRelaysEvent.id === favoriteRelaysEvent.id) {
-          setFavoriteRelaysEvent(updatedFavoriteRelaysEvent)
-        }
-      }
-      if (blossomServerListEvent) {
-        await client.updateBlossomServerListEventCache(blossomServerListEvent)
-      }
-      if (userEmojiListEvent) {
-        const updatedUserEmojiListEvent = await indexedDb.putReplaceableEvent(userEmojiListEvent)
-        if (updatedUserEmojiListEvent.id === userEmojiListEvent.id) {
-          setUserEmojiListEvent(updatedUserEmojiListEvent)
-        }
-      }
-      if (pinnedNotesEvent) {
-        const updatedPinnedNotesEvent = await indexedDb.putReplaceableEvent(pinnedNotesEvent)
-        if (updatedPinnedNotesEvent.id === pinnedNotesEvent.id) {
-          setPinListEvent(updatedPinnedNotesEvent)
-        }
-      }
-
       const notificationsSeenAt = Math.max(
         notificationsSeenAtEvent?.created_at ?? 0,
         storedNotificationsSeenAt
@@ -676,52 +563,41 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     return setOpenLoginDialog(true)
   }
 
-  const updateRelayListEvent = async (relayListEvent: Event) => {
-    const newRelayList = await indexedDb.putReplaceableEvent(relayListEvent)
-    setRelayList(getRelayListFromEvent(newRelayList))
-  }
-
   const updateProfileEvent = async (profileEvent: Event) => {
     const newProfileEvent = await indexedDb.putReplaceableEvent(profileEvent)
     setProfileEvent(newProfileEvent)
-    setProfile(nostrUserFromEvent(newProfileEvent))
+    const profile = await client.fetchProfile(profileEvent.pubkey, profileEvent)
+    setProfile(profile)
+  }
+
+  const updateRelayListEvent = async (relayListEvent: Event) => {
+    const relayList = await client.fetchRelayList(relayListEvent.pubkey, relayListEvent)
+    setRelayList(relayList)
   }
 
   const updateFollowListEvent = async (followListEvent: Event) => {
-    const newFollowListEvent = await indexedDb.putReplaceableEvent(followListEvent)
-    if (newFollowListEvent.id !== followListEvent.id) return
-
-    setFollowListEvent(newFollowListEvent)
-    await client.updateFollowListCache(newFollowListEvent)
+    const { items } = await loadFollowsList(followListEvent.pubkey, [], followListEvent)
+    setFollowList(items)
   }
 
-  const updateMuteListEvent = async (muteListEvent: Event, privateTags: string[][]) => {
-    const newMuteListEvent = await indexedDb.putReplaceableEvent(muteListEvent)
-    if (newMuteListEvent.id !== muteListEvent.id) return
-
-    await indexedDb.putMuteDecryptedTags(muteListEvent.id, privateTags)
-    setMuteListEvent(muteListEvent)
+  const updateMuteListEvent = async (muteListEvent: Event) => {
+    const muteList = await client.fetchMuteList(muteListEvent.pubkey, nip04Decrypt, muteListEvent)
+    setMuteList(muteList)
   }
 
   const updateBookmarkListEvent = async (bookmarkListEvent: Event) => {
-    const newBookmarkListEvent = await indexedDb.putReplaceableEvent(bookmarkListEvent)
-    if (newBookmarkListEvent.id !== bookmarkListEvent.id) return
-
-    setBookmarkListEvent(newBookmarkListEvent)
+    const { items } = await client.loadBookmarks(bookmarkListEvent.pubkey, [], bookmarkListEvent)
+    setBookmarkList(items)
   }
 
   const updateFavoriteRelaysEvent = async (favoriteRelaysEvent: Event) => {
-    const newFavoriteRelaysEvent = await indexedDb.putReplaceableEvent(favoriteRelaysEvent)
-    if (newFavoriteRelaysEvent.id !== favoriteRelaysEvent.id) return
-
-    setFavoriteRelaysEvent(newFavoriteRelaysEvent)
+    const { items } = await loadFavoriteRelays(favoriteRelaysEvent.pubkey, [], favoriteRelaysEvent)
+    setFavoriteRelays(items)
   }
 
   const updatePinListEvent = async (pinListEvent: Event) => {
-    const newPinListEvent = await indexedDb.putReplaceableEvent(pinListEvent)
-    if (newPinListEvent.id !== pinListEvent.id) return
-
-    setPinListEvent(newPinListEvent)
+    const { items } = await client.loadPins(pinListEvent.pubkey, [], pinListEvent)
+    setPinList(items.slice(0, MAX_PINNED_NOTES))
   }
 
   const updateNotificationsSeenAt = async (skipPublish = false) => {
@@ -752,14 +628,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         isInitialized,
         pubkey: account?.pubkey ?? null,
         profile,
-        profileEvent,
         relayList,
-        followListEvent,
-        muteListEvent,
-        bookmarkListEvent,
-        favoriteRelaysEvent,
-        userEmojiListEvent,
-        pinListEvent,
+        followList,
+        muteList,
+        bookmarkList,
+        favoriteRelays,
+        userEmojiList,
+        pinList,
         notificationsSeenAt,
         account,
         accounts,

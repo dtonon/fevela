@@ -78,6 +78,12 @@ export const SEARCHABLE_RELAY_URLS = ['wss://relay.nostr.band/', 'wss://search.n
 
 export const GROUP_METADATA_EVENT_KIND = 39000
 
+export const DEFAULT_RELAY_LIST = {
+  write: BIG_RELAY_URLS,
+  read: BIG_RELAY_URLS,
+  originalRelays: []
+}
+
 export const ExtendedKind = {
   PICTURE: 20,
   VIDEO: 21,

@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, MAX_PINNED_NOTES, POLL_TYPE } from '@/constants'
+import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
 import { TEmoji, TPollType, TRelayList, TRelaySet } from '@/types'
 import { Event, kinds } from 'nostr-tools'
 import { buildATag } from './draft-event'
@@ -9,35 +9,37 @@ import { generateBech32IdFromETag, tagNameEquals } from './tag'
 import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
 import { isTorBrowser } from './utils'
 import { NostrUser } from '@nostr/gadgets/metadata'
+import { RelayItem } from '@nostr/gadgets/lists'
 
-export function getRelayListFromEvent(event?: Event | null) {
-  if (!event) {
-    return { write: BIG_RELAY_URLS, read: BIG_RELAY_URLS, originalRelays: [] }
+export function buildRelayList(items: RelayItem[]) {
+  if (items.length === 0) {
+    return structuredClone(DEFAULT_RELAY_LIST)
   }
 
   const torBrowserDetected = isTorBrowser()
   const relayList = { write: [], read: [], originalRelays: [] } as TRelayList
-  event.tags.filter(tagNameEquals('r')).forEach(([, url, type]) => {
-    if (!url || !isWebsocketUrl(url)) return
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (!item.url || !isWebsocketUrl(item.url)) return
 
-    const normalizedUrl = normalizeUrl(url)
+    const normalizedUrl = normalizeUrl(item.url)
     if (!normalizedUrl) return
 
-    const scope = type === 'read' ? 'read' : type === 'write' ? 'write' : 'both'
+    const scope = item.read && item.write ? 'both' : item.write ? 'write' : 'read'
     relayList.originalRelays.push({ url: normalizedUrl, scope })
 
     // Filter out .onion URLs if not using Tor browser
     if (normalizedUrl.endsWith('.onion/') && !torBrowserDetected) return
 
-    if (type === 'write') {
+    if (item.write) {
       relayList.write.push(normalizedUrl)
-    } else if (type === 'read') {
+    } else if (item.read) {
       relayList.read.push(normalizedUrl)
     } else {
       relayList.write.push(normalizedUrl)
       relayList.read.push(normalizedUrl)
     }
-  })
+  }
 
   // If there are too many relays, use the default BIG_RELAY_URLS
   // Because they don't know anything about relays, their settings cannot be trusted
@@ -385,14 +387,4 @@ export function getStarsFromRelayReviewEvent(event: Event): number {
     }
   }
   return 0
-}
-
-export function getPinnedEventHexIdSetFromPinListEvent(event?: Event | null): Set<string> {
-  return new Set(
-    event?.tags
-      .filter((tag) => tag[0] === 'e')
-      .map((tag) => tag[1])
-      .reverse()
-      .slice(0, MAX_PINNED_NOTES) ?? []
-  )
 }

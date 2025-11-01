@@ -19,6 +19,11 @@ export type TRelayList = {
   originalRelays: TMailboxRelay[]
 }
 
+export type TMutedList = {
+  public: string[]
+  private: string[]
+}
+
 export type TRelayInfo = {
   url: string
   shortUrl: string
