@@ -317,25 +317,34 @@ class IndexedDbService {
 
       request.onsuccess = () => {
         const db = request.result
-        const transaction = db.transaction('cache', 'readonly')
-        const store = transaction.objectStore('cache')
-        const getAllRequest = store.getAll()
 
-        getAllRequest.onsuccess = async (event) => {
+        let transaction: IDBTransaction | undefined
+        let getAllRequest: IDBRequest<any> | undefined
+        try {
+          transaction = db.transaction('cache', 'readonly')
+          const store = transaction.objectStore('cache')
+          getAllRequest = store.getAll()
+        } catch (error) {
+          transaction?.commit?.()
+          db.close()
+          reject(error)
+        }
+
+        getAllRequest!.onsuccess = async (event) => {
           const values = (event.target as IDBRequest).result as NostrUser[]
           try {
-            transaction.commit()
+            transaction!.commit()
             db.close()
             resolve(values)
           } catch (error) {
-            transaction.commit()
+            transaction!.commit()
             db.close()
             reject(error)
           }
         }
 
-        getAllRequest.onerror = (event) => {
-          transaction.commit()
+        getAllRequest!.onerror = (event) => {
+          transaction!.commit()
           db.close()
           reject(event)
         }

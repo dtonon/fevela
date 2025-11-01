@@ -85,9 +85,13 @@ class ClientService extends EventTarget {
   }
 
   async init() {
-    ;(await indexedDb.getAllProfiles()).forEach((profile) => {
-      this.addUsernameToIndex(profile)
-    })
+    try {
+      ;(await indexedDb.getAllProfiles()).forEach((profile) => {
+        this.addUsernameToIndex(profile)
+      })
+    } catch (err) {
+      console.debug('no profiles to index?', err)
+    }
   }
 
   async determineTargetRelays(
