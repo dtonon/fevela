@@ -20,7 +20,7 @@ import { useTranslation } from 'react-i18next'
 const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
   const { pop } = useSecondaryPage()
-  const { account, profile, profileEvent, publish, updateProfileEvent } = useNostr()
+  const { account, profile, publish, updateProfileEvent } = useNostr()
   const [banner, setBanner] = useState<string>('')
   const [avatar, setAvatar] = useState<string>('')
   const [name, setName] = useState<string>('')
@@ -67,10 +67,9 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
       return
     }
 
-    const oldProfileContent = profileEvent ? JSON.parse(profileEvent.content) : {}
     const newProfileContent = {
-      ...oldProfileContent,
-      display_name: oldProfileContent.display_name || undefined,
+      ...profile.metadata,
+      display_name: profile.metadata.display_name || undefined,
       name,
       about,
       website,
@@ -94,10 +93,7 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
 
     setSaving(true)
     setHasChanged(false)
-    const profileDraftEvent = createProfileDraftEvent(
-      JSON.stringify(newProfileContent),
-      profileEvent?.tags
-    )
+    const profileDraftEvent = createProfileDraftEvent(JSON.stringify(newProfileContent), [])
     const newProfileEvent = await publish(profileDraftEvent)
     await updateProfileEvent(newProfileEvent)
     setSaving(false)

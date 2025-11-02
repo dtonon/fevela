@@ -26,19 +26,19 @@ import { useTranslation } from 'react-i18next'
 import DrawerMenuItem from '../DrawerMenuItem'
 
 export default function SaveRelayDropdownMenu({
-  urls,
+  itemUrls,
   bigButton = false
 }: {
-  urls: string[]
+  itemUrls: string[]
   bigButton?: boolean
 }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
-  const { favoriteRelays, relaySets } = useFavoriteRelays()
-  const normalizedUrls = useMemo(() => urls.map((url) => normalizeUrl(url)).filter(Boolean), [urls])
+  const { urls, relaySets } = useFavoriteRelays()
+  const normalizedUrls = useMemo(() => itemUrls.map(normalizeUrl).filter(Boolean), [urls])
   const alreadySaved = useMemo(() => {
     return (
-      normalizedUrls.every((url) => favoriteRelays.includes(url)) ||
+      normalizedUrls.every((normalizedUrl) => urls.includes(normalizedUrl)) ||
       relaySets.some((set) => normalizedUrls.every((url) => set.relayUrls.includes(url)))
     )
   }, [relaySets, normalizedUrls])
@@ -72,7 +72,7 @@ export default function SaveRelayDropdownMenu({
                 <DrawerTitle>{t('Save to')} ...</DrawerTitle>
               </DrawerHeader>
               <div className="py-2">
-                <RelayItem urls={normalizedUrls} />
+                <RelayItem itemUrls={normalizedUrls} />
                 {relaySets.map((set) => (
                   <RelaySetItem key={set.id} set={set} urls={normalizedUrls} />
                 ))}
@@ -94,7 +94,7 @@ export default function SaveRelayDropdownMenu({
       <DropdownMenuContent onClick={(e) => e.stopPropagation()}>
         <DropdownMenuLabel>{t('Save to')} ...</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        <RelayItem urls={normalizedUrls} />
+        <RelayItem itemUrls={normalizedUrls} />
         {relaySets.map((set) => (
           <RelaySetItem key={set.id} set={set} urls={normalizedUrls} />
         ))}
@@ -105,14 +105,11 @@ export default function SaveRelayDropdownMenu({
   )
 }
 
-function RelayItem({ urls }: { urls: string[] }) {
+function RelayItem({ itemUrls }: { itemUrls: string[] }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
-  const { favoriteRelays, addFavoriteRelays, deleteFavoriteRelays } = useFavoriteRelays()
-  const saved = useMemo(
-    () => urls.every((url) => favoriteRelays.includes(url)),
-    [favoriteRelays, urls]
-  )
+  const { urls, addFavoriteRelays, deleteFavoriteRelays } = useFavoriteRelays()
+  const saved = useMemo(() => itemUrls.every((itemUrl) => urls.includes(itemUrl)), [urls, itemUrls])
 
   const handleClick = async () => {
     if (saved) {

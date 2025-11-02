@@ -1,30 +1,32 @@
 import { useFetchEvent } from '@/hooks'
-import { generateBech32IdFromATag, generateBech32IdFromETag } from '@/lib/tag'
 import { useNostr } from '@/providers/NostrProvider'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import { isHex32 } from '@nostr/gadgets/utils'
+import { neventEncode, naddrEncode } from '@nostr/tools/nip19'
 
 const SHOW_COUNT = 10
 
 export default function BookmarkList() {
   const { t } = useTranslation()
-  const { bookmarkListEvent } = useNostr()
+  const { bookmarkList } = useNostr()
   const eventIds = useMemo(() => {
-    if (!bookmarkListEvent) return []
-
-    return (
-      bookmarkListEvent.tags
-        .map((tag) =>
-          tag[0] === 'e'
-            ? generateBech32IdFromETag(tag)
-            : tag[0] === 'a'
-              ? generateBech32IdFromATag(tag)
-              : null
-        )
-        .filter(Boolean) as (`nevent1${string}` | `naddr1${string}`)[]
-    ).reverse()
-  }, [bookmarkListEvent])
+    return bookmarkList
+      .map((bookmark) => {
+        if (isHex32(bookmark)) {
+          return neventEncode({ id: bookmark })
+        } else {
+          const [kind, pubkey, identifier] = bookmark.split(':')
+          return naddrEncode({
+            kind: parseInt(kind),
+            pubkey,
+            identifier
+          })
+        }
+      })
+      .reverse()
+  }, [bookmarkList])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 

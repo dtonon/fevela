@@ -7,7 +7,7 @@ import {
 } from '@/lib/event'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
-import { isLocalNetworkUrl, normalizeHttpUrl } from '@/lib/url'
+import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
 import { isSafari } from '@/lib/utils'
 import {
   ISigner,
@@ -47,9 +47,10 @@ import {
   makeListFetcher,
   itemsFromTags,
   loadFollowsList,
-  loadMuteList
+  loadMuteList,
+  loadFavoriteRelays
 } from '@nostr/gadgets/lists'
-import { makeSetFetcher } from '@nostr/gadgets/sets'
+import { loadRelaySets, makeSetFetcher } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { AddressPointer } from '@nostr/tools/nip19'
@@ -1120,6 +1121,54 @@ class ClientService extends EventTarget {
   )
 
   loadEmojiSets = makeSetFetcher(kinds.Emojisets, (event) => getEmojiInfosFromEmojiTags(event.tags))
+
+  /** =========== Following favorite relays =========== */
+
+  async fetchFollowingFavoriteRelays(pubkey: string): Promise<[string, Set<string>][]> {
+    const waitgroup: Promise<void>[] = []
+    const urls = new Map<string, Set<string>>()
+
+    const followings = await loadFollowsList(pubkey)
+    followings.items.forEach((pubkey) => {
+      let r1: () => void
+      const p1 = new Promise<void>((resolve) => {
+        r1 = resolve
+      })
+      waitgroup.push(p1)
+
+      loadFavoriteRelays(pubkey).then((fav) => {
+        fav.items.forEach((url) => {
+          if (typeof url !== 'string') return // TODO: load these too
+          url = normalizeUrl(url)
+          const thisurl = urls.get(url) || new Set()
+          thisurl.add(pubkey)
+        })
+        r1()
+      })
+
+      let r2: () => void
+      const p2 = new Promise<void>((resolve) => {
+        r2 = resolve
+      })
+      waitgroup.push(p2)
+
+      loadRelaySets(pubkey).then((favsets) => {
+        Object.values(favsets).forEach((favset) => {
+          favset.items.forEach((url) => {
+            url = normalizeUrl(url)
+            const thisurl = urls.get(url) || new Set()
+            thisurl.add(pubkey)
+          })
+        })
+        r2()
+      })
+    })
+
+    await Promise.all(waitgroup)
+    return Array.from(urls.entries()).sort(
+      ([_urlA, usersA], [_urlB, usersB]) => usersB.size - usersA.size
+    )
+  }
 
   // ================= Utils =================
 

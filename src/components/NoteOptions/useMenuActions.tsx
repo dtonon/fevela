@@ -66,10 +66,10 @@ export function useMenuActions({
   const { t } = useTranslation()
   const { pubkey, attemptDelete } = useNostr()
   const { relayUrls: currentBrowsingRelayUrls } = useCurrentRelays()
-  const { relaySets, favoriteRelays } = useFavoriteRelays()
+  const { relaySets, urls } = useFavoriteRelays()
   const relayUrls = useMemo(() => {
-    return Array.from(new Set(currentBrowsingRelayUrls.concat(favoriteRelays)))
-  }, [currentBrowsingRelayUrls, favoriteRelays])
+    return Array.from(new Set(currentBrowsingRelayUrls.concat(urls)))
+  }, [currentBrowsingRelayUrls, urls])
   const { mutePublicly, mutePrivately, unmute, mutePubkeySet } = useMuteList()
   const { pinList, pin, unpin } = usePinList()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()

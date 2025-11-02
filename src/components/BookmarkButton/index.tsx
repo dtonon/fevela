@@ -9,17 +9,14 @@ import { toast } from 'sonner'
 
 export default function BookmarkButton({ event }: { event: Event }) {
   const { t } = useTranslation()
-  const { pubkey: accountPubkey, bookmarkListEvent, checkLogin } = useNostr()
+  const { pubkey: accountPubkey, bookmarkList, checkLogin } = useNostr()
   const { addBookmark, removeBookmark } = useBookmarks()
   const [updating, setUpdating] = useState(false)
   const isBookmarked = useMemo(() => {
     const isReplaceable = isReplaceableEvent(event.kind)
     const eventKey = isReplaceable ? getReplaceableCoordinateFromEvent(event) : event.id
-
-    return bookmarkListEvent?.tags.some((tag) =>
-      isReplaceable ? tag[0] === 'a' && tag[1] === eventKey : tag[0] === 'e' && tag[1] === eventKey
-    )
-  }, [bookmarkListEvent, event])
+    return bookmarkList.includes(eventKey)
+  }, [bookmarkList, event])
 
   if (!accountPubkey) return null
 

@@ -7,7 +7,7 @@ import { useTranslation } from 'react-i18next'
 
 export default function AddNewRelay() {
   const { t } = useTranslation()
-  const { favoriteRelays, addFavoriteRelays } = useFavoriteRelays()
+  const { urls, addFavoriteRelays } = useFavoriteRelays()
   const [input, setInput] = useState('')
   const [errorMsg, setErrorMsg] = useState('')
 
@@ -18,7 +18,7 @@ export default function AddNewRelay() {
       setErrorMsg(t('Invalid URL'))
       return
     }
-    if (favoriteRelays.includes(normalizedUrl)) {
+    if (urls.includes(normalizedUrl)) {
       setErrorMsg(t('Already saved'))
       return
     }
