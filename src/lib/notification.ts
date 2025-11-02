@@ -1,5 +1,5 @@
 import * as kinds from '@nostr/tools/kinds'
-import { NostrEvent } from '@nostr/tools/pure'
+import { NostrEvent } from '@nostr/tools/wasm'
 import { isMentioningMutedUsers } from './event'
 import { tagNameEquals } from './tag'
 

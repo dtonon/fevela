@@ -1,5 +1,5 @@
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
-import { NostrEvent } from '@nostr/tools/pure'
+import { NostrEvent } from '@nostr/tools/wasm'
 import { createContext, useCallback, useContext, useState } from 'react'
 
 type TDeletedEventContext = {

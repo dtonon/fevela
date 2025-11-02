@@ -24,7 +24,7 @@ import {
   Trash2,
   TriangleAlert
 } from 'lucide-react'
-import { Event } from '@nostr/tools/pure'
+import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'

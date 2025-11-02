@@ -1,5 +1,5 @@
 import { TSearchParams } from '@/types'
-import { Event } from '@nostr/tools/pure'
+import { Event } from '@nostr/tools/wasm'
 import * as nip19 from '@nostr/tools/nip19'
 import { getNoteBech32Id } from './event'
 

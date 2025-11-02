@@ -6,7 +6,7 @@ import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { hasBackgroundAudioAtom } from '@/services/media-manager.service'
 import { useAtomValue } from 'jotai'
 import { ArrowUp } from 'lucide-react'
-import { Event } from '@nostr/tools/pure'
+import { Event } from '@nostr/tools/wasm'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 

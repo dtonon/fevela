@@ -6,7 +6,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
-import { Event } from '@nostr/tools/pure'
+import { Event } from '@nostr/tools/wasm'
 
 export default function RawEventDialog({
   event,

@@ -8,7 +8,7 @@ import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
 import { TNotificationType } from '@/types'
 import dayjs from 'dayjs'
-import { NostrEvent } from '@nostr/tools/pure'
+import { NostrEvent } from '@nostr/tools/wasm'
 import { matchFilter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import {

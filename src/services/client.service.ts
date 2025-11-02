@@ -27,8 +27,7 @@ import {
   NostrEvent,
   validateEvent,
   VerifiedEvent
-} from '@nostr/tools/pure'
-import { Relay } from '@nostr/tools/relay'
+} from '@nostr/tools/wasm'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
@@ -53,6 +52,7 @@ import { loadRelaySets, makeSetFetcher } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { AddressPointer } from '@nostr/tools/nip19'
+import { verifyEvent } from '@nostr/tools/wasm'
 
 type TTimelineRef = [string, number]
 
@@ -817,7 +817,9 @@ class ClientService extends EventTarget {
           if (note.relays?.length) {
             note.relays.map((r: string) => {
               try {
-                const relay = new Relay(r)
+                const relay = new AbstractRelay(r, {
+                  verifyEvent: verifyEvent
+                })
                 this.trackEventSeenOn(note.event.id, relay)
               } catch {
                 return null

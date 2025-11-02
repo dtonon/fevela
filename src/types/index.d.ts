@@ -1,4 +1,4 @@
-import { Event, VerifiedEvent } from '@nostr/tools/pure'
+import { Event, VerifiedEvent } from '@nostr/tools/wasm'
 import { Filter } from '@nostr/tools/filter'
 import { MEDIA_AUTO_LOAD_POLICY, NOTIFICATION_LIST_STYLE, POLL_TYPE } from '../constants'
 

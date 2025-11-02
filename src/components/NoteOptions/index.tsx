@@ -1,6 +1,6 @@
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { Ellipsis } from 'lucide-react'
-import { Event } from '@nostr/tools/pure'
+import { Event } from '@nostr/tools/wasm'
 import { useState } from 'react'
 import { DesktopMenu } from './DesktopMenu'
 import { MobileMenu } from './MobileMenu'

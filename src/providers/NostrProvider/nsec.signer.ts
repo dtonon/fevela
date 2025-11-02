@@ -1,5 +1,5 @@
 import { ISigner, TDraftEvent } from '@/types'
-import { finalizeEvent, getPublicKey as nGetPublicKey } from '@nostr/tools/pure'
+import { finalizeEvent, getPublicKey as nGetPublicKey } from '@nostr/tools/wasm'
 import * as nip04 from '@nostr/tools/nip04'
 import * as nip19 from '@nostr/tools/nip19'
 
