@@ -4,7 +4,7 @@ import { Label } from '@/components/ui/label'
 import { useNostr } from '@/providers/NostrProvider'
 import { Check, Copy, RefreshCcw } from 'lucide-react'
 import { generateSecretKey } from 'nostr-tools'
-import { nsecEncode } from 'nostr-tools/nip19'
+import { nsecEncode } from '@nostr/tools/nip19'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

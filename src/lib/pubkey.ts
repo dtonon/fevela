@@ -48,7 +48,7 @@ export function userIdToPubkey(userId: string) {
         return data.pubkey
       }
     } catch (error) {
-      console.error('Error decoding userId:', userId, 'error:', error)
+      console.warn('Error decoding userId:', userId, 'error:', error)
     }
   }
   return userId

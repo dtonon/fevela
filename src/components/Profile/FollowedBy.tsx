@@ -1,7 +1,7 @@
 import UserAvatar from '@/components/UserAvatar'
 import { useNostr } from '@/providers/NostrProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import client from '@/services/client.service'
+import { loadFollowsList } from '@nostr/gadgets/lists'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -15,10 +15,10 @@ export default function FollowedBy({ pubkey }: { pubkey: string }) {
     if (!pubkey || !accountPubkey) return
 
     const init = async () => {
-      const followings = (await client.fetchFollowings(accountPubkey)).reverse()
+      const followings = (await loadFollowsList(accountPubkey)).items.reverse()
       const followingsOfFollowings = await Promise.all(
         followings.map(async (following) => {
-          return client.fetchFollowings(following)
+          return (await loadFollowsList(following)).items
         })
       )
       const _followedBy: string[] = []

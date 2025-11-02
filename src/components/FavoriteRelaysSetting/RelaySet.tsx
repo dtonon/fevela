@@ -175,7 +175,7 @@ function RelaySetOptions({ relaySet }: { relaySet: TRelaySet }) {
             </DrawerMenuItem>
             <DrawerMenuItem
               className="text-destructive focus:text-destructive"
-              onClick={() => deleteRelaySet(relaySet.id)}
+              onClick={() => deleteRelaySet(relaySet.pubkey, relaySet.id)}
             >
               <Trash2 />
               {t('Delete')}
@@ -200,7 +200,7 @@ function RelaySetOptions({ relaySet }: { relaySet: TRelaySet }) {
         </DropdownMenuItem>
         <DropdownMenuItem
           className="text-destructive focus:text-destructive"
-          onClick={() => deleteRelaySet(relaySet.id)}
+          onClick={() => deleteRelaySet(relaySet.pubkey, relaySet.id)}
         >
           <Trash2 />
           {t('Delete')}

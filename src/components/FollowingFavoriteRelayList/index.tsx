@@ -13,7 +13,7 @@ export default function FollowingFavoriteRelayList() {
   const { t } = useTranslation()
   const { pubkey } = useNostr()
   const [loading, setLoading] = useState(true)
-  const [relays, setRelays] = useState<[string, string[]][]>([])
+  const [relays, setRelays] = useState<[string, Set<string>][]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const bottomRef = useRef<HTMLDivElement>(null)
 
@@ -59,7 +59,7 @@ export default function FollowingFavoriteRelayList() {
   return (
     <div>
       {relays.slice(0, showCount).map(([url, users]) => (
-        <RelayItem key={url} url={url} users={users} />
+        <RelayItem key={url} url={url} users={Array.from(users)} />
       ))}
       {showCount < relays.length && <div ref={bottomRef} />}
       {loading && <RelaySimpleInfoSkeleton className="p-4" />}

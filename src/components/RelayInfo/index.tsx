@@ -149,7 +149,7 @@ function RelayControls({ url }: { url: string }) {
       <Button variant="ghost" size="titlebar-icon" onClick={handleCopyUrl}>
         {copiedUrl ? <Check /> : <Copy />}
       </Button>
-      <SaveRelayDropdownMenu urls={[url]} bigButton />
+      <SaveRelayDropdownMenu itemUrls={[url]} bigButton />
     </div>
   )
 }

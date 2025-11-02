@@ -1,26 +1,23 @@
-import { BIG_RELAY_URLS, DEFAULT_FAVORITE_RELAYS } from '@/constants'
+import { DEFAULT_FAVORITE_RELAYS } from '@/constants'
 import { createFavoriteRelaysDraftEvent, createRelaySetDraftEvent } from '@/lib/draft-event'
-import { getReplaceableEventIdentifier } from '@/lib/event'
-import { getRelaySetFromEvent } from '@/lib/event-metadata'
+import { getReplaceableCoordinate } from '@/lib/event'
 import { randomString } from '@/lib/random'
 import { isWebsocketUrl, normalizeUrl } from '@/lib/url'
-import client from '@/services/client.service'
-import indexedDb from '@/services/indexed-db.service'
-import storage from '@/services/local-storage.service'
 import { TRelaySet } from '@/types'
 import { Event, kinds } from 'nostr-tools'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useNostr } from './NostrProvider'
+import { loadRelaySets } from '@nostr/gadgets/sets'
 
 type TFavoriteRelaysContext = {
-  favoriteRelays: string[]
+  urls: string[]
   addFavoriteRelays: (relayUrls: string[]) => Promise<void>
   deleteFavoriteRelays: (relayUrls: string[]) => Promise<void>
   reorderFavoriteRelays: (reorderedRelays: string[]) => Promise<void>
   relaySets: TRelaySet[]
   createRelaySet: (relaySetName: string, relayUrls?: string[]) => Promise<void>
   addRelaySets: (newRelaySetEvents: Event[]) => Promise<void>
-  deleteRelaySet: (id: string) => Promise<void>
+  deleteRelaySet: (pubkey: string, id: string) => Promise<void>
   updateRelaySet: (newSet: TRelaySet) => Promise<void>
   reorderRelaySets: (reorderedSets: TRelaySet[]) => Promise<void>
 }
@@ -36,105 +33,57 @@ export const useFavoriteRelays = () => {
 }
 
 export function FavoriteRelaysProvider({ children }: { children: React.ReactNode }) {
-  const { favoriteRelaysEvent, updateFavoriteRelaysEvent, pubkey, relayList, publish } = useNostr()
-  const [favoriteRelays, setFavoriteRelays] = useState<string[]>([])
-  const [relaySetEvents, setRelaySetEvents] = useState<Event[]>([])
+  const { favoriteRelays, updateFavoriteRelaysEvent, pubkey, publish } = useNostr()
+  const [rerun, setRerunCount] = useState<number>(0)
   const [relaySets, setRelaySets] = useState<TRelaySet[]>([])
+  const [urls, setURLs] = useState<string[]>([])
 
   useEffect(() => {
-    if (!favoriteRelaysEvent) {
-      const favoriteRelays: string[] = DEFAULT_FAVORITE_RELAYS
-      const storedRelaySets = storage.getRelaySets()
-      storedRelaySets.forEach(({ relayUrls }) => {
-        relayUrls.forEach((url) => {
-          if (!favoriteRelays.includes(url)) {
-            favoriteRelays.push(url)
-          }
-        })
-      })
-
-      setFavoriteRelays(favoriteRelays)
-      setRelaySetEvents([])
+    if (favoriteRelays.length === 0) {
+      setURLs(DEFAULT_FAVORITE_RELAYS)
       return
     }
 
-    const init = async () => {
+    ;(async () => {
       const relays: string[] = []
-      const relaySetIds: string[] = []
 
-      favoriteRelaysEvent.tags.forEach(([tagName, tagValue]) => {
-        if (!tagValue) return
-
-        if (tagName === 'relay') {
-          const normalizedUrl = normalizeUrl(tagValue)
+      favoriteRelays.forEach((item) => {
+        if (typeof item === 'string') {
+          const normalizedUrl = normalizeUrl(item)
           if (normalizedUrl && !relays.includes(normalizedUrl)) {
             relays.push(normalizedUrl)
           }
-        } else if (tagName === 'a') {
-          const [kind, author, relaySetId] = tagValue.split(':')
-          if (kind !== kinds.Relaysets.toString()) return
-          if (!pubkey || author !== pubkey) return // TODO: support others relay sets
-          if (!relaySetId) return
+        } else {
+          if (item.kind !== kinds.Relaysets) return
 
-          if (!relaySetIds.includes(relaySetId)) {
-            relaySetIds.push(relaySetId)
-          }
+          loadRelaySets(item.pubkey).then((sets) => {
+            const set = sets[item.identifier]
+            if (set) {
+              setRelaySets((relaySets) => {
+                if (relaySets.find((existing) => item.identifier === existing.id)) {
+                  return relaySets
+                }
+                return [
+                  ...relaySets,
+                  {
+                    relayUrls: set.items,
+                    pubkey: set.event.pubkey,
+                    id: item.identifier,
+                    name:
+                      set.event.tags.find(([k]) => k === 'title')?.[1] || set.items.length === 1
+                        ? set.items[0]
+                        : item.identifier
+                  }
+                ]
+              })
+            }
+          })
         }
       })
 
-      setFavoriteRelays(relays)
-
-      if (!pubkey || !relaySetIds.length) {
-        setRelaySets([])
-        return
-      }
-      const storedRelaySetEvents = await Promise.all(
-        relaySetIds.map((id) => indexedDb.getReplaceableEvent(pubkey, kinds.Relaysets, id))
-      )
-      setRelaySetEvents(storedRelaySetEvents.filter(Boolean) as Event[])
-
-      const newRelaySetEvents = await client.fetchEvents(
-        (relayList?.write ?? []).concat(BIG_RELAY_URLS).slice(0, 5),
-        {
-          kinds: [kinds.Relaysets],
-          authors: [pubkey],
-          '#d': relaySetIds
-        }
-      )
-      const relaySetEventMap = new Map<string, Event>()
-      newRelaySetEvents.forEach((event) => {
-        const d = getReplaceableEventIdentifier(event)
-        if (!d) return
-
-        const old = relaySetEventMap.get(d)
-        if (!old || old.created_at < event.created_at) {
-          relaySetEventMap.set(d, event)
-        }
-      })
-      const uniqueNewRelaySetEvents = relaySetIds
-        .map((id, index) => {
-          const event = relaySetEventMap.get(id)
-          if (event) {
-            return event
-          }
-          return storedRelaySetEvents[index] || null
-        })
-        .filter(Boolean) as Event[]
-      setRelaySetEvents(uniqueNewRelaySetEvents)
-      await Promise.all(
-        uniqueNewRelaySetEvents.map((event) => {
-          return indexedDb.putReplaceableEvent(event)
-        })
-      )
-    }
-    init()
-  }, [favoriteRelaysEvent])
-
-  useEffect(() => {
-    setRelaySets(
-      relaySetEvents.map((evt) => getRelaySetFromEvent(evt)).filter(Boolean) as TRelaySet[]
-    )
-  }, [relaySetEvents])
+      setURLs(relays)
+    })()
+  }, [favoriteRelays, rerun])
 
   const addFavoriteRelays = async (relayUrls: string[]) => {
     const normalizedUrls = relayUrls
@@ -142,12 +91,9 @@ export function FavoriteRelaysProvider({ children }: { children: React.ReactNode
       .filter((url) => !!url && !favoriteRelays.includes(url))
     if (!normalizedUrls.length) return
 
-    const draftEvent = createFavoriteRelaysDraftEvent(
-      [...favoriteRelays, ...normalizedUrls],
-      relaySetEvents
+    updateFavoriteRelaysEvent(
+      await publish(createFavoriteRelaysDraftEvent([...urls, ...normalizedUrls], relaySets))
     )
-    const newFavoriteRelaysEvent = await publish(draftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
   }
 
   const deleteFavoriteRelays = async (relayUrls: string[]) => {
@@ -156,82 +102,78 @@ export function FavoriteRelaysProvider({ children }: { children: React.ReactNode
       .filter((url) => !!url && favoriteRelays.includes(url))
     if (!normalizedUrls.length) return
 
-    const draftEvent = createFavoriteRelaysDraftEvent(
-      favoriteRelays.filter((url) => !normalizedUrls.includes(url)),
-      relaySetEvents
+    updateFavoriteRelaysEvent(
+      await publish(
+        createFavoriteRelaysDraftEvent(
+          urls.filter((url) => !normalizedUrls.includes(url)),
+          relaySets
+        )
+      )
     )
-    const newFavoriteRelaysEvent = await publish(draftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
   }
 
   const createRelaySet = async (relaySetName: string, relayUrls: string[] = []) => {
-    const normalizedUrls = relayUrls
-      .map((url) => normalizeUrl(url))
-      .filter((url) => isWebsocketUrl(url))
-    const id = randomString()
-    const relaySetDraftEvent = createRelaySetDraftEvent({
-      id,
-      name: relaySetName,
-      relayUrls: normalizedUrls
-    })
-    const newRelaySetEvent = await publish(relaySetDraftEvent)
-    await indexedDb.putReplaceableEvent(newRelaySetEvent)
+    if (!pubkey) return
 
-    const favoriteRelaysDraftEvent = createFavoriteRelaysDraftEvent(favoriteRelays, [
-      ...relaySetEvents,
-      newRelaySetEvent
-    ])
-    const newFavoriteRelaysEvent = await publish(favoriteRelaysDraftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
+    const newRelaySetEvent = await publish(
+      createRelaySetDraftEvent({
+        id: randomString(),
+        pubkey,
+        name: relaySetName,
+        relayUrls: relayUrls.map((url) => normalizeUrl(url)).filter((url) => isWebsocketUrl(url))
+      })
+    )
+
+    // force update here (so when we reload on useEffect we get this one)
+    await loadRelaySets(pubkey, [], true)
+
+    // this will cause useEffect to run again
+    updateFavoriteRelaysEvent(
+      await publish(createFavoriteRelaysDraftEvent(urls, [...relaySets, newRelaySetEvent]))
+    )
   }
 
   const addRelaySets = async (newRelaySetEvents: Event[]) => {
-    const favoriteRelaysDraftEvent = createFavoriteRelaysDraftEvent(favoriteRelays, [
-      ...relaySetEvents,
-      ...newRelaySetEvents
-    ])
-    const newFavoriteRelaysEvent = await publish(favoriteRelaysDraftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
+    updateFavoriteRelaysEvent(
+      await publish(createFavoriteRelaysDraftEvent(urls, [...relaySets, ...newRelaySetEvents]))
+    )
   }
 
-  const deleteRelaySet = async (id: string) => {
-    const newRelaySetEvents = relaySetEvents.filter((event) => {
-      return getReplaceableEventIdentifier(event) !== id
-    })
-    if (newRelaySetEvents.length === relaySetEvents.length) return
-
-    const draftEvent = createFavoriteRelaysDraftEvent(favoriteRelays, newRelaySetEvents)
-    const newFavoriteRelaysEvent = await publish(draftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
+  const deleteRelaySet = async (pubkey: string, id: string) => {
+    const idx = relaySets.findIndex((relaySet) => relaySet.pubkey === pubkey && relaySet.id === id)
+    if (idx !== -1) {
+      relaySets.splice(idx, 1)
+      updateFavoriteRelaysEvent(await publish(createFavoriteRelaysDraftEvent(urls, relaySets)))
+    }
   }
 
   const updateRelaySet = async (newSet: TRelaySet) => {
-    const draftEvent = createRelaySetDraftEvent(newSet)
-    const newRelaySetEvent = await publish(draftEvent)
-    await indexedDb.putReplaceableEvent(newRelaySetEvent)
+    if (!pubkey) return
 
-    setRelaySetEvents((prev) => {
-      return prev.map((event) => {
-        if (getReplaceableEventIdentifier(event) === newSet.id) {
-          return newRelaySetEvent
-        }
-        return event
-      })
-    })
+    await publish(createRelaySetDraftEvent(newSet))
+
+    // force update here (so when we reload on useEffect we get this one)
+    await loadRelaySets(pubkey, [], true)
+
+    // force useEffect to rerun
+    setRerunCount((c) => c + 1)
   }
 
   const reorderFavoriteRelays = async (reorderedRelays: string[]) => {
-    setFavoriteRelays(reorderedRelays)
-    const draftEvent = createFavoriteRelaysDraftEvent(reorderedRelays, relaySetEvents)
-    const newFavoriteRelaysEvent = await publish(draftEvent)
-    updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
+    setURLs(reorderedRelays)
+    updateFavoriteRelaysEvent(
+      await publish(createFavoriteRelaysDraftEvent(reorderedRelays, relaySets))
+    )
   }
 
   const reorderRelaySets = async (reorderedSets: TRelaySet[]) => {
     setRelaySets(reorderedSets)
     const draftEvent = createFavoriteRelaysDraftEvent(
-      favoriteRelays,
-      reorderedSets.map((set) => set.aTag)
+      urls,
+      reorderedSets.map((set) => [
+        'a',
+        getReplaceableCoordinate(kinds.Relaysets, set.pubkey, set.id)
+      ])
     )
     const newFavoriteRelaysEvent = await publish(draftEvent)
     updateFavoriteRelaysEvent(newFavoriteRelaysEvent)
@@ -240,7 +182,7 @@ export function FavoriteRelaysProvider({ children }: { children: React.ReactNode
   return (
     <FavoriteRelaysContext.Provider
       value={{
-        favoriteRelays,
+        urls,
         addFavoriteRelays,
         deleteFavoriteRelays,
         reorderFavoriteRelays,

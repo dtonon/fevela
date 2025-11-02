@@ -3,7 +3,7 @@ import client from '@/services/client.service'
 import { TImetaInfo } from '@/types'
 import { LRUCache } from 'lru-cache'
 import { Event, kinds, nip19, UnsignedEvent } from 'nostr-tools'
-import { fastEventHash, getPow } from 'nostr-tools/nip13'
+import { fastEventHash, getPow } from '@nostr/tools/nip13'
 import {
   generateBech32IdFromATag,
   generateBech32IdFromETag,
@@ -290,10 +290,6 @@ export function getEmbeddedPubkeys(event: Event) {
   const embeddedPubkeys = Array.from(embeddedPubkeySet)
   EVENT_EMBEDDED_PUBKEYS_CACHE.set(event.id, embeddedPubkeys)
   return embeddedPubkeys
-}
-
-export function getLatestEvent(events: Event[]): Event | undefined {
-  return events.sort((a, b) => b.created_at - a.created_at)[0]
 }
 
 export function getReplaceableEventIdentifier(event: Event) {

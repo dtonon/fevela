@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 export default function ProfileOptions({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { pubkey: accountPubkey } = useNostr()
-  const { mutePubkeySet, mutePubkeyPrivately, mutePubkeyPublicly, unmutePubkey } = useMuteList()
+  const { mutePubkeySet, mutePrivately, mutePublicly, unmute } = useMuteList()
   const isMuted = useMemo(() => mutePubkeySet.has(pubkey), [mutePubkeySet, pubkey])
 
   if (pubkey === accountPubkey) return null
@@ -34,7 +34,7 @@ export default function ProfileOptions({ pubkey }: { pubkey: string }) {
         </DropdownMenuItem>
         {isMuted ? (
           <DropdownMenuItem
-            onClick={() => unmutePubkey(pubkey)}
+            onClick={() => unmute(pubkey)}
             className="text-destructive focus:text-destructive"
           >
             <Bell />
@@ -43,14 +43,14 @@ export default function ProfileOptions({ pubkey }: { pubkey: string }) {
         ) : (
           <>
             <DropdownMenuItem
-              onClick={() => mutePubkeyPrivately(pubkey)}
+              onClick={() => mutePrivately(pubkey)}
               className="text-destructive focus:text-destructive"
             >
               <BellOff />
               {t('Mute user privately')}
             </DropdownMenuItem>
             <DropdownMenuItem
-              onClick={() => mutePubkeyPublicly(pubkey)}
+              onClick={() => mutePublicly(pubkey)}
               className="text-destructive focus:text-destructive"
             >
               <BellOff />

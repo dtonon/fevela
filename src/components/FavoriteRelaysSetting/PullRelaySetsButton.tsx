@@ -29,7 +29,6 @@ import { Event, kinds } from 'nostr-tools'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelaySetCard from '../RelaySetCard'
-import { buildATag } from '@/lib/draft-event'
 
 export default function PullRelaySetsButton() {
   const { t } = useTranslation()
@@ -121,7 +120,7 @@ function RemoteRelaySets({ close }: { close?: () => void }) {
         if (!title) {
           title = relayUrls.length === 1 ? simplifyUrl(relayUrls[0]) : id
         }
-        relaySets.push({ id, name: title, relayUrls, aTag: buildATag(evt) })
+        relaySets.push({ id, pubkey: evt.pubkey, name: title, relayUrls })
         relaySetEventMap.set(id, evt)
       })
 

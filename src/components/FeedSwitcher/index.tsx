@@ -12,7 +12,7 @@ import RelaySetCard from '../RelaySetCard'
 export default function FeedSwitcher({ close }: { close?: () => void }) {
   const { t } = useTranslation()
   const { pubkey } = useNostr()
-  const { relaySets, favoriteRelays } = useFavoriteRelays()
+  const { relaySets, urls } = useFavoriteRelays()
   const { feedInfo, switchFeed } = useFeed()
 
   return (
@@ -58,7 +58,7 @@ export default function FeedSwitcher({ close }: { close?: () => void }) {
             }}
           />
         ))}
-      {favoriteRelays.map((relay) => (
+      {urls.map((relay) => (
         <FeedSwitcherItem
           key={relay}
           isActive={feedInfo.feedType === 'relay' && feedInfo.id === relay}

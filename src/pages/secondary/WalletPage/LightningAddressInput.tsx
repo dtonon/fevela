@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { createProfileDraftEvent } from '@/lib/draft-event'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { isEmail } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { Loader } from 'lucide-react'
@@ -11,24 +12,24 @@ import { toast } from 'sonner'
 
 export default function LightningAddressInput() {
   const { t } = useTranslation()
-  const { profile, profileEvent, publish, updateProfileEvent } = useNostr()
+  const { profile, publish, updateProfileEvent } = useNostr()
   const [lightningAddress, setLightningAddress] = useState('')
   const [hasChanged, setHasChanged] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     if (profile) {
-      setLightningAddress(profile.lightningAddress || '')
+      setLightningAddress(getLightningAddressFromProfile(profile) || '')
     }
   }, [profile])
 
-  if (!profile || !profileEvent) {
+  if (!profile) {
     return null
   }
 
   const handleSave = async () => {
     setSaving(true)
-    const profileContent = profileEvent ? JSON.parse(profileEvent.content) : {}
+    const profileContent = profile.metadata || {}
     if (lightningAddress.startsWith('lnurl')) {
       profileContent.lud06 = lightningAddress
     } else if (isEmail(lightningAddress)) {
@@ -41,10 +42,7 @@ export default function LightningAddressInput() {
       delete profileContent.lud16
     }
 
-    const profileDraftEvent = createProfileDraftEvent(
-      JSON.stringify(profileContent),
-      profileEvent?.tags
-    )
+    const profileDraftEvent = createProfileDraftEvent(JSON.stringify(profileContent), [])
     const newProfileEvent = await publish(profileDraftEvent)
     await updateProfileEvent(newProfileEvent)
     setSaving(false)

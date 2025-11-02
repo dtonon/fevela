@@ -1,16 +1,17 @@
 import { BIG_RELAY_URLS, DEV_PUBKEY, FEVELA_PUBKEY } from '@/constants'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
-import { TProfile } from '@/types'
 import { init, launchPaymentModal } from '@getalby/bitcoin-connect-react'
 import { Invoice } from '@getalby/lightning-tools'
 import { bech32 } from '@scure/base'
 import { WebLNProvider } from '@webbtc/webln-types'
 import dayjs from 'dayjs'
 import { Filter, kinds, NostrEvent } from 'nostr-tools'
-import { SubCloser } from 'nostr-tools/abstract-pool'
-import { makeZapRequest } from 'nostr-tools/nip57'
-import { utf8Decoder } from 'nostr-tools/utils'
+import { SubCloser } from '@nostr/tools/abstract-pool'
+import { makeZapRequest } from '@nostr/tools/nip57'
+import { utf8Decoder } from '@nostr/tools/utils'
 import client from './client.service'
+import { NostrUser } from '@nostr/gadgets/metadata'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 
 export type TRecentSupporter = { pubkey: string; amount: number; comment?: string }
 
@@ -203,23 +204,21 @@ class LightningService {
     return this.recentSupportersCache
   }
 
-  private async getZapEndpoint(profile: TProfile): Promise<null | {
+  private async getZapEndpoint(profile: NostrUser): Promise<null | {
     callback: string
     lnurl: string
   }> {
     try {
       let lnurl: string = ''
 
-      // Some clients have incorrectly filled in the positions for lud06 and lud16
-      if (!profile.lightningAddress) {
-        return null
-      }
+      const address = getLightningAddressFromProfile(profile)
+      if (!address) return null
 
-      if (profile.lightningAddress.includes('@')) {
-        const [name, domain] = profile.lightningAddress.split('@')
+      if (address.includes('@')) {
+        const [name, domain] = address.split('@')
         lnurl = new URL(`/.well-known/lnurlp/${name}`, `https://${domain}`).toString()
       } else {
-        const { words } = bech32.decode(profile.lightningAddress as any, 1000)
+        const { words } = bech32.decode(address as any, 1000)
         const data = bech32.fromWords(words)
         lnurl = utf8Decoder.decode(data)
       }

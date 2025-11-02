@@ -1,10 +1,7 @@
 import { DEFAULT_FAVORITE_RELAYS } from '@/constants'
-import { getRelaySetFromEvent } from '@/lib/event-metadata'
 import { isWebsocketUrl, normalizeUrl } from '@/lib/url'
-import indexedDb from '@/services/indexed-db.service'
 import storage from '@/services/local-storage.service'
 import { TFeedInfo, TFeedType } from '@/types'
-import { kinds } from 'nostr-tools'
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useFavoriteRelays } from './FavoriteRelaysProvider'
 import { useNostr } from './NostrProvider'
@@ -31,7 +28,7 @@ export const useFeed = () => {
 
 export function FeedProvider({ children }: { children: React.ReactNode }) {
   const { pubkey, isInitialized } = useNostr()
-  const { relaySets, favoriteRelays } = useFavoriteRelays()
+  const { relaySets, urls: relayURLs } = useFavoriteRelays()
   const [relayUrls, setRelayUrls] = useState<string[]>([])
   const [isReady, setIsReady] = useState(false)
   const [feedInfo, setFeedInfo] = useState<TFeedInfo>({
@@ -48,8 +45,9 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
 
       let feedInfo: TFeedInfo = {
         feedType: 'relay',
-        id: favoriteRelays[0] ?? DEFAULT_FAVORITE_RELAYS[0]
+        id: relayURLs[0] ?? DEFAULT_FAVORITE_RELAYS[0]
       }
+
       if (pubkey) {
         const storedFeedInfo = storage.getFeedInfo(pubkey)
         if (storedFeedInfo) {
@@ -83,6 +81,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     } = {}
   ) => {
     setIsReady(false)
+
     if (feedType === 'relay') {
       const normalizedUrl = normalizeUrl(options.relay ?? '')
       if (!normalizedUrl || !isWebsocketUrl(normalizedUrl)) {
@@ -98,6 +97,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       setIsReady(true)
       return
     }
+
     if (feedType === 'relays') {
       const relaySetId = options.activeRelaySetId ?? (relaySets.length > 0 ? relaySets[0].id : null)
       if (!relaySetId || !pubkey) {
@@ -105,19 +105,11 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      let relaySet =
+      const relaySet =
         relaySets.find((set) => set.id === relaySetId) ??
         (relaySets.length > 0 ? relaySets[0] : null)
-      if (!relaySet) {
-        const storedRelaySetEvent = await indexedDb.getReplaceableEvent(
-          pubkey,
-          kinds.Relaysets,
-          relaySetId
-        )
-        if (storedRelaySetEvent) {
-          relaySet = getRelaySetFromEvent(storedRelaySetEvent)
-        }
-      }
+      // TODO: here before there was some weird piece of code that reloaded the set from indexeddb
+      // I don't think that makes any difference, we'll see
       if (relaySet) {
         const newFeedInfo = { feedType, id: relaySet.id }
         setFeedInfo(newFeedInfo)
@@ -129,6 +121,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       setIsReady(true)
       return
     }
+
     if (feedType === 'following') {
       if (!options.pubkey) {
         setIsReady(true)

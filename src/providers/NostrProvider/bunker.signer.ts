@@ -1,7 +1,7 @@
 import { ISigner, TDraftEvent } from '@/types'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
 import { generateSecretKey } from 'nostr-tools'
-import { BunkerSigner as NBunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
+import { BunkerSigner as NBunkerSigner, parseBunkerInput } from '@nostr/tools/nip46'
 
 export class BunkerSigner implements ISigner {
   signer: NBunkerSigner | null = null

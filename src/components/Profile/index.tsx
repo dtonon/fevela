@@ -25,6 +25,8 @@ import FollowedBy from './FollowedBy'
 import Followings from './Followings'
 import ProfileFeed from './ProfileFeed'
 import Relays from './Relays'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
+import { SimpleUsername } from '../Username'
 
 export default function Profile({
   id,
@@ -71,14 +73,8 @@ export default function Profile({
 
   useEffect(() => {
     if (!profile?.pubkey) return
-
-    const forceUpdateCache = async () => {
-      await Promise.all([
-        client.forceUpdateRelayListEvent(profile.pubkey),
-        client.fetchProfile(profile.pubkey, true)
-      ])
-    }
-    forceUpdateCache()
+    if (Object.keys(profile?.metadata).length > 0) return
+    client.fetchProfile(profile.pubkey, true)
   }, [profile?.pubkey])
 
   useEffect(() => {
@@ -121,9 +117,13 @@ export default function Profile({
       </>
     )
   }
+
   if (!profile) return <NotFound />
 
-  const { banner, username, about, pubkey, website, lightningAddress } = profile
+  const { pubkey } = profile
+  const { banner, about, website } = profile.metadata || {}
+  const address = getLightningAddressFromProfile(profile)
+
   return (
     <>
       {!hideTopSection && (
@@ -148,14 +148,16 @@ export default function Profile({
                 </Button>
               ) : (
                 <>
-                  {!!lightningAddress && <ProfileZapButton pubkey={pubkey} />}
+                  {!!address && <ProfileZapButton pubkey={pubkey} />}
                   <FollowButton pubkey={pubkey} />
                 </>
               )}
             </div>
             <div className="pt-2">
               <div className="flex gap-2 items-center">
-                <div className="text-xl font-semibold truncate select-text">{username}</div>
+                <div className="text-xl font-semibold truncate select-text">
+                  <SimpleUsername userId={pubkey} />
+                </div>
                 {isFollowingYou && (
                   <div className="text-muted-foreground rounded-full bg-muted text-xs h-fit px-2 shrink-0">
                     {t('Follows you')}
@@ -163,10 +165,10 @@ export default function Profile({
                 )}
               </div>
               <Nip05 pubkey={pubkey} />
-              {lightningAddress && (
+              {address && (
                 <div className="text-sm text-yellow-400 flex gap-1 items-center select-text">
                   <Zap className="size-4 shrink-0" />
-                  <div className="flex-1 max-w-fit w-0 truncate">{lightningAddress}</div>
+                  <div className="flex-1 max-w-fit w-0 truncate">{address}</div>
                 </div>
               )}
               <div className="flex gap-1 mt-1">

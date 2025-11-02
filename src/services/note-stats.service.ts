@@ -1,6 +1,7 @@
 import { BIG_RELAY_URLS } from '@/constants'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { getEmojiInfosFromEmojiTags, tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
 import { TEmoji } from '@/types'
@@ -72,7 +73,7 @@ class NoteStatsService {
       )
     }
 
-    if (authorProfile?.lightningAddress) {
+    if (getLightningAddressFromProfile(authorProfile)) {
       filters.push({
         '#e': [event.id],
         kinds: [kinds.Zap],
@@ -103,7 +104,7 @@ class NoteStatsService {
         })
       }
 
-      if (authorProfile?.lightningAddress) {
+      if (getLightningAddressFromProfile(authorProfile)) {
         filters.push({
           '#e': [event.id],
           '#P': [pubkey],

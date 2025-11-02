@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { createProfileDraftEvent } from '@/lib/draft-event'
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { isEmail } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { useZap } from '@/providers/ZapProvider'
@@ -18,7 +19,7 @@ const RIZFUL_TOKEN_EXCHANGE_URL = `${RIZFUL_URL}/nostr_onboarding_auth_token/pos
 
 const RizfulPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
-  const { pubkey, profile, profileEvent, publish, updateProfileEvent } = useNostr()
+  const { pubkey, profile, publish, updateProfileEvent } = useNostr()
   const { provider } = useZap()
   const [token, setToken] = useState('')
   const [connecting, setConnecting] = useState(false)
@@ -41,30 +42,26 @@ const RizfulPage = forwardRef(({ index }: { index?: number }, ref) => {
 
   const updateUserProfile = async (address: string) => {
     try {
-      // If the profile already has a lightning address, do nothing
-      if (profile?.lightningAddress) {
+      // if the profile already has a lightning address, do nothing
+      if (!profile || (profile && getLightningAddressFromProfile(profile))) {
         return
       }
 
-      const profileContent = profileEvent ? JSON.parse(profileEvent.content) : {}
       if (isEmail(address)) {
-        profileContent.lud16 = address
+        profile.metadata.lud16 = address
       } else if (address.startsWith('lnurl')) {
-        profileContent.lud06 = address
+        profile.metadata.lud06 = address
       } else {
         throw new Error(t('Invalid Lightning Address'))
       }
 
-      if (!profileContent.nip05) {
-        profileContent.nip05 = address
+      if (!profile.metadata.nip05) {
+        profile.metadata.nip05 = address
       }
 
-      const profileDraftEvent = createProfileDraftEvent(
-        JSON.stringify(profileContent),
-        profileEvent?.tags
+      await updateProfileEvent(
+        await publish(createProfileDraftEvent(JSON.stringify(profile.metadata), []))
       )
-      const newProfileEvent = await publish(profileDraftEvent)
-      await updateProfileEvent(newProfileEvent)
     } catch (e: unknown) {
       toast.error(e instanceof Error ? e.message : String(e))
     }

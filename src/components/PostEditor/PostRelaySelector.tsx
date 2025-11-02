@@ -49,7 +49,7 @@ export default function PostRelaySelector({
   const { isSmallScreen } = useScreenSize()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const { relayUrls } = useCurrentRelays()
-  const { relaySets, favoriteRelays } = useFavoriteRelays()
+  const { relaySets, urls } = useFavoriteRelays()
   const [postTargetItems, setPostTargetItems] = useState<TPostTargetItem[]>([])
   const parentEventSeenOnRelays = useMemo(() => {
     if (!parentEvent || !isProtectedEvent(parentEvent)) {
@@ -58,8 +58,8 @@ export default function PostRelaySelector({
     return client.getSeenEventRelayUrls(parentEvent.id)
   }, [parentEvent])
   const selectableRelays = useMemo(() => {
-    return Array.from(new Set(parentEventSeenOnRelays.concat(relayUrls).concat(favoriteRelays)))
-  }, [parentEventSeenOnRelays, relayUrls, favoriteRelays])
+    return Array.from(new Set(parentEventSeenOnRelays.concat(relayUrls).concat(urls)))
+  }, [parentEventSeenOnRelays, relayUrls, urls])
   const description = useMemo(() => {
     if (postTargetItems.length === 0) {
       return t('No relays selected')

@@ -8,21 +8,6 @@ export type TFeedSubRequest = {
   filter: Omit<Filter, 'since' | 'until'>
 }
 
-export type TProfile = {
-  username: string
-  pubkey: string
-  npub: string
-  original_username?: string
-  banner?: string
-  avatar?: string
-  nip05?: string
-  about?: string
-  website?: string
-  lud06?: string
-  lud16?: string
-  lightningAddress?: string
-  created_at?: number
-}
 export type TMailboxRelayScope = 'read' | 'write' | 'both'
 export type TMailboxRelay = {
   url: string
@@ -32,6 +17,11 @@ export type TRelayList = {
   write: string[]
   read: string[]
   originalRelays: TMailboxRelay[]
+}
+
+export type TMutedList = {
+  public: string[]
+  private: string[]
 }
 
 export type TRelayInfo = {
@@ -61,7 +51,7 @@ export type TWebMetadata = {
 
 export type TRelaySet = {
   id: string
-  aTag: string[]
+  pubkey: string
   name: string
   relayUrls: string[]
 }

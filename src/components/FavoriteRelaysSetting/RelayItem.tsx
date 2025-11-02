@@ -38,7 +38,7 @@ export default function RelayItem({ relay }: { relay: string }) {
           <div className="flex-1 w-0 truncate font-semibold">{relay}</div>
         </div>
       </div>
-      <SaveRelayDropdownMenu urls={[relay]} />
+      <SaveRelayDropdownMenu itemUrls={[relay]} />
     </div>
   )
 }

@@ -66,12 +66,12 @@ export function useMenuActions({
   const { t } = useTranslation()
   const { pubkey, attemptDelete } = useNostr()
   const { relayUrls: currentBrowsingRelayUrls } = useCurrentRelays()
-  const { relaySets, favoriteRelays } = useFavoriteRelays()
+  const { relaySets, urls } = useFavoriteRelays()
   const relayUrls = useMemo(() => {
-    return Array.from(new Set(currentBrowsingRelayUrls.concat(favoriteRelays)))
-  }, [currentBrowsingRelayUrls, favoriteRelays])
-  const { mutePubkeyPublicly, mutePubkeyPrivately, unmutePubkey, mutePubkeySet } = useMuteList()
-  const { pinnedEventHexIdSet, pin, unpin } = usePinList()
+    return Array.from(new Set(currentBrowsingRelayUrls.concat(urls)))
+  }, [currentBrowsingRelayUrls, urls])
+  const { mutePublicly, mutePrivately, unmute, mutePubkeySet } = useMuteList()
+  const { pinList, pin, unpin } = usePinList()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const isMuted = useMemo(() => mutePubkeySet.has(event.pubkey), [mutePubkeySet, event])
@@ -276,7 +276,7 @@ export function useMenuActions({
     }
 
     if (event.pubkey === pubkey && event.kind === kinds.ShortTextNote) {
-      const pinned = pinnedEventHexIdSet.has(event.id)
+      const pinned = pinList.includes(event.id)
       actions.push({
         icon: pinned ? PinOff : Pin,
         label: pinned ? t('Unpin from profile') : t('Pin to profile'),
@@ -307,7 +307,7 @@ export function useMenuActions({
           label: t('Unmute user'),
           onClick: () => {
             closeDrawer()
-            unmutePubkey(event.pubkey)
+            unmute(event.pubkey)
           },
           className: 'text-destructive focus:text-destructive',
           separator: true
@@ -319,7 +319,7 @@ export function useMenuActions({
             label: t('Mute user privately'),
             onClick: () => {
               closeDrawer()
-              mutePubkeyPrivately(event.pubkey)
+              mutePrivately(event.pubkey)
             },
             className: 'text-destructive focus:text-destructive',
             separator: true
@@ -329,7 +329,7 @@ export function useMenuActions({
             label: t('Mute user publicly'),
             onClick: () => {
               closeDrawer()
-              mutePubkeyPublicly(event.pubkey)
+              mutePublicly(event.pubkey)
             },
             className: 'text-destructive focus:text-destructive'
           }
@@ -358,15 +358,15 @@ export function useMenuActions({
     isMuted,
     isSmallScreen,
     broadcastSubMenu,
-    pinnedEventHexIdSet,
+    pinList,
     pinBuryState,
     groupedNotesSettings.enabled,
     closeDrawer,
     showSubMenuActions,
     setIsRawEventDialogOpen,
-    mutePubkeyPrivately,
-    mutePubkeyPublicly,
-    unmutePubkey,
+    mutePrivately,
+    mutePublicly,
+    unmute,
     setPinned,
     setBuried,
     clearState
