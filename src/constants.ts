@@ -52,15 +52,7 @@ export const StorageKey = {
   SIDEBAR_COLLAPSE: 'sidebarCollapse',
   PRIMARY_COLOR: 'primaryColor',
   ENABLE_SINGLE_COLUMN_LAYOUT: 'enableSingleColumnLayout',
-  MEDIA_UPLOAD_SERVICE: 'mediaUploadService', // deprecated
-  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents', // deprecated
-  ACCOUNT_RELAY_LIST_EVENT_MAP: 'accountRelayListEventMap', // deprecated
-  ACCOUNT_FOLLOW_LIST_EVENT_MAP: 'accountFollowListEventMap', // deprecated
-  ACCOUNT_MUTE_LIST_EVENT_MAP: 'accountMuteListEventMap', // deprecated
-  ACCOUNT_MUTE_DECRYPTED_TAGS_MAP: 'accountMuteDecryptedTagsMap', // deprecated
-  ACCOUNT_PROFILE_EVENT_MAP: 'accountProfileEventMap', // deprecated
-  ACTIVE_RELAY_SET_ID: 'activeRelaySetId', // deprecated
-  FEED_TYPE: 'feedType' // deprecated
+  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents' // deprecated
 }
 
 export const ApplicationDataKey = {

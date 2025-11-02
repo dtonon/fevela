@@ -1,8 +1,6 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
-import { TPollType, TRelayList, TRelaySet } from '@/types'
+import { TPollType, TRelayList } from '@/types'
 import { Event, kinds } from 'nostr-tools'
-import { buildATag } from './draft-event'
-import { getReplaceableEventIdentifier } from './event'
 import { getAmountFromInvoice, getLightningAddressFromProfile } from './lightning'
 import { formatPubkey, pubkeyToNpub } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
@@ -85,22 +83,6 @@ export function getProfileFromEvent(event: Event) {
       username: formatPubkey(event.pubkey)
     }
   }
-}
-
-export function getRelaySetFromEvent(event: Event): TRelaySet {
-  const id = getReplaceableEventIdentifier(event)
-  const relayUrls = event.tags
-    .filter(tagNameEquals('relay'))
-    .map((tag) => tag[1])
-    .filter((url) => url && isWebsocketUrl(url))
-    .map((url) => normalizeUrl(url))
-
-  let name = event.tags.find(tagNameEquals('title'))?.[1]
-  if (!name) {
-    name = id
-  }
-
-  return { id, name, relayUrls, aTag: buildATag(event) }
 }
 
 export function getZapInfoFromEvent(receiptEvent: Event) {

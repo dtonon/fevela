@@ -50,7 +50,7 @@ type TNostrContext = {
   muteList: TMutedList
   bookmarkList: string[]
   favoriteRelays: (string | AddressPointer)[]
-  userEmojiList: TEmoji[]
+  userEmojiList: (TEmoji | AddressPointer)[]
   pinList: string[]
   notificationsSeenAt: number
   account: TAccountPointer | null

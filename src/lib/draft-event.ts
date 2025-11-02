@@ -293,7 +293,7 @@ export function createProfileDraftEvent(content: string, tags: string[][] = []):
 
 export function createFavoriteRelaysDraftEvent(
   favoriteRelays: string[],
-  relaySetEventsOrATags: Event[] | string[][]
+  relaySetEventsOrATags: (TRelaySet | Event | string[])[]
 ): TDraftEvent {
   const tags: string[][] = []
   favoriteRelays.forEach((url) => {
@@ -302,8 +302,13 @@ export function createFavoriteRelaysDraftEvent(
   relaySetEventsOrATags.forEach((eventOrATag) => {
     if (Array.isArray(eventOrATag)) {
       tags.push(eventOrATag)
-    } else {
+    } else if ('created_at' in eventOrATag) {
       tags.push(buildATag(eventOrATag))
+    } else {
+      tags.push([
+        'a',
+        getReplaceableCoordinate(kinds.Relaysets, eventOrATag.pubkey, eventOrATag.id)
+      ])
     }
   })
   return {
