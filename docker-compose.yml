@@ -15,7 +15,7 @@ services:
       - fevela
 
   proxy-server:
-    image: ghcr.io/danvergara/fevela-proxy-server:latest
+    image: ghcr.io/danvergara/jumble-proxy-server:latest
     environment:
       - ALLOW_ORIGIN=${FEVELA_SOCIAL_URL:-http://localhost:8089}
       - FEVELA_PROXY_GITHUB_TOKEN=${FEVELA_PROXY_GITHUB_TOKEN}

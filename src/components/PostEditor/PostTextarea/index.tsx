@@ -59,6 +59,7 @@ const PostTextarea = forwardRef<
     const { t } = useTranslation()
     const [tabValue, setTabValue] = useState('edit')
     const editor = useEditor({
+      autofocus: 'end',
       extensions: [
         Document,
         Paragraph,

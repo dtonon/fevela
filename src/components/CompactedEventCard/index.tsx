@@ -24,20 +24,18 @@ import { username } from '@/lib/event-metadata'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
-  const content = event.content.trim()
+  // Define media URL patterns
+  const imagePattern = /https?:\/\/\S+\.(jpg|jpeg|png|gif|webp)\S*/gi
+  const videoPattern = /https?:\/\/\S+\.(mp4|webm|mov)\S*/gi
+  const audioPattern = /https?:\/\/\S+\.(mp3|wav|ogg)\S*/gi
+  const nostrEntity = /nostr:(note|nevent|naddr|nrelay)[a-zA-Z0-9]+/g
+  const nostrProfile = /nostr:(npub|nprofile)[a-zA-Z0-9]+/g
 
-  // Check for media-only notes
-  const hasImage = content.match(/https?:\/\/\S+\.(jpg|jpeg|png|gif|webp)/i)
-  const hasVideo = content.match(/https?:\/\/\S+\.(mp4|webm|mov)/i)
-  const hasAudio = content.match(/https?:\/\/\S+\.(mp3|wav|ogg)/i)
+  let processedContent = event.content.trim()
 
-  // Handle nostr: entities
-  let processedContent = content
-    // Replace non-profile nostr entities with << mention >>
-    .replace(/nostr:(note|nevent|naddr|nrelay)[a-zA-Z0-9]+/g, '<< mention >>')
+  processedContent = processedContent.replace(nostrEntity, '«mention»')
 
-  // Find and replace npub/nprofile with usernames
-  const profileMatches = processedContent.match(/nostr:(npub|nprofile)[a-zA-Z0-9]+/g)
+  const profileMatches = processedContent.match(nostrProfile)
   if (profileMatches) {
     for (const match of profileMatches) {
       try {
@@ -48,7 +46,6 @@ async function getPreviewText(event: Event): Promise<string> {
           if (profile) {
             processedContent = processedContent.replace(match, `@${username(profile)}`)
           } else {
-            // If profile not found, show shortened version
             processedContent = processedContent.replace(match, `@${userId.substring(0, 12)}...`)
           }
         }
@@ -58,17 +55,12 @@ async function getPreviewText(event: Event): Promise<string> {
     }
   }
 
-  // Extract text without regular URLs
-  const textWithoutUrls = processedContent.replace(/https?:\/\/\S+/g, '').trim()
-
-  if (!textWithoutUrls) {
-    if (hasImage) return '<< image >>'
-    if (hasVideo) return '<< video >>'
-    if (hasAudio) return '<< audio >>'
-  }
+  processedContent = processedContent.replace(imagePattern, '«image»').trim()
+  processedContent = processedContent.replace(videoPattern, '«video»').trim()
+  processedContent = processedContent.replace(audioPattern, '«audio»').trim()
 
   // Strip markdown and formatting
-  const plainText = textWithoutUrls
+  const plainText = processedContent
     .replace(/[*_~`#]/g, '') // Remove markdown characters
     .replace(/\n+/g, ' ') // Replace newlines with spaces
     .replace(/\s+/g, ' ') // Normalize whitespace
@@ -280,7 +272,7 @@ export default function CompactedEventCard({
               {previewText === null ? (
                 <Skeleton className="h-4 w-3/4" />
               ) : (
-                <div className="text-muted-foreground transition-colors line-clamp-2 leading-5">
+                <div className="text-muted-foreground transition-colors line-clamp-2 leading-5 break-keep wrap-break-word">
                   {previewText}
                 </div>
               )}
