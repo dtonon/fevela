@@ -1,5 +1,5 @@
 import { EmbeddedMention, EmbeddedNote } from '@/components/Embedded'
-import { nip19 } from 'nostr-tools'
+import { nip19 } from '@nostr/tools'
 import { ComponentProps, useMemo } from 'react'
 import { Components } from './types'
 

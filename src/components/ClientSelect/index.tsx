@@ -8,7 +8,7 @@ import { toChachiChat } from '@/lib/link'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import clientService from '@/services/client.service'
 import { ExternalLink } from 'lucide-react'
-import { Event, kinds, nip19 } from 'nostr-tools'
+import { Event, kinds, nip19 } from '@nostr/tools'
 import { Dispatch, SetStateAction, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

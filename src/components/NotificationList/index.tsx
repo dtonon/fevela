@@ -8,7 +8,7 @@ import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
 import { TNotificationType } from '@/types'
 import dayjs from 'dayjs'
-import { NostrEvent, kinds, matchFilter } from 'nostr-tools'
+import { NostrEvent, kinds, matchFilter } from '@nostr/tools'
 import {
   forwardRef,
   useCallback,

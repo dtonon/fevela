@@ -1,7 +1,7 @@
 import { useFetchEvent } from '@/hooks'
 import { generateBech32IdFromETag, tagNameEquals } from '@/lib/tag'
 import { Vote } from 'lucide-react'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { useMemo } from 'react'
 import Notification from './Notification'
 import { useTranslation } from 'react-i18next'

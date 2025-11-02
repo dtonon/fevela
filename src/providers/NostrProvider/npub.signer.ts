@@ -1,5 +1,5 @@
 import { ISigner } from '@/types'
-import { nip19 } from 'nostr-tools'
+import { nip19 } from '@nostr/tools'
 
 export class NpubSigner implements ISigner {
   private pubkey: string | null = null

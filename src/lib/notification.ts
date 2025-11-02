@@ -1,4 +1,4 @@
-import { kinds, NostrEvent } from 'nostr-tools'
+import { kinds, NostrEvent } from '@nostr/tools'
 import { isMentioningMutedUsers } from './event'
 import { tagNameEquals } from './tag'
 

@@ -1,7 +1,7 @@
 import { MAX_PINNED_NOTES } from '@/constants'
 import { buildETag, createPinListDraftEvent } from '@/lib/draft-event'
 import client from '@/services/client.service'
-import { Event, kinds } from 'nostr-tools'
+import { Event, kinds } from '@nostr/tools'
 import { createContext, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'

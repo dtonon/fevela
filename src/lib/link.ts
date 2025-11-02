@@ -1,5 +1,5 @@
 import { TSearchParams } from '@/types'
-import { Event, nip19 } from 'nostr-tools'
+import { Event, nip19 } from '@nostr/tools'
 import { getNoteBech32Id } from './event'
 
 export const toHome = () => '/'

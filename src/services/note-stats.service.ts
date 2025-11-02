@@ -6,7 +6,7 @@ import { getEmojiInfosFromEmojiTags, tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
 import { TEmoji } from '@/types'
 import dayjs from 'dayjs'
-import { Event, Filter, kinds } from 'nostr-tools'
+import { Event, Filter, kinds } from '@nostr/tools'
 
 export type TNoteStats = {
   likeIdSet: Set<string>

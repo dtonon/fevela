@@ -20,7 +20,7 @@ import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, kinds } from 'nostr-tools'
+import { Event, kinds } from '@nostr/tools'
 import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,
@@ -333,7 +333,7 @@ const NoteList = forwardRef(
             },
             onClose: (url, reason) => {
               if (!showRelayCloseReason) return
-              // ignore reasons from nostr-tools
+              // ignore reasons from @nostr/tools
               if (
                 [
                   'closed by caller',

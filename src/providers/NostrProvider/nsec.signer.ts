@@ -1,5 +1,5 @@
 import { ISigner, TDraftEvent } from '@/types'
-import { finalizeEvent, getPublicKey as nGetPublicKey, nip04, nip19 } from 'nostr-tools'
+import { finalizeEvent, getPublicKey as nGetPublicKey, nip04, nip19 } from '@nostr/tools'
 
 export class NsecSigner implements ISigner {
   private privkey: Uint8Array | null = null

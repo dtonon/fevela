@@ -25,7 +25,8 @@ import {
 } from '@/types'
 import { hexToBytes } from '@noble/hashes/utils'
 import dayjs from 'dayjs'
-import { Event, kinds, VerifiedEvent } from 'nostr-tools'
+import { Event, VerifiedEvent } from '@nostr/tools/core'
+import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import * as nip49 from '@nostr/tools/nip49'
 import { createContext, useContext, useEffect, useState } from 'react'
@@ -312,7 +313,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     } else {
       throw new Error('invalid nsec or hex')
     }
-    const pubkey = nsecSigner.login(privkey)
+    const pubkey = nsecSigner.login(privkey)!
     if (password) {
       const ncryptsec = nip49.encrypt(privkey, password)
       login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
@@ -332,7 +333,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const privkey = nip49.decrypt(ncryptsec, password)
     const browserNsecSigner = new NsecSigner()
-    const pubkey = browserNsecSigner.login(privkey)
+    const pubkey = browserNsecSigner.login(privkey)!
     return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
   }
 

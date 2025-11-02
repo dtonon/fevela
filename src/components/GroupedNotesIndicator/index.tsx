@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { toProfile } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { useTranslation } from 'react-i18next'
 
 export default function GroupedNotesIndicator({

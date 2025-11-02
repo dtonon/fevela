@@ -1,5 +1,5 @@
 import { getParentATag, getParentETag, getRootATag, getRootETag } from '@/lib/event'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { createContext, useCallback, useContext, useState } from 'react'
 
 type TReplyContext = {

@@ -32,7 +32,7 @@ import {
   Relay,
   validateEvent,
   VerifiedEvent
-} from 'nostr-tools'
+} from '@nostr/tools'
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool } from '@nostr/gadgets/global'
 import indexedDb from './indexed-db.service'

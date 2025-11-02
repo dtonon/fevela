@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache'
-import { nip19 } from 'nostr-tools'
+import { nip19 } from '@nostr/tools'
 
 export function formatPubkey(pubkey: string) {
   const npub = pubkeyToNpub(pubkey)

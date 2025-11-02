@@ -3,7 +3,7 @@ import { toNoteList } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { Event, kinds } from 'nostr-tools'
+import { Event, kinds } from '@nostr/tools'
 import { useMemo } from 'react'
 import Image from '../Image'
 

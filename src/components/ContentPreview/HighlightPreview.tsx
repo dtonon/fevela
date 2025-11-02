@@ -1,7 +1,7 @@
 import { useTranslatedEvent } from '@/hooks'
 import { getEmojiInfosFromEmojiTags } from '@/lib/tag'
 import { cn } from '@/lib/utils'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import Content from './Content'

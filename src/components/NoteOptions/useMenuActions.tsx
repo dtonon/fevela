@@ -24,7 +24,7 @@ import {
   Trash2,
   TriangleAlert
 } from 'lucide-react'
-import { Event, kinds } from 'nostr-tools'
+import { Event, kinds } from '@nostr/tools'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'

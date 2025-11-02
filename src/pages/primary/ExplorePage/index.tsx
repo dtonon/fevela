@@ -8,7 +8,7 @@ import PrimaryPageLayout from '@/layouts/PrimaryPageLayout'
 import { getReplaceableEventIdentifier } from '@/lib/event'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { Compass, Plus } from 'lucide-react'
-import { NostrEvent } from 'nostr-tools'
+import { NostrEvent } from '@nostr/tools'
 import { forwardRef, useCallback, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

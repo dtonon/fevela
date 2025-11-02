@@ -2,7 +2,7 @@ import { ExtendedKind } from '@/constants'
 import { getPollResponseFromEvent } from '@/lib/event-metadata'
 import DataLoader from 'dataloader'
 import dayjs from 'dayjs'
-import { Filter } from 'nostr-tools'
+import { Filter } from '@nostr/tools'
 import client from './client.service'
 
 export type TPollResults = {

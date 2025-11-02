@@ -31,8 +31,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-      'nostr-tools': '@nostr/tools'
+      '@': path.resolve(__dirname, './src')
     }
   },
   plugins: [

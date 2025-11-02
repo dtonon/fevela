@@ -1,5 +1,5 @@
 import { getImetaInfosFromEvent } from '@/lib/event'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { useMemo } from 'react'
 import Content from '../Content'
 import MediaPlayer from '../MediaPlayer'

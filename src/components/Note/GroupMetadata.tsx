@@ -1,6 +1,6 @@
 import { getGroupMetadataFromEvent } from '@/lib/event-metadata'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools'
 import { useMemo } from 'react'
 import ClientSelect from '../ClientSelect'
 import Image from '../Image'
