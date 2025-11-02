@@ -52,6 +52,12 @@ class IndexedDbService {
   }
 
   async getAllProfiles(): Promise<NostrUser[]> {
+    const databases = await window.indexedDB.databases()
+    if (!databases.find((idb) => idb.name === '@nostr/gadgets/metadata')) {
+      // do not try to create this database if it doesn't exist, or idb-keyval breaks
+      return []
+    }
+
     return new Promise<NostrUser[]>((resolve, reject) => {
       const request = window.indexedDB.open('@nostr/gadgets/metadata')
 
@@ -72,6 +78,7 @@ class IndexedDbService {
           transaction?.commit?.()
           db.close()
           reject(error)
+          return
         }
 
         getAllRequest!.onsuccess = async (event) => {
