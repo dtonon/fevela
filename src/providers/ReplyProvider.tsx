@@ -1,4 +1,4 @@
-import { getParentATag, getEventKeyFromTag, getParentETag, getRootATag, getRootETag } from '@/lib/event'
+import { getParentATag, getEventKeyFromTag, getParentTag, getParentETag, getRootATag, getRootETag } from '@/lib/event'
 import { Event } from '@nostr/tools/pure'
 import { createContext, useCallback, useContext, useState } from 'react'
 
