@@ -219,7 +219,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         ctx.drawImage(img, 0, 0, size, size)
         const r = size * 0.16
         ctx.beginPath()
-        ctx.arc(size - r - 6, r + 6, r, 0, 2 * Math.PI)
+        ctx.arc(size - r - 3, r + 25, r, 0, 2 * Math.PI)
         ctx.fillStyle = '#FF0000'
         ctx.fill()
         favicons.forEach((favicon) => {
