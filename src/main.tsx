@@ -5,7 +5,7 @@ import './services/lightning.service'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { initNostrWasm } from 'nostr-wasm'
+import { initNostrWasm } from 'nostr-wasm/gzipped'
 import { setNostrWasm, verifyEvent } from '@nostr/tools/wasm'
 import { AbstractSimplePool } from '@nostr/tools/abstract-pool'
 import { pool, setPool } from '@nostr/gadgets/global'
