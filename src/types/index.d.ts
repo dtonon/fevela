@@ -1,4 +1,5 @@
-import { Event, Filter, VerifiedEvent } from '@nostr/tools'
+import { Event, VerifiedEvent } from '@nostr/tools/pure'
+import { Filter } from '@nostr/tools/filter'
 import { MEDIA_AUTO_LOAD_POLICY, NOTIFICATION_LIST_STYLE, POLL_TYPE } from '../constants'
 
 export type TSubRequestFilter = Omit<Filter, 'since' | 'until'> & { limit: number }

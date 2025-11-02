@@ -23,16 +23,15 @@ import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
 import {
   EventTemplate,
-  Filter,
-  kinds,
-  matchFilters,
   Event as NEvent,
-  nip19,
   NostrEvent,
-  Relay,
   validateEvent,
   VerifiedEvent
-} from '@nostr/tools'
+} from '@nostr/tools/pure'
+import { Relay } from '@nostr/tools/relay'
+import { Filter, matchFilters } from '@nostr/tools/filter'
+import * as nip19 from '@nostr/tools/nip19'
+import * as kinds from '@nostr/tools/kinds'
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool } from '@nostr/gadgets/global'
 import indexedDb from './indexed-db.service'
@@ -127,7 +126,11 @@ class ClientService extends EventTarget {
       relays = specifiedRelayUrls
     } else {
       const _additionalRelayUrls: string[] = additionalRelayUrls ?? []
-      if (!specifiedRelayUrls?.length && ![kinds.Contacts, kinds.Mutelist].includes(event.kind)) {
+      if (
+        !specifiedRelayUrls?.length &&
+        event.kind !== kinds.Contacts &&
+        event.kind !== kinds.Mutelist
+      ) {
         const mentions: string[] = []
         event.tags.forEach(([tagName, tagValue]) => {
           if (

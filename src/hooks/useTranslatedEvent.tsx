@@ -1,5 +1,5 @@
 import { useTranslationService } from '@/providers/TranslationServiceProvider'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useEffect, useMemo, useState } from 'react'
 
 export function useTranslatedEvent(eventId?: string) {

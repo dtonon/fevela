@@ -6,7 +6,9 @@ import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
-import { Event, kinds, nip19, verifyEvent } from '@nostr/tools'
+import { Event, verifyEvent } from '@nostr/tools/pure'
+import * as kinds from '@nostr/tools/kinds'
+import { neventEncode } from '@nostr/tools/nip19'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Collapsible from '../Collapsible'
@@ -163,7 +165,7 @@ export default function CompactedEventCard({
         if (!id) {
           return
         }
-        const targetEventId = nip19.neventEncode({
+        const targetEventId = neventEncode({
           id,
           relays: relay ? [relay] : [],
           author: pubkey

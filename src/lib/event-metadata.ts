@@ -1,6 +1,7 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
 import { TPollType, TRelayList } from '@/types'
-import { Event, kinds } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
+import * as kinds from '@nostr/tools/kinds'
 import { getAmountFromInvoice, getLightningAddressFromProfile } from './lightning'
 import { formatPubkey, pubkeyToNpub } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'

@@ -2,7 +2,9 @@ import { EMBEDDED_MENTION_REGEX, ExtendedKind } from '@/constants'
 import client from '@/services/client.service'
 import { TImetaInfo } from '@/types'
 import { LRUCache } from 'lru-cache'
-import { Event, kinds, nip19, UnsignedEvent } from '@nostr/tools'
+import { Event, UnsignedEvent } from '@nostr/tools/pure'
+import * as kinds from '@nostr/tools/kinds'
+import * as nip19 from '@nostr/tools/nip19'
 import { fastEventHash, getPow } from '@nostr/tools/nip13'
 import {
   generateBech32IdFromATag,

@@ -1,6 +1,6 @@
 import { getCommunityDefinitionFromEvent } from '@/lib/event-metadata'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import ClientSelect from '../ClientSelect'
 import Image from '../Image'

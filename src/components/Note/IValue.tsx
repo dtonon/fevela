@@ -1,7 +1,7 @@
 import { ExtendedKind } from '@/constants'
 import { tagNameEquals } from '@/lib/tag'
 import { cn } from '@/lib/utils'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 

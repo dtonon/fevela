@@ -11,7 +11,7 @@ import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
 import { useNotification } from '@/providers/NotificationProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
-import { NostrEvent } from '@nostr/tools'
+import { NostrEvent } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 

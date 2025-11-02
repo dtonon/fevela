@@ -1,6 +1,6 @@
 import client from '@/services/client.service'
 import { Repeat } from 'lucide-react'
-import { Event, validateEvent } from '@nostr/tools'
+import { Event, validateEvent } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import Notification from './Notification'

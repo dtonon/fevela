@@ -2,7 +2,7 @@ import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerTrigger } from '@/components/ui/drawer'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { QrCodeIcon } from 'lucide-react'
-import { nip19 } from '@nostr/tools'
+import { npubEncode } from '@nostr/tools/nip19'
 import { useMemo } from 'react'
 import Nip05 from '../Nip05'
 import PubkeyCopy from '../PubkeyCopy'
@@ -12,7 +12,7 @@ import Username from '../Username'
 
 export default function NpubQrCode({ pubkey }: { pubkey: string }) {
   const { isSmallScreen } = useScreenSize()
-  const npub = useMemo(() => (pubkey ? nip19.npubEncode(pubkey) : ''), [pubkey])
+  const npub = useMemo(() => (pubkey ? npubEncode(pubkey) : ''), [pubkey])
   if (!npub) return null
 
   const trigger = (

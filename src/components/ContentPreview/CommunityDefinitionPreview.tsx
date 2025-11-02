@@ -1,6 +1,6 @@
 import { getCommunityDefinitionFromEvent } from '@/lib/event-metadata'
 import { cn } from '@/lib/utils'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 

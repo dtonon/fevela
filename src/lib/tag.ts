@@ -1,6 +1,6 @@
 import { TEmoji, TImetaInfo } from '@/types'
 import { isBlurhashValid } from 'blurhash'
-import { nip19 } from '@nostr/tools'
+import * as nip19 from '@nostr/tools/nip19'
 import { isValidPubkey } from './pubkey'
 
 export function isSameTag(tag1: string[], tag2: string[]) {

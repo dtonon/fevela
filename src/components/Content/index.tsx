@@ -14,7 +14,7 @@ import { getEmojiInfosFromEmojiTags, getImetaInfoFromImetaTag } from '@/lib/tag'
 import { cn } from '@/lib/utils'
 import mediaUpload from '@/services/media-upload.service'
 import { TImetaInfo } from '@/types'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useMemo } from 'react'
 import {
   EmbeddedHashtag,

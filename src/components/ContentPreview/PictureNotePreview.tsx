@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useTranslation } from 'react-i18next'
 
 export default function PictureNotePreview({

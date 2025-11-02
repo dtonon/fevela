@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/sheet'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import postEditor from '@/services/post-editor.service'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { Dispatch, useMemo } from 'react'
 import PostContent from './PostContent'
 import Title from './Title'

@@ -1,5 +1,6 @@
 import { TSearchParams } from '@/types'
-import { Event, nip19 } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
+import * as nip19 from '@nostr/tools/nip19'
 import { getNoteBech32Id } from './event'
 
 export const toHome = () => '/'
@@ -32,7 +33,10 @@ export const toNoteList = ({
   if (domain) query.set('d', domain)
   return `${path}?${query.toString()}`
 }
-export const toProfile = (userId: string, options?: { hideTopSection?: boolean; since?: number; fromGrouped?: boolean }) => {
+export const toProfile = (
+  userId: string,
+  options?: { hideTopSection?: boolean; since?: number; fromGrouped?: boolean }
+) => {
   let path: string
   if (userId.startsWith('npub') || userId.startsWith('nprofile')) {
     path = `/users/${userId}`

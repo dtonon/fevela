@@ -1,4 +1,4 @@
-import { kinds } from '@nostr/tools'
+import * as kinds from '@nostr/tools/kinds'
 
 export const FEVELA_API_BASE_URL = 'https://api.fevela.social'
 

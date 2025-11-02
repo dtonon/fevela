@@ -7,7 +7,7 @@ import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
 import { TEmoji } from '@/types'
 import { Loader } from 'lucide-react'
-import { Event } from '@nostr/tools'
+import { Event } from '@nostr/tools/pure'
 import { useMemo, useRef, useState } from 'react'
 import Emoji from '../Emoji'
 
