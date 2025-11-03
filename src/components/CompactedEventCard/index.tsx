@@ -212,7 +212,9 @@ export default function CompactedEventCard({
           <div className={`pt-3 ${shouldShowPreview ? 'pb-1' : 'pb-3'} cursor-pointer`}>
             <div className="px-4">
               <div className="flex justify-between items-center gap-2">
-                <div className="flex items-center space-x-2 flex-1">
+                <div
+                  className={`flex items-center space-x-2 flex-1 ${isLastNoteRead ? 'text-muted-foreground/70 grayscale' : ''}`}
+                >
                   <UserAvatar userId={event.pubkey} size="normal" />
                   <div className="flex-1 w-0">
                     <div className="flex gap-2 items-center">
@@ -223,7 +225,7 @@ export default function CompactedEventCard({
                       />
                       <PinBuryBadge pubkey={event.pubkey} />
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1 text-sm">
                       <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
                       {isReply && (
                         <>
@@ -242,15 +244,13 @@ export default function CompactedEventCard({
                     </div>
                   </div>
                 </div>
+
                 {/* Show compact mode menu and counter badge */}
                 <div className="flex items-center gap-1">
                   <CompactModeMenu pubkey={event.pubkey} />
                   <div
-                    className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${
-                      isLastNoteRead
-                        ? 'bg-primary/10 border border-primary/20 grayscale group-hover/row:border-foreground/30'
-                        : 'bg-primary/10 border border-primary/20 group-hover/row:border-foreground/30'
-                    } ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}
+                    className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all hover:border-primary/50 bg-primary/10 border border-primary/20
+                      ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}
                     onClick={showAllNotes}
                   >
                     {totalNotesInTimeframe}
@@ -269,7 +269,9 @@ export default function CompactedEventCard({
               {previewText === null ? (
                 <Skeleton className="h-4 w-3/4" />
               ) : (
-                <div className="text-muted-foreground transition-colors line-clamp-2 leading-5 break-keep wrap-break-word">
+                <div
+                  className={`text-muted-foreground transition-colors line-clamp-2 leading-5 break-keep wrap-break-word ${isLastNoteRead ? 'text-muted-foreground/50 grayscale' : ''}`}
+                >
                   {previewText}
                 </div>
               )}
