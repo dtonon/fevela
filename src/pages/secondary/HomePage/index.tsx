@@ -33,7 +33,7 @@ const HomePage = forwardRef(({ index }: { index?: number }, ref) => {
         </div>
 
         {/* Fevela Introduction */}
-        <div className="space-y-4 text-base leading-relaxed">
+        <div className="space-y-4 text-base">
           <h2 className="text-2xl font-bold">About Fevela</h2>
           <p>
             Fevela is a <strong>Nostr</strong> social client that gives you back full control of
@@ -50,7 +50,7 @@ const HomePage = forwardRef(({ index }: { index?: number }, ref) => {
         </div>
 
         {/* Nostr Introduction */}
-        <div className="space-y-4 text-base leading-relaxed">
+        <div className="space-y-4 text-base">
           <h2 className="text-2xl font-bold">Welcome to a new kind of social network</h2>
           <p>
             <span className="font-semibold text-foreground">Nostr</span> is a simple, open protocol

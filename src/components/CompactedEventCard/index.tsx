@@ -273,7 +273,7 @@ export default function CompactedEventCard({
                 <Skeleton className="h-4 w-3/4" />
               ) : (
                 <div
-                  className={`text-muted-foreground transition-colors line-clamp-2 leading-5 break-keep wrap-break-word ${isLastNoteRead ? 'text-muted-foreground/50 grayscale' : ''}`}
+                  className={`text-muted-foreground transition-colors line-clamp-2 break-keep wrap-break-word ${isLastNoteRead ? 'text-muted-foreground/50 grayscale' : ''}`}
                 >
                   {previewText}
                 </div>
