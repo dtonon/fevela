@@ -216,7 +216,7 @@ export default function CompactedEventCard({
             <div className="px-4">
               <div className="flex justify-between items-center gap-2">
                 <div
-                  className={`flex items-center space-x-2 flex-1 ${isLastNoteRead ? 'text-muted-foreground/70 grayscale' : ''}`}
+                  className={`flex items-center space-x-2 flex-1 ${!isSelected && isLastNoteRead && 'text-muted-foreground/70 grayscale'}`}
                 >
                   <UserAvatar userId={event.pubkey} size="normal" />
                   <div className="flex-1 w-0">
@@ -273,7 +273,7 @@ export default function CompactedEventCard({
                 <Skeleton className="h-4 w-3/4" />
               ) : (
                 <div
-                  className={`text-muted-foreground transition-colors line-clamp-2 break-keep wrap-break-word ${isLastNoteRead ? 'text-muted-foreground/50 grayscale' : ''}`}
+                  className={`text-muted-foreground transition-colors line-clamp-2 break-keep wrap-break-word ${!isSelected && isLastNoteRead && 'text-muted-foreground/50 grayscale'}`}
                 >
                   {previewText}
                 </div>
