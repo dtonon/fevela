@@ -1,7 +1,6 @@
 import NormalFeed from '@/components/NormalFeed'
 import { useFeed } from '@/providers/FeedProvider'
 import { useNostr } from '@/providers/NostrProvider'
-import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import { loadFollowsList } from '@nostr/gadgets/lists'
 import { useEffect, useState } from 'react'
@@ -18,8 +17,11 @@ export default function FollowingFeed() {
         return
       }
 
+      // no need to call outbox.sync() here since that will already happen on NostrProvider
+      // for people that the current logged user follows
+
       const followings = (await loadFollowsList(pubkey)).items
-      setSubRequests(await client.generateSubRequestsForPubkeys([pubkey, ...followings], pubkey))
+      setSubRequests([{ source: 'local', filter: { authors: [pubkey, ...followings] } }])
     }
 
     init()

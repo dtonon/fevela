@@ -143,9 +143,7 @@ const NotificationList = forwardRef((_, ref) => {
               noteStatsService.updateNoteStatsByEvents(events)
             }
           },
-          onNew: (event) => {
-            handleNewEvent(event)
-          }
+          onNew: handleNewEvent
         }
       )
       setTimelineKey(timelineKey)
