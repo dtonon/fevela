@@ -1,13 +1,15 @@
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { MEDIA_AUTO_LOAD_POLICY } from '@/constants'
+import { LINK_PREVIEW_MODE, MEDIA_AUTO_LOAD_POLICY } from '@/constants'
 import { LocalizedLanguageNames, TLanguage } from '@/i18n'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn, isSupportCheckConnectionType } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useScreenSize } from '@/providers/ScreenSizeProvider'
+import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
-import { TMediaAutoLoadPolicy } from '@/types'
+import { TLinkPreviewMode, TMediaAutoLoadPolicy } from '@/types'
 import { SelectValue } from '@radix-ui/react-select'
 import { ExternalLink } from 'lucide-react'
 import { forwardRef, HTMLProps, useState } from 'react'
@@ -15,6 +17,7 @@ import { useTranslation } from 'react-i18next'
 
 const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t, i18n } = useTranslation()
+  const { isSmallScreen } = useScreenSize()
   const [language, setLanguage] = useState<TLanguage>(i18n.language as TLanguage)
   const {
     autoplay,
@@ -26,6 +29,7 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
     mediaAutoLoadPolicy,
     setMediaAutoLoadPolicy
   } = useContentPolicy()
+  const { linkPreviewMode, updateLinkPreviewMode } = useUserPreferences()
   const { hideUntrustedNotes, updateHideUntrustedNotes } = useUserTrust()
 
   const handleLanguageChange = (value: TLanguage) => {
@@ -82,6 +86,26 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
             <div className="text-muted-foreground">{t('Enable video autoplay on this device')}</div>
           </Label>
           <Switch id="autoplay" checked={autoplay} onCheckedChange={setAutoplay} />
+        </SettingItem>
+        <SettingItem>
+          <Label htmlFor="link-preview-mode" className="text-base font-normal">
+            {t('Link previews')}
+          </Label>
+          <Select
+            value={linkPreviewMode}
+            onValueChange={(value: TLinkPreviewMode) => updateLinkPreviewMode(value)}
+          >
+            <SelectTrigger id="link-preview-mode" className="w-48">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={LINK_PREVIEW_MODE.NEVER}>{t('Never')}</SelectItem>
+              <SelectItem value={LINK_PREVIEW_MODE.ENABLED}>{t('Enabled')}</SelectItem>
+              <SelectItem value={LINK_PREVIEW_MODE.ON_MOUSEOVER}>
+                {isSmallScreen ? t('On long press') : t('On mouseover')}
+              </SelectItem>
+            </SelectContent>
+          </Select>
         </SettingItem>
         <SettingItem>
           <Label htmlFor="hide-untrusted-notes" className="text-base font-normal">

@@ -2,6 +2,7 @@ import 'yet-another-react-lightbox/styles.css'
 import './index.css'
 
 import { Toaster } from '@/components/ui/sonner'
+import LinkPreviewHoverUI from '@/components/LinkPreviewHoverUI'
 import { BookmarksProvider } from '@/providers/BookmarksProvider'
 import { ContentPolicyProvider } from '@/providers/ContentPolicyProvider'
 import { DeletedEventProvider } from '@/providers/DeletedEventProvider'
@@ -10,6 +11,7 @@ import { FeedProvider } from '@/providers/FeedProvider'
 import { FollowListProvider } from '@/providers/FollowListProvider'
 import { GroupedNotesProvider } from '@/providers/GroupedNotesProvider'
 import { KindFilterProvider } from '@/providers/KindFilterProvider'
+import { LinkPreviewHoverProvider } from '@/providers/LinkPreviewHoverProvider'
 import { MediaUploadServiceProvider } from '@/providers/MediaUploadServiceProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
@@ -28,8 +30,9 @@ export default function App(): JSX.Element {
   return (
     <ScreenSizeProvider>
       <UserPreferencesProvider>
-        <ThemeProvider>
-          <ContentPolicyProvider>
+        <LinkPreviewHoverProvider>
+          <ThemeProvider>
+            <ContentPolicyProvider>
             <DeletedEventProvider>
               <NostrProvider>
                 <ZapProvider>
@@ -48,6 +51,7 @@ export default function App(): JSX.Element {
                                         <GroupedNotesProvider>
                                           <PageManager />
                                           <Toaster />
+                                          <LinkPreviewHoverUI />
                                         </GroupedNotesProvider>
                                       </KindFilterProvider>
                                     </MediaUploadServiceProvider>
@@ -64,8 +68,9 @@ export default function App(): JSX.Element {
                 </ZapProvider>
               </NostrProvider>
             </DeletedEventProvider>
-          </ContentPolicyProvider>
-        </ThemeProvider>
+            </ContentPolicyProvider>
+          </ThemeProvider>
+        </LinkPreviewHoverProvider>
       </UserPreferencesProvider>
     </ScreenSizeProvider>
   )

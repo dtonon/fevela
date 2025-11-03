@@ -52,6 +52,7 @@ export const StorageKey = {
   SIDEBAR_COLLAPSE: 'sidebarCollapse',
   PRIMARY_COLOR: 'primaryColor',
   ENABLE_SINGLE_COLUMN_LAYOUT: 'enableSingleColumnLayout',
+  SHOW_LINK_PREVIEWS: 'showLinkPreviews',
   HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents' // deprecated
 }
 
@@ -154,6 +155,12 @@ export const MEDIA_AUTO_LOAD_POLICY = {
   ALWAYS: 'always',
   WIFI_ONLY: 'wifi-only',
   NEVER: 'never'
+} as const
+
+export const LINK_PREVIEW_MODE = {
+  NEVER: 'never',
+  ENABLED: 'enabled',
+  ON_MOUSEOVER: 'on-mouseover'
 } as const
 
 export const MAX_PINNED_NOTES = 10

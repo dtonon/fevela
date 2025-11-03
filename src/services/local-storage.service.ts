@@ -1,6 +1,7 @@
 import {
   DEFAULT_NIP_96_SERVICE,
   ExtendedKind,
+  LINK_PREVIEW_MODE,
   MEDIA_AUTO_LOAD_POLICY,
   NOTIFICATION_LIST_STYLE,
   SUPPORTED_KINDS,
@@ -13,6 +14,7 @@ import {
   TAccount,
   TAccountPointer,
   TFeedInfo,
+  TLinkPreviewMode,
   TMediaAutoLoadPolicy,
   TMediaUploadServiceConfig,
   TNoteListMode,
@@ -54,6 +56,7 @@ class LocalStorageService {
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
   private enableSingleColumnLayout: boolean = false
+  private linkPreviewMode: TLinkPreviewMode = LINK_PREVIEW_MODE.ENABLED
 
   constructor() {
     if (!LocalStorageService.instance) {
@@ -211,6 +214,21 @@ class LocalStorageService {
 
     this.enableSingleColumnLayout =
       window.localStorage.getItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT) === 'true'
+
+    // Migration logic for old boolean showLinkPreviews to new enum linkPreviewMode
+    const storedLinkPreviewMode = window.localStorage.getItem(StorageKey.SHOW_LINK_PREVIEWS)
+    if (storedLinkPreviewMode === 'true') {
+      this.linkPreviewMode = LINK_PREVIEW_MODE.ENABLED
+    } else if (storedLinkPreviewMode === 'false') {
+      this.linkPreviewMode = LINK_PREVIEW_MODE.NEVER
+    } else if (
+      storedLinkPreviewMode &&
+      Object.values(LINK_PREVIEW_MODE).includes(storedLinkPreviewMode as TLinkPreviewMode)
+    ) {
+      this.linkPreviewMode = storedLinkPreviewMode as TLinkPreviewMode
+    } else {
+      this.linkPreviewMode = LINK_PREVIEW_MODE.ENABLED
+    }
   }
 
   getRelaySets() {
@@ -521,6 +539,15 @@ class LocalStorageService {
   setEnableSingleColumnLayout(enable: boolean) {
     this.enableSingleColumnLayout = enable
     window.localStorage.setItem(StorageKey.ENABLE_SINGLE_COLUMN_LAYOUT, enable.toString())
+  }
+
+  getLinkPreviewMode() {
+    return this.linkPreviewMode
+  }
+
+  setLinkPreviewMode(mode: TLinkPreviewMode) {
+    this.linkPreviewMode = mode
+    window.localStorage.setItem(StorageKey.SHOW_LINK_PREVIEWS, mode)
   }
 }
 

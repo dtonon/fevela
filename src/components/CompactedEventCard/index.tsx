@@ -24,20 +24,18 @@ import { username } from '@/lib/event-metadata'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
-  const content = event.content.trim()
+  // Define media URL patterns
+  const imagePattern = /https?:\/\/\S+\.(jpg|jpeg|png|gif|webp)\S*/gi
+  const videoPattern = /https?:\/\/\S+\.(mp4|webm|mov)\S*/gi
+  const audioPattern = /https?:\/\/\S+\.(mp3|wav|ogg)\S*/gi
+  const nostrEntity = /nostr:(note|nevent|naddr|nrelay)[a-zA-Z0-9]+/g
+  const nostrProfile = /nostr:(npub|nprofile)[a-zA-Z0-9]+/g
 
-  // Check for media-only notes
-  const hasImage = content.match(/https?:\/\/\S+\.(jpg|jpeg|png|gif|webp)/i)
-  const hasVideo = content.match(/https?:\/\/\S+\.(mp4|webm|mov)/i)
-  const hasAudio = content.match(/https?:\/\/\S+\.(mp3|wav|ogg)/i)
+  let processedContent = event.content.trim()
 
-  // Handle nostr: entities
-  let processedContent = content
-    // Replace non-profile nostr entities with << mention >>
-    .replace(/nostr:(note|nevent|naddr|nrelay)[a-zA-Z0-9]+/g, '<< mention >>')
+  processedContent = processedContent.replace(nostrEntity, '«mention»')
 
-  // Find and replace npub/nprofile with usernames
-  const profileMatches = processedContent.match(/nostr:(npub|nprofile)[a-zA-Z0-9]+/g)
+  const profileMatches = processedContent.match(nostrProfile)
   if (profileMatches) {
     for (const match of profileMatches) {
       try {
@@ -48,7 +46,6 @@ async function getPreviewText(event: Event): Promise<string> {
           if (profile) {
             processedContent = processedContent.replace(match, `@${username(profile)}`)
           } else {
-            // If profile not found, show shortened version
             processedContent = processedContent.replace(match, `@${userId.substring(0, 12)}...`)
           }
         }
@@ -58,17 +55,12 @@ async function getPreviewText(event: Event): Promise<string> {
     }
   }
 
-  // Extract text without regular URLs
-  const textWithoutUrls = processedContent.replace(/https?:\/\/\S+/g, '').trim()
-
-  if (!textWithoutUrls) {
-    if (hasImage) return '<< image >>'
-    if (hasVideo) return '<< video >>'
-    if (hasAudio) return '<< audio >>'
-  }
+  processedContent = processedContent.replace(imagePattern, '«image»').trim()
+  processedContent = processedContent.replace(videoPattern, '«video»').trim()
+  processedContent = processedContent.replace(audioPattern, '«audio»').trim()
 
   // Strip markdown and formatting
-  const plainText = textWithoutUrls
+  const plainText = processedContent
     .replace(/[*_~`#]/g, '') // Remove markdown characters
     .replace(/\n+/g, ' ') // Replace newlines with spaces
     .replace(/\s+/g, ' ') // Normalize whitespace
@@ -223,7 +215,9 @@ export default function CompactedEventCard({
           <div className={`pt-3 ${shouldShowPreview ? 'pb-1' : 'pb-3'} cursor-pointer`}>
             <div className="px-4">
               <div className="flex justify-between items-center gap-2">
-                <div className="flex items-center space-x-2 flex-1">
+                <div
+                  className={`flex items-center space-x-2 flex-1 ${isLastNoteRead ? 'text-muted-foreground/70 grayscale' : ''}`}
+                >
                   <UserAvatar userId={event.pubkey} size="normal" />
                   <div className="flex-1 w-0">
                     <div className="flex gap-2 items-center">
@@ -234,7 +228,7 @@ export default function CompactedEventCard({
                       />
                       <PinBuryBadge pubkey={event.pubkey} />
                     </div>
-                    <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-1 text-sm">
                       <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
                       {isReply && (
                         <>
@@ -253,15 +247,13 @@ export default function CompactedEventCard({
                     </div>
                   </div>
                 </div>
+
                 {/* Show compact mode menu and counter badge */}
                 <div className="flex items-center gap-1">
                   <CompactModeMenu pubkey={event.pubkey} />
                   <div
-                    className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all ${
-                      isLastNoteRead
-                        ? 'bg-primary/10 border border-primary/20 grayscale group-hover/row:border-foreground/30'
-                        : 'bg-primary/10 border border-primary/20 group-hover/row:border-foreground/30'
-                    } ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}
+                    className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all hover:border-primary/50 bg-primary/10 border border-primary/20
+                      ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}
                     onClick={showAllNotes}
                   >
                     {totalNotesInTimeframe}
@@ -280,7 +272,9 @@ export default function CompactedEventCard({
               {previewText === null ? (
                 <Skeleton className="h-4 w-3/4" />
               ) : (
-                <div className="text-muted-foreground transition-colors line-clamp-2 leading-5">
+                <div
+                  className={`text-muted-foreground transition-colors line-clamp-2 leading-5 break-keep wrap-break-word ${isLastNoteRead ? 'text-muted-foreground/50 grayscale' : ''}`}
+                >
                   {previewText}
                 </div>
               )}

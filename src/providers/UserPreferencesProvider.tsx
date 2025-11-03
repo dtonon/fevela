@@ -1,5 +1,5 @@
 import storage from '@/services/local-storage.service'
-import { TNotificationStyle } from '@/types'
+import { TLinkPreviewMode, TNotificationStyle } from '@/types'
 import { createContext, useContext, useEffect, useState } from 'react'
 import { useScreenSize } from './ScreenSizeProvider'
 
@@ -15,6 +15,9 @@ type TUserPreferencesContext = {
 
   enableSingleColumnLayout: boolean
   updateEnableSingleColumnLayout: (enable: boolean) => void
+
+  linkPreviewMode: TLinkPreviewMode
+  updateLinkPreviewMode: (mode: TLinkPreviewMode) => void
 }
 
 const UserPreferencesContext = createContext<TUserPreferencesContext | undefined>(undefined)
@@ -37,6 +40,7 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
   const [enableSingleColumnLayout, setEnableSingleColumnLayout] = useState(
     storage.getEnableSingleColumnLayout()
   )
+  const [linkPreviewMode, setLinkPreviewMode] = useState(storage.getLinkPreviewMode())
 
   useEffect(() => {
     if (!isSmallScreen && enableSingleColumnLayout) {
@@ -61,6 +65,11 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.setEnableSingleColumnLayout(enable)
   }
 
+  const updateLinkPreviewMode = (mode: TLinkPreviewMode) => {
+    setLinkPreviewMode(mode)
+    storage.setLinkPreviewMode(mode)
+  }
+
   return (
     <UserPreferencesContext.Provider
       value={{
@@ -71,7 +80,9 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         sidebarCollapse,
         updateSidebarCollapse,
         enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
-        updateEnableSingleColumnLayout
+        updateEnableSingleColumnLayout,
+        linkPreviewMode,
+        updateLinkPreviewMode
       }}
     >
       {children}
