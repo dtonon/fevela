@@ -8,7 +8,6 @@ import {
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
-import { isSafari } from '@/lib/utils'
 import {
   ISigner,
   TPublishOptions,
@@ -1173,55 +1172,6 @@ class ClientService extends EventTarget {
     return Array.from(urls.entries()).sort(
       ([_urlA, usersA], [_urlB, usersB]) => usersB.size - usersA.size
     )
-  }
-
-  // ================= Utils =================
-
-  async generateSubRequestsForPubkeys(pubkeys: string[], myPubkey?: string | null) {
-    // If many websocket connections are initiated simultaneously, it will be
-    // very slow on Safari (for unknown reason)
-    if (isSafari()) {
-      let urls = BIG_RELAY_URLS
-      if (myPubkey) {
-        const relayList = await this.fetchRelayList(myPubkey)
-        urls = relayList.read.concat(BIG_RELAY_URLS).slice(0, 5)
-      }
-      return [{ urls, filter: { authors: pubkeys } }]
-    }
-
-    const relayLists = await this.fetchRelayLists(pubkeys)
-    const group: Record<string, Set<string>> = {}
-    relayLists.forEach((relayList, index) => {
-      relayList.write.slice(0, 4).forEach((url) => {
-        if (!group[url]) {
-          group[url] = new Set()
-        }
-        group[url].add(pubkeys[index])
-      })
-    })
-
-    const relayCount = Object.keys(group).length
-    const coveredCount = new Map<string, number>()
-    Object.entries(group)
-      .sort(([, a], [, b]) => b.size - a.size)
-      .forEach(([url, pubkeys]) => {
-        if (
-          relayCount > 10 &&
-          pubkeys.size < 10 &&
-          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 3)
-        ) {
-          delete group[url]
-        } else {
-          pubkeys.forEach((pubkey) => {
-            coveredCount.set(pubkey, (coveredCount.get(pubkey) ?? 0) + 1)
-          })
-        }
-      })
-
-    return Object.entries(group).map(([url, authors]) => ({
-      urls: [url],
-      filter: { authors: Array.from(authors) }
-    }))
   }
 }
 

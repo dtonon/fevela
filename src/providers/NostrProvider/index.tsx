@@ -29,7 +29,7 @@ import { Event, VerifiedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import * as nip49 from '@nostr/tools/nip49'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useDeletedEvent } from '../DeletedEventProvider'
@@ -41,6 +41,7 @@ import { NsecSigner } from './nsec.signer'
 import { NostrUser } from '@nostr/gadgets/metadata'
 import { loadFavoriteRelays, loadFollowsList } from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
+import { start, end, status } from '@/services/outbox.service'
 
 type TNostrContext = {
   isInitialized: boolean
@@ -252,6 +253,24 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     customEmojiService.init(userEmojiList)
   }, [userEmojiList])
+
+  const globalSyncAbort = useRef(new AbortController())
+
+  useEffect(() => {
+    if (!account) return
+
+    if (status.syncing && status.pubkey === account.pubkey) {
+      // we're already logged with this same pubkey, so don't stop it only to start again
+      // (react shouldn't have called this twice)
+      return
+    }
+
+    // stop the previous sync (if any) and start again on the new key
+    end()
+    globalSyncAbort.current.abort('<account-changed>')
+    globalSyncAbort.current = new AbortController()
+    start(account.pubkey, globalSyncAbort.current.signal)
+  }, [account])
 
   const hasNostrLoginHash = () => {
     return window.location.hash && window.location.hash.startsWith('#nostr-login')
