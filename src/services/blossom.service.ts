@@ -63,8 +63,8 @@ class BlossomService {
 
     const ext = oldImageUrl.pathname.match(/\.\w+$/i)
 
-    const blossomServerList = await client.fetchBlossomServerList(pubkey)
-    const urls = blossomServerList
+    const blossomServerList = await client.loadBlossomServers(pubkey)
+    const urls = blossomServerList.items
       .map((server) => {
         try {
           return new URL(server)

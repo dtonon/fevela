@@ -1,12 +1,11 @@
 import { createFollowListDraftEvent } from '@/lib/draft-event'
-import { getPubkeysFromPTags } from '@/lib/tag'
-import client from '@/services/client.service'
-import { createContext, useContext, useMemo } from 'react'
+import { createContext, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNostr } from './NostrProvider'
+import { loadFollowsList } from '@nostr/gadgets/lists'
 
 type TFollowListContext = {
-  followingSet: Set<string>
+  followList: string[]
   follow: (pubkey: string) => Promise<void>
   unfollow: (pubkey: string) => Promise<void>
 }
@@ -23,17 +22,13 @@ export const useFollowList = () => {
 
 export function FollowListProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
-  const { pubkey: accountPubkey, followListEvent, publish, updateFollowListEvent } = useNostr()
-  const followingSet = useMemo(
-    () => new Set(followListEvent ? getPubkeysFromPTags(followListEvent.tags) : []),
-    [followListEvent]
-  )
+  const { pubkey: accountPubkey, followList, publish, updateFollowListEvent } = useNostr()
 
   const follow = async (pubkey: string) => {
     if (!accountPubkey) return
 
-    const followListEvent = await client.fetchFollowListEvent(accountPubkey)
-    if (!followListEvent) {
+    const follows = await loadFollowsList(accountPubkey)
+    if (!follows.event) {
       const result = confirm(t('FollowListNotFoundConfirmation'))
 
       if (!result) {
@@ -41,8 +36,8 @@ export function FollowListProvider({ children }: { children: React.ReactNode }) 
       }
     }
     const newFollowListDraftEvent = createFollowListDraftEvent(
-      (followListEvent?.tags ?? []).concat([['p', pubkey]]),
-      followListEvent?.content
+      (follows.event?.tags || []).concat([['p', pubkey]]),
+      follows.event?.content || ''
     )
     const newFollowListEvent = await publish(newFollowListDraftEvent)
     await updateFollowListEvent(newFollowListEvent)
@@ -51,12 +46,12 @@ export function FollowListProvider({ children }: { children: React.ReactNode }) 
   const unfollow = async (pubkey: string) => {
     if (!accountPubkey) return
 
-    const followListEvent = await client.fetchFollowListEvent(accountPubkey)
-    if (!followListEvent) return
+    const follows = await loadFollowsList(accountPubkey)
+    if (!follows.event) return
 
     const newFollowListDraftEvent = createFollowListDraftEvent(
-      followListEvent.tags.filter(([tagName, tagValue]) => tagName !== 'p' || tagValue !== pubkey),
-      followListEvent.content
+      follows.event.tags.filter(([tagName, tagValue]) => tagName !== 'p' || tagValue !== pubkey),
+      follows.event.content
     )
     const newFollowListEvent = await publish(newFollowListDraftEvent)
     await updateFollowListEvent(newFollowListEvent)
@@ -65,7 +60,7 @@ export function FollowListProvider({ children }: { children: React.ReactNode }) 
   return (
     <FollowListContext.Provider
       value={{
-        followingSet,
+        followList,
         follow,
         unfollow
       }}

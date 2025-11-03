@@ -60,7 +60,7 @@ export function ProfileListBySearch({ search }: { search: string }) {
     })
     setPubkeySet((prev) => new Set([...prev, ...newPubkeySet]))
     setHasMore(profiles.length >= LIMIT)
-    const lastProfileCreatedAt = profiles[profiles.length - 1].created_at
+    const lastProfileCreatedAt = profiles[profiles.length - 1].lastUpdated
     setUntil(lastProfileCreatedAt ? lastProfileCreatedAt - 1 : 0)
   }
 

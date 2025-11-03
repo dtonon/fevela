@@ -1,16 +1,16 @@
 import { SEARCHABLE_RELAY_URLS } from '@/constants'
 import { useFeed } from '@/providers/FeedProvider'
 import client from '@/services/client.service'
-import { TProfile } from '@/types'
 import { useEffect, useState } from 'react'
 import { useFetchRelayInfos } from './useFetchRelayInfos'
+import { NostrUser } from '@nostr/gadgets/metadata'
 
 export function useSearchProfiles(search: string, limit: number) {
   const { relayUrls } = useFeed()
   const { searchableRelayUrls } = useFetchRelayInfos(relayUrls)
   const [isFetching, setIsFetching] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [profiles, setProfiles] = useState<TProfile[]>([])
+  const [profiles, setProfiles] = useState<NostrUser[]>([])
 
   useEffect(() => {
     const fetchProfiles = async () => {

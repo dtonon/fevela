@@ -3,7 +3,9 @@ import { tagNameEquals } from '@/lib/tag'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import client from '@/services/client.service'
-import { Event, kinds, nip19, verifyEvent } from 'nostr-tools'
+import { Event, verifyEvent } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
+import { neventEncode } from '@nostr/tools/nip19'
 import { useEffect, useMemo, useState } from 'react'
 import MainNoteCard from './MainNoteCard'
 
@@ -55,7 +57,7 @@ export default function RepostNoteCard({
         if (!id) {
           return
         }
-        const targetEventId = nip19.neventEncode({
+        const targetEventId = neventEncode({
           id,
           relays: relay ? [relay] : [],
           author: pubkey

@@ -1,8 +1,7 @@
 import KindFilter from '@/components/KindFilter'
 import NoteList, { TNoteListRef } from '@/components/NoteList'
 import Tabs from '@/components/Tabs'
-import { BIG_RELAY_URLS, MAX_PINNED_NOTES, SEARCHABLE_RELAY_URLS } from '@/constants'
-import { generateBech32IdFromETag } from '@/lib/tag'
+import { BIG_RELAY_URLS, SEARCHABLE_RELAY_URLS } from '@/constants'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
@@ -11,7 +10,6 @@ import client from '@/services/client.service'
 import storage from '@/services/local-storage.service'
 import relayInfoService from '@/services/relay-info.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
-import { NostrEvent } from 'nostr-tools'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
 
@@ -28,7 +26,7 @@ export default function ProfileFeed({
   fromGrouped?: boolean
   search?: string
 }) {
-  const { pubkey: myPubkey, pinListEvent: myPinListEvent } = useNostr()
+  const { pubkey: myPubkey, pinList: myPinList } = useNostr()
   const { showKinds } = useKindFilter()
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
@@ -69,36 +67,16 @@ export default function ProfileFeed({
   const noteListRef = useRef<TNoteListRef>(null)
 
   useEffect(() => {
-    const initPinnedEventIds = async () => {
-      let evt: NostrEvent | null = null
+    ;(async () => {
+      let pinList: string[]
       if (pubkey === myPubkey) {
-        evt = myPinListEvent
+        pinList = myPinList
       } else {
-        evt = await client.fetchPinListEvent(pubkey)
+        pinList = (await client.loadPins(pubkey)).items
       }
-      const hexIdSet = new Set<string>()
-      const ids =
-        (evt?.tags
-          .filter((tag) => tag[0] === 'e')
-          .reverse()
-          .slice(0, MAX_PINNED_NOTES)
-          .map((tag) => {
-            const [, hexId, relay, _pubkey] = tag
-            if (!hexId || hexIdSet.has(hexId) || (_pubkey && _pubkey !== pubkey)) {
-              return undefined
-            }
-
-            const id = generateBech32IdFromETag(['e', hexId, relay ?? '', pubkey])
-            if (id) {
-              hexIdSet.add(hexId)
-            }
-            return id
-          })
-          .filter(Boolean) as string[]) ?? []
-      setPinnedEventIds(ids)
-    }
-    initPinnedEventIds()
-  }, [pubkey, myPubkey, myPinListEvent])
+      setPinnedEventIds(pinList)
+    })()
+  }, [pubkey, myPubkey, myPinList])
 
   useEffect(() => {
     const init = async () => {
@@ -170,7 +148,12 @@ export default function ProfileFeed({
     noteListRef.current?.scrollToTop('instant')
   }
 
-  const handleNotesLoaded = (hasNotes: boolean, hasReplies: boolean, notesCount: number, repliesCount: number) => {
+  const handleNotesLoaded = (
+    hasNotes: boolean,
+    hasReplies: boolean,
+    notesCount: number,
+    repliesCount: number
+  ) => {
     // Update total count
     const totalCount = notesCount + repliesCount
     setTotalItemsCount(totalCount)

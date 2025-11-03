@@ -1,4 +1,4 @@
-import { kinds } from 'nostr-tools'
+import * as kinds from '@nostr/tools/kinds'
 
 export const FEVELA_API_BASE_URL = 'https://api.fevela.social'
 
@@ -53,15 +53,7 @@ export const StorageKey = {
   PRIMARY_COLOR: 'primaryColor',
   ENABLE_SINGLE_COLUMN_LAYOUT: 'enableSingleColumnLayout',
   SHOW_LINK_PREVIEWS: 'showLinkPreviews',
-  MEDIA_UPLOAD_SERVICE: 'mediaUploadService', // deprecated
-  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents', // deprecated
-  ACCOUNT_RELAY_LIST_EVENT_MAP: 'accountRelayListEventMap', // deprecated
-  ACCOUNT_FOLLOW_LIST_EVENT_MAP: 'accountFollowListEventMap', // deprecated
-  ACCOUNT_MUTE_LIST_EVENT_MAP: 'accountMuteListEventMap', // deprecated
-  ACCOUNT_MUTE_DECRYPTED_TAGS_MAP: 'accountMuteDecryptedTagsMap', // deprecated
-  ACCOUNT_PROFILE_EVENT_MAP: 'accountProfileEventMap', // deprecated
-  ACTIVE_RELAY_SET_ID: 'activeRelaySetId', // deprecated
-  FEED_TYPE: 'feedType' // deprecated
+  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents' // deprecated
 }
 
 export const ApplicationDataKey = {
@@ -78,6 +70,12 @@ export const BIG_RELAY_URLS = [
 export const SEARCHABLE_RELAY_URLS = ['wss://relay.nostr.band/', 'wss://search.nos.today/']
 
 export const GROUP_METADATA_EVENT_KIND = 39000
+
+export const DEFAULT_RELAY_LIST = {
+  write: BIG_RELAY_URLS,
+  read: BIG_RELAY_URLS,
+  originalRelays: []
+}
 
 export const ExtendedKind = {
   PICTURE: 20,

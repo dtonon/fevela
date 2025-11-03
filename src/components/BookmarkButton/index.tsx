@@ -2,24 +2,21 @@ import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/eve
 import { useBookmarks } from '@/providers/BookmarksProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { BookmarkIcon, Loader } from 'lucide-react'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 export default function BookmarkButton({ event }: { event: Event }) {
   const { t } = useTranslation()
-  const { pubkey: accountPubkey, bookmarkListEvent, checkLogin } = useNostr()
+  const { pubkey: accountPubkey, bookmarkList, checkLogin } = useNostr()
   const { addBookmark, removeBookmark } = useBookmarks()
   const [updating, setUpdating] = useState(false)
   const isBookmarked = useMemo(() => {
     const isReplaceable = isReplaceableEvent(event.kind)
     const eventKey = isReplaceable ? getReplaceableCoordinateFromEvent(event) : event.id
-
-    return bookmarkListEvent?.tags.some((tag) =>
-      isReplaceable ? tag[0] === 'a' && tag[1] === eventKey : tag[0] === 'e' && tag[1] === eventKey
-    )
-  }, [bookmarkListEvent, event])
+    return bookmarkList.includes(eventKey)
+  }, [bookmarkList, event])
 
   if (!accountPubkey) return null
 

@@ -30,7 +30,7 @@ export default function RelaySimpleInfo({
             )}
           </div>
         </div>
-        {relayInfo && <SaveRelayDropdownMenu urls={[relayInfo.url]} />}
+        {relayInfo && <SaveRelayDropdownMenu itemUrls={[relayInfo.url]} />}
       </div>
       {!!relayInfo?.description && <div className="line-clamp-3">{relayInfo.description}</div>}
       {!!users?.length && (

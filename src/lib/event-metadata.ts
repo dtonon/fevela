@@ -1,42 +1,44 @@
-import { BIG_RELAY_URLS, MAX_PINNED_NOTES, POLL_TYPE } from '@/constants'
-import { TEmoji, TPollType, TRelayList, TRelaySet } from '@/types'
-import { Event, kinds } from 'nostr-tools'
-import { buildATag } from './draft-event'
-import { getReplaceableEventIdentifier } from './event'
+import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
+import { TPollType, TRelayList } from '@/types'
+import { Event } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
 import { getAmountFromInvoice, getLightningAddressFromProfile } from './lightning'
 import { formatPubkey, pubkeyToNpub } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
 import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
 import { isTorBrowser } from './utils'
+import { NostrUser } from '@nostr/gadgets/metadata'
+import { RelayItem } from '@nostr/gadgets/lists'
 
-export function getRelayListFromEvent(event?: Event | null) {
-  if (!event) {
-    return { write: BIG_RELAY_URLS, read: BIG_RELAY_URLS, originalRelays: [] }
+export function buildRelayList(items: RelayItem[]) {
+  if (items.length === 0) {
+    return structuredClone(DEFAULT_RELAY_LIST)
   }
 
   const torBrowserDetected = isTorBrowser()
   const relayList = { write: [], read: [], originalRelays: [] } as TRelayList
-  event.tags.filter(tagNameEquals('r')).forEach(([, url, type]) => {
-    if (!url || !isWebsocketUrl(url)) return
+  for (let i = 0; i < items.length; i++) {
+    const item = items[i]
+    if (!item.url || !isWebsocketUrl(item.url)) return
 
-    const normalizedUrl = normalizeUrl(url)
+    const normalizedUrl = normalizeUrl(item.url)
     if (!normalizedUrl) return
 
-    const scope = type === 'read' ? 'read' : type === 'write' ? 'write' : 'both'
+    const scope = item.read && item.write ? 'both' : item.write ? 'write' : 'read'
     relayList.originalRelays.push({ url: normalizedUrl, scope })
 
     // Filter out .onion URLs if not using Tor browser
     if (normalizedUrl.endsWith('.onion/') && !torBrowserDetected) return
 
-    if (type === 'write') {
+    if (item.write) {
       relayList.write.push(normalizedUrl)
-    } else if (type === 'read') {
+    } else if (item.read) {
       relayList.read.push(normalizedUrl)
     } else {
       relayList.write.push(normalizedUrl)
       relayList.read.push(normalizedUrl)
     }
-  })
+  }
 
   // If there are too many relays, use the default BIG_RELAY_URLS
   // Because they don't know anything about relays, their settings cannot be trusted
@@ -45,6 +47,11 @@ export function getRelayListFromEvent(event?: Event | null) {
     read: relayList.read.length && relayList.write.length <= 8 ? relayList.read : BIG_RELAY_URLS,
     originalRelays: relayList.originalRelays
   }
+}
+
+export function username(profile: NostrUser): string {
+  const { name, display_name, nip05, website } = profile.metadata || {}
+  return name || display_name || nip05?.split?.('@')?.[0] || website, profile?.shortName
 }
 
 export function getProfileFromEvent(event: Event) {
@@ -77,22 +84,6 @@ export function getProfileFromEvent(event: Event) {
       username: formatPubkey(event.pubkey)
     }
   }
-}
-
-export function getRelaySetFromEvent(event: Event): TRelaySet {
-  const id = getReplaceableEventIdentifier(event)
-  const relayUrls = event.tags
-    .filter(tagNameEquals('relay'))
-    .map((tag) => tag[1])
-    .filter((url) => url && isWebsocketUrl(url))
-    .map((url) => normalizeUrl(url))
-
-  let name = event.tags.find(tagNameEquals('title'))?.[1]
-  if (!name) {
-    name = id
-  }
-
-  return { id, name, relayUrls, aTag: buildATag(event) }
 }
 
 export function getZapInfoFromEvent(receiptEvent: Event) {
@@ -337,39 +328,6 @@ export function getPollResponseFromEvent(
   }
 }
 
-export function getEmojisAndEmojiSetsFromEvent(event: Event) {
-  const emojis: TEmoji[] = []
-  const emojiSetPointers: string[] = []
-
-  event.tags.forEach(([tagName, ...tagValues]) => {
-    if (tagName === 'emoji' && tagValues.length >= 2) {
-      emojis.push({
-        shortcode: tagValues[0],
-        url: tagValues[1]
-      })
-    } else if (tagName === 'a' && tagValues[0]) {
-      emojiSetPointers.push(tagValues[0])
-    }
-  })
-
-  return { emojis, emojiSetPointers }
-}
-
-export function getEmojisFromEvent(event: Event): TEmoji[] {
-  const emojis: TEmoji[] = []
-
-  event.tags.forEach(([tagName, ...tagValues]) => {
-    if (tagName === 'emoji' && tagValues.length >= 2) {
-      emojis.push({
-        shortcode: tagValues[0],
-        url: tagValues[1]
-      })
-    }
-  })
-
-  return emojis
-}
-
 export function getStarsFromRelayReviewEvent(event: Event): number {
   const ratingTag = event.tags.find((t) => t[0] === 'rating')
   if (ratingTag) {
@@ -379,14 +337,4 @@ export function getStarsFromRelayReviewEvent(event: Event): number {
     }
   }
   return 0
-}
-
-export function getPinnedEventHexIdSetFromPinListEvent(event?: Event | null): Set<string> {
-  return new Set(
-    event?.tags
-      .filter((tag) => tag[0] === 'e')
-      .map((tag) => tag[1])
-      .reverse()
-      .slice(0, MAX_PINNED_NOTES) ?? []
-  )
 }

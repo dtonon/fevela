@@ -11,6 +11,7 @@ import { Loader, Lock, Unlock } from 'lucide-react'
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFoundPage from '../NotFoundPage'
+import { username } from '@/lib/event-metadata'
 
 const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
@@ -60,7 +61,7 @@ const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
     <SecondaryPageLayout
       ref={ref}
       index={index}
-      title={t("username's muted", { username: profile.username })}
+      title={t("username's muted", { username: username(profile) })}
       displayScrollToTopButton
     >
       <div className="space-y-2 px-4 pt-2">
@@ -76,7 +77,7 @@ MuteListPage.displayName = 'MuteListPage'
 export default MuteListPage
 
 function UserItem({ pubkey }: { pubkey: string }) {
-  const { changing, getMuteType, switchToPrivateMute, switchToPublicMute } = useMuteList()
+  const { changing, getMuteType, mutePublicly, mutePrivately } = useMuteList()
   const { profile } = useFetchProfile(pubkey)
   const muteType = useMemo(() => getMuteType(pubkey), [pubkey, getMuteType])
   const [switching, setSwitching] = useState(false)
@@ -91,7 +92,7 @@ function UserItem({ pubkey }: { pubkey: string }) {
           skeletonClassName="h-4"
         />
         <Nip05 pubkey={pubkey} />
-        <div className="truncate text-muted-foreground text-sm">{profile?.about}</div>
+        <div className="truncate text-muted-foreground text-sm">{profile?.metadata?.about}</div>
       </div>
       <div className="flex gap-2 items-center">
         {switching ? (
@@ -106,7 +107,7 @@ function UserItem({ pubkey }: { pubkey: string }) {
               if (switching) return
 
               setSwitching(true)
-              switchToPublicMute(pubkey).finally(() => setSwitching(false))
+              mutePublicly(pubkey).finally(() => setSwitching(false))
             }}
             disabled={changing}
           >
@@ -120,7 +121,7 @@ function UserItem({ pubkey }: { pubkey: string }) {
               if (switching) return
 
               setSwitching(true)
-              switchToPrivateMute(pubkey).finally(() => setSwitching(false))
+              mutePrivately(pubkey).finally(() => setSwitching(false))
             }}
             disabled={changing}
           >

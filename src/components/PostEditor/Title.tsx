@@ -1,4 +1,4 @@
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { useTranslation } from 'react-i18next'
 
 export default function Title({ parentEvent }: { parentEvent?: Event }) {

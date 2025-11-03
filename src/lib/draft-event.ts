@@ -12,7 +12,9 @@ import {
 } from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
 import dayjs from 'dayjs'
-import { Event, kinds, nip19 } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
+import * as nip19 from '@nostr/tools/nip19'
 import {
   getReplaceableCoordinate,
   getReplaceableCoordinateFromEvent,
@@ -293,7 +295,7 @@ export function createProfileDraftEvent(content: string, tags: string[][] = []):
 
 export function createFavoriteRelaysDraftEvent(
   favoriteRelays: string[],
-  relaySetEventsOrATags: Event[] | string[][]
+  relaySetEventsOrATags: (TRelaySet | Event | string[])[]
 ): TDraftEvent {
   const tags: string[][] = []
   favoriteRelays.forEach((url) => {
@@ -302,8 +304,13 @@ export function createFavoriteRelaysDraftEvent(
   relaySetEventsOrATags.forEach((eventOrATag) => {
     if (Array.isArray(eventOrATag)) {
       tags.push(eventOrATag)
-    } else {
+    } else if ('created_at' in eventOrATag) {
       tags.push(buildATag(eventOrATag))
+    } else {
+      tags.push([
+        'a',
+        getReplaceableCoordinate(kinds.Relaysets, eventOrATag.pubkey, eventOrATag.id)
+      ])
     }
   })
   return {

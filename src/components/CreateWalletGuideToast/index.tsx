@@ -1,3 +1,4 @@
+import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { toWallet } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -14,7 +15,7 @@ export default function CreateWalletGuideToast() {
   useEffect(() => {
     if (
       profile &&
-      !profile.lightningAddress &&
+      !getLightningAddressFromProfile(profile) &&
       !storage.hasShownCreateWalletGuideToast(profile.pubkey)
     ) {
       toast(t('Set up your wallet to send and receive sats!'), {

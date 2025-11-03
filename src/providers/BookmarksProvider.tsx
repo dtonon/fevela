@@ -1,7 +1,7 @@
 import { buildATag, buildETag, createBookmarkDraftEvent } from '@/lib/draft-event'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import client from '@/services/client.service'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { createContext, useContext } from 'react'
 import { useNostr } from './NostrProvider'
 
@@ -26,8 +26,8 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   const addBookmark = async (event: Event) => {
     if (!accountPubkey) return
 
-    const bookmarkListEvent = await client.fetchBookmarkListEvent(accountPubkey)
-    const currentTags = bookmarkListEvent?.tags || []
+    const bookmarkList = await client.loadBookmarks(accountPubkey)
+    const currentTags = bookmarkList.event?.tags || []
     const isReplaceable = isReplaceableEvent(event.kind)
     const eventKey = isReplaceable ? getReplaceableCoordinateFromEvent(event) : event.id
 
@@ -41,31 +41,33 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
       return
     }
 
-    const newBookmarkDraftEvent = createBookmarkDraftEvent(
-      [...currentTags, isReplaceable ? buildATag(event) : buildETag(event.id, event.pubkey)],
-      bookmarkListEvent?.content
+    await updateBookmarkListEvent(
+      await publish(
+        createBookmarkDraftEvent(
+          [...currentTags, isReplaceable ? buildATag(event) : buildETag(event.id, event.pubkey)],
+          bookmarkList.event?.content
+        )
+      )
     )
-    const newBookmarkEvent = await publish(newBookmarkDraftEvent)
-    await updateBookmarkListEvent(newBookmarkEvent)
   }
 
   const removeBookmark = async (event: Event) => {
     if (!accountPubkey) return
 
-    const bookmarkListEvent = await client.fetchBookmarkListEvent(accountPubkey)
-    if (!bookmarkListEvent) return
+    const bookmarkList = await client.loadBookmarks(accountPubkey)
+    if (!bookmarkList.event) return
 
     const isReplaceable = isReplaceableEvent(event.kind)
     const eventKey = isReplaceable ? getReplaceableCoordinateFromEvent(event) : event.id
 
-    const newTags = bookmarkListEvent.tags.filter((tag) =>
+    const newTags = bookmarkList.event.tags.filter((tag) =>
       isReplaceable ? tag[0] !== 'a' || tag[1] !== eventKey : tag[0] !== 'e' || tag[1] !== eventKey
     )
-    if (newTags.length === bookmarkListEvent.tags.length) return
+    if (newTags.length === bookmarkList.event.tags.length) return
 
-    const newBookmarkDraftEvent = createBookmarkDraftEvent(newTags, bookmarkListEvent.content)
-    const newBookmarkEvent = await publish(newBookmarkDraftEvent)
-    await updateBookmarkListEvent(newBookmarkEvent)
+    await updateBookmarkListEvent(
+      await publish(createBookmarkDraftEvent(newTags, bookmarkList.event.content))
+    )
   }
 
   return (

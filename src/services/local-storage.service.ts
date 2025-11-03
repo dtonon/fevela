@@ -119,10 +119,6 @@ class LocalStorageService {
       window.localStorage.getItem(StorageKey.ACCOUNT_FEED_INFO_MAP) ?? '{}'
     this.accountFeedInfoMap = JSON.parse(accountFeedInfoMapStr)
 
-    // deprecated
-    this.mediaUploadService =
-      window.localStorage.getItem(StorageKey.MEDIA_UPLOAD_SERVICE) ?? DEFAULT_NIP_96_SERVICE
-
     this.autoplay = window.localStorage.getItem(StorageKey.AUTOPLAY) !== 'false'
 
     const hideUntrustedEvents =
@@ -233,15 +229,6 @@ class LocalStorageService {
     } else {
       this.linkPreviewMode = LINK_PREVIEW_MODE.ENABLED
     }
-
-    // Clean up deprecated data
-    window.localStorage.removeItem(StorageKey.ACCOUNT_PROFILE_EVENT_MAP)
-    window.localStorage.removeItem(StorageKey.ACCOUNT_FOLLOW_LIST_EVENT_MAP)
-    window.localStorage.removeItem(StorageKey.ACCOUNT_RELAY_LIST_EVENT_MAP)
-    window.localStorage.removeItem(StorageKey.ACCOUNT_MUTE_LIST_EVENT_MAP)
-    window.localStorage.removeItem(StorageKey.ACCOUNT_MUTE_DECRYPTED_TAGS_MAP)
-    window.localStorage.removeItem(StorageKey.ACTIVE_RELAY_SET_ID)
-    window.localStorage.removeItem(StorageKey.FEED_TYPE)
   }
 
   getRelaySets() {

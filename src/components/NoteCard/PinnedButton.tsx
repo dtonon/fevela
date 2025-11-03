@@ -2,7 +2,7 @@ import { Button } from '@/components/ui/button'
 import { useNostr } from '@/providers/NostrProvider'
 import { usePinList } from '@/providers/PinListProvider'
 import { Loader, Pin } from 'lucide-react'
-import { NostrEvent } from 'nostr-tools'
+import { NostrEvent } from '@nostr/tools/wasm'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 

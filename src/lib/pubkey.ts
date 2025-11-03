@@ -1,5 +1,5 @@
 import { LRUCache } from 'lru-cache'
-import { nip19 } from 'nostr-tools'
+import * as nip19 from '@nostr/tools/nip19'
 
 export function formatPubkey(pubkey: string) {
   const npub = pubkeyToNpub(pubkey)
@@ -48,7 +48,7 @@ export function userIdToPubkey(userId: string) {
         return data.pubkey
       }
     } catch (error) {
-      console.error('Error decoding userId:', userId, 'error:', error)
+      console.warn('Error decoding userId:', userId, 'error:', error)
     }
   }
   return userId

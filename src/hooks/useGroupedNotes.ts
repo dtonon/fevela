@@ -1,6 +1,6 @@
 import { getTimeFrameInMs, useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { isReplyNoteEvent } from '@/lib/event'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { useMemo } from 'react'
 import { usePinBury } from '@/providers/PinBuryProvider'
 
@@ -24,7 +24,6 @@ export function useGroupedNotesProcessing(
   const { getPinBuryState } = usePinBury()
 
   return useMemo(() => {
-
     if (!settings.enabled) {
       return {
         processedEvents: events,

@@ -1,7 +1,7 @@
-import client from '@/services/client.service'
 import storage from '@/services/local-storage.service'
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { useNostr } from './NostrProvider'
+import { loadFollowsList } from '@nostr/gadgets/lists'
 
 type TUserTrustContext = {
   hideUntrustedInteractions: boolean
@@ -41,7 +41,7 @@ export function UserTrustProvider({ children }: { children: React.ReactNode }) {
     if (!currentPubkey) return
 
     const initWoT = async () => {
-      const followings = await client.fetchFollowings(currentPubkey)
+      const followings = (await loadFollowsList(currentPubkey)).items
       followings.forEach((pubkey) => wotSet.add(pubkey))
 
       const batchSize = 20
@@ -49,8 +49,7 @@ export function UserTrustProvider({ children }: { children: React.ReactNode }) {
         const batch = followings.slice(i, i + batchSize)
         await Promise.allSettled(
           batch.map(async (pubkey) => {
-            const _followings = await client.fetchFollowings(pubkey)
-            _followings.forEach((following) => {
+            ;(await loadFollowsList(pubkey)).items.forEach((following) => {
               wotSet.add(following)
             })
           })

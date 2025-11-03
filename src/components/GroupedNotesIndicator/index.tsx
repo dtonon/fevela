@@ -1,7 +1,7 @@
 import { Button } from '@/components/ui/button'
 import { toProfile } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { useTranslation } from 'react-i18next'
 
 export default function GroupedNotesIndicator({
@@ -41,7 +41,13 @@ export default function GroupedNotesIndicator({
         onClick={(e) => {
           e.stopPropagation()
           onAllNotesRead?.()
-          push(toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true }))
+          push(
+            toProfile(event.pubkey, {
+              hideTopSection: true,
+              since: oldestTimestamp,
+              fromGrouped: true
+            })
+          )
         }}
       >
         {otherNotesCount === 1

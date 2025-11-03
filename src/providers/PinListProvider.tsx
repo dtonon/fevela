@@ -1,15 +1,15 @@
 import { MAX_PINNED_NOTES } from '@/constants'
 import { buildETag, createPinListDraftEvent } from '@/lib/draft-event'
-import { getPinnedEventHexIdSetFromPinListEvent } from '@/lib/event-metadata'
 import client from '@/services/client.service'
-import { Event, kinds } from 'nostr-tools'
-import { createContext, useContext, useMemo } from 'react'
+import { Event } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
+import { createContext, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useNostr } from './NostrProvider'
 
 type TPinListContext = {
-  pinnedEventHexIdSet: Set<string>
+  pinList: string[]
   pin: (event: Event) => Promise<void>
   unpin: (event: Event) => Promise<void>
 }
@@ -26,11 +26,7 @@ export const usePinList = () => {
 
 export function PinListProvider({ children }: { children: React.ReactNode }) {
   const { t } = useTranslation()
-  const { pubkey: accountPubkey, pinListEvent, publish, updatePinListEvent } = useNostr()
-  const pinnedEventHexIdSet = useMemo(
-    () => getPinnedEventHexIdSetFromPinListEvent(pinListEvent),
-    [pinListEvent]
-  )
+  const { pubkey: accountPubkey, pinList, publish, updatePinListEvent } = useNostr()
 
   const pin = async (event: Event) => {
     if (!accountPubkey) return
@@ -38,8 +34,8 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
     if (event.kind !== kinds.ShortTextNote || event.pubkey !== accountPubkey) return
 
     const _pin = async () => {
-      const pinListEvent = await client.fetchPinListEvent(accountPubkey)
-      const currentTags = pinListEvent?.tags || []
+      const pins = await client.loadPins(accountPubkey)
+      const currentTags = pins.event?.tags || []
 
       if (currentTags.some((tag) => tag[0] === 'e' && tag[1] === event.id)) {
         return
@@ -59,7 +55,7 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
         })
       }
 
-      const newPinListDraftEvent = createPinListDraftEvent(newTags, pinListEvent?.content)
+      const newPinListDraftEvent = createPinListDraftEvent(newTags, pins.event?.content)
       const newPinListEvent = await publish(newPinListDraftEvent)
       await updatePinListEvent(newPinListEvent)
     }
@@ -78,13 +74,13 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
     if (event.kind !== kinds.ShortTextNote || event.pubkey !== accountPubkey) return
 
     const _unpin = async () => {
-      const pinListEvent = await client.fetchPinListEvent(accountPubkey)
-      if (!pinListEvent) return
+      const pins = await client.loadPins(accountPubkey)
+      if (!pins.event) return
 
-      const newTags = pinListEvent.tags.filter((tag) => tag[0] !== 'e' || tag[1] !== event.id)
-      if (newTags.length === pinListEvent.tags.length) return
+      const newTags = pins.event.tags.filter((tag) => tag[0] !== 'e' || tag[1] !== event.id)
+      if (newTags.length === pins.event.tags.length) return
 
-      const newPinListDraftEvent = createPinListDraftEvent(newTags, pinListEvent.content)
+      const newPinListDraftEvent = createPinListDraftEvent(newTags, pins.event?.content)
       const newPinListEvent = await publish(newPinListDraftEvent)
       await updatePinListEvent(newPinListEvent)
     }
@@ -100,7 +96,7 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
   return (
     <PinListContext.Provider
       value={{
-        pinnedEventHexIdSet,
+        pinList,
         pin,
         unpin
       }}

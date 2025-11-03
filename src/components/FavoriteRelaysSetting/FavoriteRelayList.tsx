@@ -20,7 +20,7 @@ import RelayItem from './RelayItem'
 
 export default function FavoriteRelayList() {
   const { t } = useTranslation()
-  const { favoriteRelays, reorderFavoriteRelays } = useFavoriteRelays()
+  const { urls, reorderFavoriteRelays } = useFavoriteRelays()
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -33,10 +33,10 @@ export default function FavoriteRelayList() {
     const { active, over } = event
 
     if (over && active.id !== over.id) {
-      const oldIndex = favoriteRelays.findIndex((relay) => relay === active.id)
-      const newIndex = favoriteRelays.findIndex((relay) => relay === over.id)
+      const oldIndex = urls.findIndex((relay) => relay === active.id)
+      const newIndex = urls.findIndex((relay) => relay === over.id)
 
-      const reorderedRelays = arrayMove(favoriteRelays, oldIndex, newIndex)
+      const reorderedRelays = arrayMove(urls, oldIndex, newIndex)
       reorderFavoriteRelays(reorderedRelays)
     }
   }
@@ -50,10 +50,10 @@ export default function FavoriteRelayList() {
         onDragEnd={handleDragEnd}
         modifiers={[restrictToVerticalAxis, restrictToParentElement]}
       >
-        <SortableContext items={favoriteRelays} strategy={verticalListSortingStrategy}>
+        <SortableContext items={urls} strategy={verticalListSortingStrategy}>
           <div className="grid gap-2">
-            {favoriteRelays.map((relay) => (
-              <RelayItem key={relay} relay={relay} />
+            {urls.map((url) => (
+              <RelayItem key={url} relay={url} />
             ))}
           </div>
         </SortableContext>

@@ -1,4 +1,4 @@
-import { TProfile } from '@/types'
+import { NostrUser } from '@nostr/gadgets/metadata'
 import { Invoice } from '@getalby/lightning-tools'
 import { isEmail } from './utils'
 
@@ -13,9 +13,9 @@ export function formatAmount(amount: number) {
   return `${Math.round(amount / 100000) / 10}M`
 }
 
-export function getLightningAddressFromProfile(profile: TProfile) {
+export function getLightningAddressFromProfile(profile: NostrUser) {
   // Some clients have incorrectly filled in the positions for lud06 and lud16
-  const { lud16: a, lud06: b } = profile
+  const { lud16: a, lud06: b } = profile.metadata || {}
   let lud16: string | undefined
   let lud06: string | undefined
   if (a && isEmail(a)) {

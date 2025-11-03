@@ -9,7 +9,7 @@ import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import modalManager from '@/services/modal-manager.service'
 import { TSearchParams } from '@/types'
 import { Hash, Notebook, Search, Server } from 'lucide-react'
-import { nip19 } from 'nostr-tools'
+import * as nip19 from '@nostr/tools/nip19'
 import {
   forwardRef,
   HTMLAttributes,
@@ -22,6 +22,7 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import UserItem, { UserItemSkeleton } from '../UserItem'
+import { username } from '@/lib/event-metadata'
 
 const SearchBar = forwardRef<
   TSearchBarRef,
@@ -133,7 +134,7 @@ const SearchBar = forwardRef<
       ...profiles.map((profile) => ({
         type: 'profile',
         search: profile.npub,
-        input: profile.username
+        input: username(profile)
       })),
       ...(profiles.length >= 5 ? [{ type: 'profiles', search }] : [])
     ] as TSearchParams[])

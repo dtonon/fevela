@@ -1,6 +1,7 @@
 import Profile from '@/components/Profile'
 import { useFetchProfile } from '@/hooks'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
+import { username } from '@/lib/event-metadata'
 import { forwardRef, useEffect, useState } from 'react'
 
 const ProfilePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref) => {
@@ -20,8 +21,18 @@ const ProfilePage = forwardRef(({ id, index }: { id?: string; index?: number }, 
   }, [])
 
   return (
-    <SecondaryPageLayout index={index} title={profile?.username} displayScrollToTopButton ref={ref}>
-      <Profile id={id} hideTopSection={hideTopSection} sinceTimestamp={sinceTimestamp} fromGrouped={fromGrouped} />
+    <SecondaryPageLayout
+      index={index}
+      title={profile ? username(profile) : ''}
+      displayScrollToTopButton
+      ref={ref}
+    >
+      <Profile
+        id={id}
+        hideTopSection={hideTopSection}
+        sinceTimestamp={sinceTimestamp}
+        fromGrouped={fromGrouped}
+      />
     </SecondaryPageLayout>
   )
 })

@@ -1,5 +1,5 @@
 import { getEventKey, getEventKeyFromTag, getParentTag } from '@/lib/event'
-import { Event } from 'nostr-tools'
+import { Event } from '@nostr/tools/wasm'
 import { createContext, useCallback, useContext, useState } from 'react'
 
 type TReplyContext = {

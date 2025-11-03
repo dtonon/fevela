@@ -39,7 +39,7 @@ export default function Username({
             onClick={(e) => e.stopPropagation()}
           >
             {showAt && '@'}
-            {profile.username}
+            {profile.shortName}
           </SecondaryPageLink>
         </div>
       </HoverCardTrigger>
@@ -73,12 +73,12 @@ export function SimpleUsername({
   }
   if (!profile) return null
 
-  const { username } = profile
+  const { shortName } = profile
 
   return (
     <div className={className}>
       {showAt && '@'}
-      {username}
+      {shortName}
     </div>
   )
 }

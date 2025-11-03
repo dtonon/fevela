@@ -1,10 +1,7 @@
-import { getPubkeysFromPTags } from '@/lib/tag'
-import client from '@/services/client.service'
-import { Event } from 'nostr-tools'
+import { loadFollowsList } from '@nostr/gadgets/lists'
 import { useEffect, useState } from 'react'
 
 export function useFetchFollowings(pubkey?: string | null) {
-  const [followListEvent, setFollowListEvent] = useState<Event | null>(null)
   const [followings, setFollowings] = useState<string[]>([])
   const [isFetching, setIsFetching] = useState(true)
 
@@ -14,11 +11,8 @@ export function useFetchFollowings(pubkey?: string | null) {
         setIsFetching(true)
         if (!pubkey) return
 
-        const event = await client.fetchFollowListEvent(pubkey)
-        if (!event) return
-
-        setFollowListEvent(event)
-        setFollowings(getPubkeysFromPTags(event.tags))
+        const follows = await loadFollowsList(pubkey)
+        setFollowings(follows.items)
       } finally {
         setIsFetching(false)
       }
@@ -27,5 +21,5 @@ export function useFetchFollowings(pubkey?: string | null) {
     init()
   }, [pubkey])
 
-  return { followings, followListEvent, isFetching }
+  return { followings, isFetching }
 }

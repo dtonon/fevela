@@ -6,7 +6,9 @@ import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
-import { Event, kinds, nip19, verifyEvent } from 'nostr-tools'
+import { Event, verifyEvent } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
+import { neventEncode } from '@nostr/tools/nip19'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Collapsible from '../Collapsible'
@@ -18,6 +20,7 @@ import { toNote, toProfile } from '@/lib/link'
 import { userIdToPubkey } from '@/lib/pubkey'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
+import { username } from '@/lib/event-metadata'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
@@ -41,7 +44,7 @@ async function getPreviewText(event: Event): Promise<string> {
         if (pubkey) {
           const profile = await client.fetchProfile(userId)
           if (profile) {
-            processedContent = processedContent.replace(match, `@${profile.username}`)
+            processedContent = processedContent.replace(match, `@${username(profile)}`)
           } else {
             processedContent = processedContent.replace(match, `@${userId.substring(0, 12)}...`)
           }
@@ -154,7 +157,7 @@ export default function CompactedEventCard({
         if (!id) {
           return
         }
-        const targetEventId = nip19.neventEncode({
+        const targetEventId = neventEncode({
           id,
           relays: relay ? [relay] : [],
           author: pubkey

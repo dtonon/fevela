@@ -1,8 +1,7 @@
 import { TEmoji, TImetaInfo } from '@/types'
 import { isBlurhashValid } from 'blurhash'
-import { nip19 } from 'nostr-tools'
+import * as nip19 from '@nostr/tools/nip19'
 import { isValidPubkey } from './pubkey'
-import { normalizeHttpUrl } from './url'
 
 export function isSameTag(tag1: string[], tag2: string[]) {
   if (tag1.length !== tag2.length) return false
@@ -73,18 +72,6 @@ export function getImetaInfoFromImetaTag(tag: string[], pubkey?: string): TImeta
   return imeta
 }
 
-export function getPubkeysFromPTags(tags: string[][]) {
-  return Array.from(
-    new Set(
-      tags
-        .filter(tagNameEquals('p'))
-        .map(([, pubkey]) => pubkey)
-        .filter((pubkey) => !!pubkey && isValidPubkey(pubkey))
-        .reverse()
-    )
-  )
-}
-
 export function getEmojiInfosFromEmojiTags(tags: string[][] = []) {
   return tags
     .map((tag) => {
@@ -92,11 +79,4 @@ export function getEmojiInfosFromEmojiTags(tags: string[][] = []) {
       return { shortcode: tag[1], url: tag[2] }
     })
     .filter(Boolean) as TEmoji[]
-}
-
-export function getServersFromServerTags(tags: string[][] = []) {
-  return tags
-    .filter(tagNameEquals('server'))
-    .map(([, url]) => (url ? normalizeHttpUrl(url) : ''))
-    .filter(Boolean)
 }

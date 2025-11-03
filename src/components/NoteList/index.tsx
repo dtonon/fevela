@@ -20,8 +20,8 @@ import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, kinds } from 'nostr-tools'
-import { decode } from 'nostr-tools/nip19'
+import { Event } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
 import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,
@@ -120,19 +120,7 @@ const NoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
-        const pinnedEventHexIdSet = new Set()
-        pinnedEventIds.forEach((id) => {
-          try {
-            const { type, data } = decode(id)
-            if (type === 'nevent') {
-              pinnedEventHexIdSet.add(data.id)
-            }
-          } catch {
-            // ignore
-          }
-        })
-
-        if (pinnedEventHexIdSet.has(evt.id)) return true
+        if (pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
         if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
@@ -346,7 +334,7 @@ const NoteList = forwardRef(
             },
             onClose: (url, reason) => {
               if (!showRelayCloseReason) return
-              // ignore reasons from nostr-tools
+              // ignore reasons from @nostr/tools
               if (
                 [
                   'closed by caller',

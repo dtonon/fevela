@@ -6,12 +6,11 @@ import { useTranslation } from 'react-i18next'
 
 export default function FollowingBadge({ pubkey, userId }: { pubkey?: string; userId?: string }) {
   const { t } = useTranslation()
-  const { followingSet } = useFollowList()
+  const { followList } = useFollowList()
   const isFollowing = useMemo(() => {
-    if (pubkey) return followingSet.has(pubkey)
-
-    return userId ? followingSet.has(userIdToPubkey(userId)) : false
-  }, [followingSet, pubkey, userId])
+    if (pubkey) return followList.includes(pubkey)
+    return userId ? followList.includes(userIdToPubkey(userId)) : false
+  }, [followList, pubkey, userId])
 
   if (!isFollowing) return null
 

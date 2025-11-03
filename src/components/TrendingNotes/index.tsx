@@ -3,7 +3,7 @@ import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/eve
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
-import { NostrEvent } from 'nostr-tools'
+import { NostrEvent } from '@nostr/tools/wasm'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
