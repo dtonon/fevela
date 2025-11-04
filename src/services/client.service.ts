@@ -1,10 +1,4 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
-import {
-  compareEvents,
-  getReplaceableCoordinate,
-  getReplaceableCoordinateFromEvent,
-  isReplaceableEvent
-} from '@/lib/event'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
@@ -17,16 +11,9 @@ import {
   TMutedList
 } from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
-import DataLoader from 'dataloader'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
-import {
-  EventTemplate,
-  Event as NEvent,
-  NostrEvent,
-  validateEvent,
-  VerifiedEvent
-} from '@nostr/tools/wasm'
+import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
@@ -52,6 +39,7 @@ import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { AddressPointer } from '@nostr/tools/nip19'
 import { verifyEvent } from '@nostr/tools/wasm'
+import { store } from './outbox.service'
 
 type TTimelineRef = [string, number]
 
@@ -71,17 +59,7 @@ class ClientService extends EventTarget {
     | string[]
     | undefined
   > = {}
-  private replaceableEventCacheMap = new Map<string, NEvent>()
-  private eventCacheMap = new Map<string, Promise<NEvent | undefined>>()
-  private eventDataLoader = new DataLoader<string, NEvent | undefined>(
-    (ids) => Promise.all(ids.map((id) => this._fetchEvent(id))),
-    { cacheMap: this.eventCacheMap }
-  )
-  private fetchEventFromBigRelaysDataloader = new DataLoader<string, NEvent | undefined>(
-    this.fetchEventsFromBigRelays.bind(this),
-    { cache: false, batchScheduleFn: (callback) => setTimeout(callback, 50) }
-  )
-  private trendingNotesCache: NEvent[] | null = null
+  private trendingNotesCache: NostrEvent[] | null = null
 
   private userIndex = new FlexSearch.Index({
     tokenize: 'forward'
@@ -110,7 +88,7 @@ class ClientService extends EventTarget {
   }
 
   async determineTargetRelays(
-    event: NEvent,
+    event: NostrEvent,
     { specifiedRelayUrls, additionalRelayUrls }: TPublishOptions = {}
   ) {
     if (event.kind === kinds.Report) {
@@ -173,7 +151,7 @@ class ClientService extends EventTarget {
     return relays
   }
 
-  async publishEvent(relayUrls: string[], event: NEvent) {
+  async publishEvent(relayUrls: string[], event: NostrEvent) {
     const uniqueRelayUrls = Array.from(new Set(relayUrls))
     await new Promise<void>((resolve, reject) => {
       let successCount = 0
@@ -229,7 +207,7 @@ class ClientService extends EventTarget {
     })
   }
 
-  emitNewEvent(event: NEvent) {
+  emitNewEvent(event: NostrEvent) {
     this.dispatchEvent(new CustomEvent('newEvent', { detail: event }))
   }
 
@@ -288,8 +266,8 @@ class ClientService extends EventTarget {
       onNew,
       onClose
     }: {
-      onEvents: (events: NEvent[], eosed: boolean) => void
-      onNew: (evt: NEvent) => void
+      onEvents: (events: NostrEvent[], eosed: boolean) => void
+      onNew: (evt: NostrEvent) => void
       onClose?: (url: string, reason: string) => void
     },
     {
@@ -304,7 +282,7 @@ class ClientService extends EventTarget {
     const requestCount = subRequests.length
     const threshold = Math.floor(requestCount / 2)
     let eventIdSet = new Set<string>()
-    let events: NEvent[] = []
+    let events: NostrEvent[] = []
     let eosedCount = 0
 
     const subs = await Promise.all(
@@ -369,7 +347,7 @@ class ClientService extends EventTarget {
     )
 
     const eventIdSet = new Set<string>()
-    const events: NEvent[] = []
+    const events: NostrEvent[] = []
     timelines.forEach((timeline) => {
       timeline.forEach((evt) => {
         if (eventIdSet.has(evt.id)) return
@@ -390,7 +368,7 @@ class ClientService extends EventTarget {
       startLogin,
       onAllClose
     }: {
-      onevent?: (evt: NEvent) => void
+      onevent?: (evt: NostrEvent) => void
       oneose?: (eosed: boolean) => void
       onclose?: (url: string, reason: string) => void
       startLogin?: () => void
@@ -447,7 +425,7 @@ class ClientService extends EventTarget {
             _knownIds.add(id)
             return false
           },
-          onevent: (evt: NEvent) => {
+          onevent: (evt: NostrEvent) => {
             onevent?.(evt)
           },
           oneose: () => {
@@ -505,7 +483,7 @@ class ClientService extends EventTarget {
     })
 
     const handleNewEventFromInternal = (data: Event) => {
-      const customEvent = data as CustomEvent<NEvent>
+      const customEvent = data as CustomEvent<NostrEvent>
       const evt = customEvent.detail
       if (!matchFilters(filters, evt)) return
 
@@ -543,8 +521,8 @@ class ClientService extends EventTarget {
       onNew,
       onClose
     }: {
-      onEvents: (events: NEvent[], eosed: boolean) => void
-      onNew: (evt: NEvent) => void
+      onEvents: (events: NostrEvent[], eosed: boolean) => void
+      onNew: (evt: NostrEvent) => void
       onClose?: (url: string, reason: string) => void
     },
     {
@@ -558,25 +536,15 @@ class ClientService extends EventTarget {
     const relays = Array.from(new Set(urls))
     const key = this.generateTimelineKey(relays, filter)
     const timeline = this.timelines[key]
-    let cachedEvents: NEvent[] = []
     let since: number | undefined
-    if (timeline && !Array.isArray(timeline) && timeline.refs.length && needSort) {
-      cachedEvents = (
-        await this.eventDataLoader.loadMany(timeline.refs.slice(0, filter.limit).map(([id]) => id))
-      ).filter((evt) => !!evt && !(evt instanceof Error)) as NEvent[]
-      if (cachedEvents.length) {
-        onEvents([...cachedEvents], false)
-        since = cachedEvents[0].created_at + 1
-      }
-    }
 
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const that = this
-    let events: NEvent[] = []
+    let events: NostrEvent[] = []
     let eosedAt: number | null = null
     const subCloser = this.subscribe(relays, since ? { ...filter, since } : filter, {
       startLogin,
-      onevent: (evt: NEvent) => {
+      onevent: (evt: NostrEvent) => {
         that.addEventToCache(evt)
         // not eosed yet, push to events
         if (!eosedAt) {
@@ -587,7 +555,6 @@ class ClientService extends EventTarget {
           onNew(evt)
         }
 
-        const timeline = that.timelines[key]
         if (!timeline || Array.isArray(timeline) || !timeline.refs.length) {
           return
         }
@@ -620,7 +587,7 @@ class ClientService extends EventTarget {
         }
         if (!eosed) {
           events = events.sort((a, b) => b.created_at - a.created_at).slice(0, filter.limit)
-          return onEvents([...events.concat(cachedEvents).slice(0, filter.limit)], false)
+          return onEvents(events.slice(0, filter.limit), false)
         }
 
         events = events.sort((a, b) => b.created_at - a.created_at).slice(0, filter.limit)
@@ -632,7 +599,7 @@ class ClientService extends EventTarget {
             filter,
             urls
           }
-          return onEvents([...events], true)
+          return onEvents(events, true)
         }
 
         // Prevent concurrent requests from duplicating the same event
@@ -648,7 +615,7 @@ class ClientService extends EventTarget {
         } else {
           // merge new refs with old refs
           timeline.refs = newRefs.concat(timeline.refs)
-          onEvents([...events.concat(cachedEvents).slice(0, filter.limit)], true)
+          onEvents(events.slice(0, filter.limit), true)
         }
       },
       onclose: onClose
@@ -669,21 +636,7 @@ class ClientService extends EventTarget {
     if (!timeline || Array.isArray(timeline)) return []
 
     const { filter, urls, refs } = timeline
-    const startIdx = refs.findIndex(([, createdAt]) => createdAt <= until)
-    const cachedEvents =
-      startIdx >= 0
-        ? ((
-            await this.eventDataLoader.loadMany(
-              refs.slice(startIdx, startIdx + limit).map(([id]) => id)
-            )
-          ).filter((evt) => !!evt && !(evt instanceof Error)) as NEvent[])
-        : []
-    if (cachedEvents.length >= limit) {
-      return cachedEvents
-    }
 
-    until = cachedEvents.length ? cachedEvents[cachedEvents.length - 1].created_at - 1 : until
-    limit = limit - cachedEvents.length
     let events = await this.query(urls, { ...filter, until, limit })
     events.forEach((evt) => {
       this.addEventToCache(evt)
@@ -697,7 +650,7 @@ class ClientService extends EventTarget {
         .filter((evt) => evt.created_at < lastRefCreatedAt)
         .map((evt) => [evt.id, evt.created_at] as TTimelineRef)
     )
-    return [...cachedEvents, ...events]
+    return events
   }
 
   /** =========== Event =========== */
@@ -727,9 +680,13 @@ class ClientService extends EventTarget {
     set.add(relay)
   }
 
-  private async query(urls: string[], filter: Filter | Filter[], onevent?: (evt: NEvent) => void) {
-    return await new Promise<NEvent[]>((resolve) => {
-      const events: NEvent[] = []
+  private async query(
+    urls: string[],
+    filter: Filter | Filter[],
+    onevent?: (evt: NostrEvent) => void
+  ) {
+    return await new Promise<NostrEvent[]>((resolve) => {
+      const events: NostrEvent[] = []
       const sub = this.subscribe(urls, filter, {
         onevent(evt) {
           onevent?.(evt)
@@ -755,7 +712,7 @@ class ClientService extends EventTarget {
       onevent,
       cache = false
     }: {
-      onevent?: (evt: NEvent) => void
+      onevent?: (evt: NostrEvent) => void
       cache?: boolean
     } = {}
   ) {
@@ -769,37 +726,6 @@ class ClientService extends EventTarget {
     return events
   }
 
-  async fetchEvent(id: string): Promise<NEvent | undefined> {
-    if (!/^[0-9a-f]{64}$/.test(id)) {
-      let eventId: string | undefined
-      let coordinate: string | undefined
-      const { type, data } = nip19.decode(id)
-      switch (type) {
-        case 'note':
-          eventId = data
-          break
-        case 'nevent':
-          eventId = data.id
-          break
-        case 'naddr':
-          coordinate = getReplaceableCoordinate(data.kind, data.pubkey, data.identifier)
-          break
-      }
-      if (coordinate) {
-        const cache = this.replaceableEventCacheMap.get(coordinate)
-        if (cache) {
-          return cache
-        }
-      } else if (eventId) {
-        const cache = this.eventCacheMap.get(eventId)
-        if (cache) {
-          return cache
-        }
-      }
-    }
-    return this.eventDataLoader.load(id)
-  }
-
   async fetchTrendingNotes() {
     if (this.trendingNotesCache) {
       return this.trendingNotesCache
@@ -808,7 +734,7 @@ class ClientService extends EventTarget {
     try {
       const response = await fetch('https://api.nostr.band/v0/trending/notes')
       const data = await response.json()
-      const events: NEvent[] = []
+      const events: NostrEvent[] = []
       for (const note of data.notes ?? []) {
         if (validateEvent(note.event)) {
           events.push(note.event)
@@ -835,42 +761,26 @@ class ClientService extends EventTarget {
     }
   }
 
-  addEventToCache(event: NEvent) {
-    this.eventDataLoader.prime(event.id, Promise.resolve(event))
-    if (isReplaceableEvent(event.kind)) {
-      const coordinate = getReplaceableCoordinateFromEvent(event)
-      const cachedEvent = this.replaceableEventCacheMap.get(coordinate)
-      if (!cachedEvent || compareEvents(event, cachedEvent) > 0) {
-        this.replaceableEventCacheMap.set(coordinate, event)
-      }
-    }
+  addEventToCache(event: NostrEvent) {
+    store.saveEvent(event)
   }
 
-  private async fetchEventById(relayUrls: string[], id: string): Promise<NEvent | undefined> {
-    const event = await this.fetchEventFromBigRelaysDataloader.load(id)
-    if (event) {
-      return event
-    }
-
-    return this.tryHarderToFetchEvent(relayUrls, { ids: [id], limit: 1 }, true)
-  }
-
-  private async _fetchEvent(id: string): Promise<NEvent | undefined> {
+  async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {
     let filter: Filter | undefined
-    let relays: string[] = []
-    let author: string | undefined
-    if (/^[0-9a-f]{64}$/.test(id)) {
-      filter = { ids: [id] }
+    let relayHints: string[] = []
+    let authorHint: string | undefined
+    if (isHex32(idOrCode)) {
+      filter = { ids: [idOrCode] }
     } else {
-      const { type, data } = nip19.decode(id)
+      const { type, data } = nip19.decode(idOrCode)
       switch (type) {
         case 'note':
           filter = { ids: [data] }
           break
         case 'nevent':
           filter = { ids: [data.id] }
-          if (data.relays) relays = data.relays
-          if (data.author) author = data.author
+          if (data.relays) relayHints = data.relays
+          if (data.author) authorHint = data.author
           break
         case 'naddr':
           filter = {
@@ -878,64 +788,64 @@ class ClientService extends EventTarget {
             kinds: [data.kind],
             limit: 1
           }
-          author = data.pubkey
+          authorHint = data.pubkey
           if (data.identifier) {
             filter['#d'] = [data.identifier]
           }
-          if (data.relays) relays = data.relays
+          if (data.relays) relayHints = data.relays
       }
     }
+
     if (!filter) {
-      throw new Error('Invalid id')
+      throw new Error(`can't fetch ${idOrCode}`)
     }
 
-    let event: NEvent | undefined
-    if (filter.ids?.length) {
-      event = await this.fetchEventById(relays, filter.ids[0])
+    // before we try any network fetch try to load this from our local database
+    for await (const event of store.queryEvents(filter, 1)) {
+      // if we get anything we just return it
+      return event
     }
 
-    if (!event && author) {
-      const relayList = await this.fetchRelayList(author)
-      event = await this.tryHarderToFetchEvent(relayList.write.slice(0, 5), filter)
+    // start fetching this here so it's finished later when we need it
+    const authorRelays = authorHint && loadRelayList(authorHint)
+
+    // try the relay hints first
+    if (relayHints.length) {
+      relayHints = relayHints.map(normalizeUrl)
+      const event = await pool.get(relayHints, filter, { label: 'specific-event' })
+      if (event) {
+        this.addEventToCache(event)
+        return event
+      }
     }
 
-    if (event && event.id !== id) {
-      this.addEventToCache(event)
+    // at this point we may already have our author hints so let's try those
+    let authorRelaysUrls: string[] = []
+    if (authorRelays) {
+      authorRelaysUrls = (await authorRelays).items
+        .filter((r) => r.write && !relayHints.includes(r.url))
+        .map((r) => r.url)
+      if (authorRelaysUrls.length) {
+        const event = await pool.get(authorRelaysUrls, filter, { label: 'specific-event' })
+        if (event) {
+          this.addEventToCache(event)
+          return event
+        }
+      }
     }
 
-    return event
-  }
-
-  private async tryHarderToFetchEvent(
-    relayUrls: string[],
-    filter: Filter,
-    alreadyFetchedFromBigRelays = false
-  ) {
-    if (!relayUrls.length && filter.authors?.length) {
-      const relayList = await this.fetchRelayList(filter.authors[0])
-      relayUrls = alreadyFetchedFromBigRelays
-        ? relayList.write.filter((url) => !BIG_RELAY_URLS.includes(url)).slice(0, 4)
-        : relayList.write.slice(0, 4)
-    } else if (!relayUrls.length && !alreadyFetchedFromBigRelays) {
-      relayUrls = BIG_RELAY_URLS
+    // if we got nothing or there were no hints, try the big relays (except the ones we've already tried)
+    const bigRelayHints = BIG_RELAY_URLS.filter(
+      (br) => !(relayHints.includes(br) || authorRelaysUrls.includes(br))
+    )
+    bigRelayHints.push('wss://cache2.primal.net/v1')
+    if (bigRelayHints.length) {
+      const event = await pool.get(bigRelayHints, filter, { label: 'specific-event' })
+      if (event) {
+        this.addEventToCache(event)
+        return event
+      }
     }
-    if (!relayUrls.length) return
-
-    const events = await this.query(relayUrls, filter)
-    return events.sort((a, b) => b.created_at - a.created_at)[0]
-  }
-
-  private async fetchEventsFromBigRelays(ids: readonly string[]) {
-    const events = await this.query(BIG_RELAY_URLS, {
-      ids: Array.from(new Set(ids)),
-      limit: ids.length
-    })
-    const eventsMap = new Map<string, NEvent>()
-    for (const event of events) {
-      eventsMap.set(event.id, event)
-    }
-
-    return ids.map((id) => eventsMap.get(id))
   }
 
   /** =========== Followings =========== */

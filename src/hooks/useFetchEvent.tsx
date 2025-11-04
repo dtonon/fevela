@@ -12,11 +12,11 @@ export function useFetchEvent(eventId?: string) {
   const [event, setEvent] = useState<Event | undefined>(undefined)
 
   useEffect(() => {
-    const fetchEvent = async () => {
+    ;(async () => {
       setIsFetching(true)
       if (!eventId) {
         setIsFetching(false)
-        setError(new Error('No id provided'))
+        setError(new Error('no id provided'))
         return
       }
 
@@ -31,12 +31,7 @@ export function useFetchEvent(eventId?: string) {
       } finally {
         setIsFetching(false)
       }
-    }
-
-    fetchEvent().catch((err) => {
-      setError(err as Error)
-      setIsFetching(false)
-    })
+    })()
   }, [eventId])
 
   useEffect(() => {
