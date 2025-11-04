@@ -21,6 +21,7 @@ import { userIdToPubkey } from '@/lib/pubkey'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
 import { username } from '@/lib/event-metadata'
+import { Repeat2 } from 'lucide-react'
 
 // Helper function to extract preview text from event
 async function getPreviewText(event: Event): Promise<string> {
@@ -239,9 +240,10 @@ export default function CompactedEventCard({
                       {isRepost && targetEvent && (
                         <>
                           <span>·</span>
-                          <span className="shrink-0">Reposting</span>
+                          <span className="shrink-0 hidden md:block">Reposting</span>
+                          <Repeat2 size={16} className="shrink-0 block md:hidden" />
                           <UserAvatar userId={targetEvent.pubkey} size="xSmall" />
-                          <SimpleUsername userId={targetEvent.pubkey} />
+                          <SimpleUsername userId={targetEvent.pubkey} className="line-clamp-1" />
                         </>
                       )}
                     </div>
