@@ -2,6 +2,7 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
 
@@ -10,6 +11,8 @@ interface MenuAction {
   label: string
   onClick: () => void
   className?: string
+  disabled?: boolean
+  separator?: boolean
 }
 
 interface DesktopMenuProps {
@@ -25,10 +28,17 @@ export function DesktopMenu({ menuActions, trigger }: DesktopMenuProps) {
         {menuActions.map((action, index) => {
           const Icon = action.icon
           return (
-            <DropdownMenuItem key={index} onClick={action.onClick} className={action.className}>
-              <Icon />
-              {action.label}
-            </DropdownMenuItem>
+            <div key={index}>
+              {action.separator && index > 0 && <DropdownMenuSeparator />}
+              <DropdownMenuItem
+                onClick={action.disabled ? undefined : action.onClick}
+                className={action.className}
+                disabled={action.disabled}
+              >
+                <Icon />
+                {action.label}
+              </DropdownMenuItem>
+            </div>
           )
         })}
       </DropdownMenuContent>

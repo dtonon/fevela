@@ -438,6 +438,7 @@ export default {
     GroupedNotesUnpin: 'ยกเลิกปักหมุดผู้ใช้',
     GroupedNotesBury: 'ฝังผู้ใช้',
     GroupedNotesUnbury: 'ยกเลิกฝังผู้ใช้',
+    GroupedNotesMarkUnread: 'ทำเครื่องหมายว่ายังไม่ได้อ่าน',
     'Connected to': 'เชื่อมต่อกับ',
     'Disconnect Wallet': 'ตัดการเชื่อมต่อกระเป๋าสตางค์',
     'Are you absolutely sure?': 'คุณแน่ใจอย่างยิ่งหรือไม่?',

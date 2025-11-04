@@ -451,6 +451,7 @@ export default {
     GroupedNotesUnpin: 'Открепить пользователя',
     GroupedNotesBury: 'Скрыть пользователя',
     GroupedNotesUnbury: 'Показать пользователя',
+    GroupedNotesMarkUnread: 'Отметить как непрочитанное',
     'Connected to': 'Подключено к',
     'Disconnect Wallet': 'Отключить кошелёк',
     'Are you absolutely sure?': 'Вы абсолютно уверены?',

@@ -444,6 +444,7 @@ export default {
     GroupedNotesUnpin: 'Desafixar usuário',
     GroupedNotesBury: 'Enterrar usuário',
     GroupedNotesUnbury: 'Desenterrar usuário',
+    GroupedNotesMarkUnread: 'Marcar como não lido',
     'Trending Notes': 'Notas em tendência',
     'Connected to': 'Conectado a',
     'Disconnect Wallet': 'Desconectar carteira',

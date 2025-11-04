@@ -446,6 +446,7 @@ export default {
     GroupedNotesUnpin: 'उपयोगकर्ता अनपिन करें',
     GroupedNotesBury: 'उपयोगकर्ता दफनाएं',
     GroupedNotesUnbury: 'उपयोगकर्ता को बाहर निकालें',
+    GroupedNotesMarkUnread: 'अपठित के रूप में चिह्नित करें',
     'Connected to': 'से कनेक्टेड',
     'Disconnect Wallet': 'वॉलेट डिस्कनेक्ट करें',
     'Are you absolutely sure?': 'क्या आप पूरी तरह से सुनिश्चित हैं?',

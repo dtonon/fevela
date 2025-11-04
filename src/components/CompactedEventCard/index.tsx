@@ -87,6 +87,7 @@ export default function CompactedEventCard({
   onSelect,
   onLastNoteRead,
   onAllNotesRead,
+  onMarkAsUnread,
   isLastNoteRead = false,
   areAllNotesRead = false
 }: {
@@ -100,6 +101,7 @@ export default function CompactedEventCard({
   onSelect?: () => void
   onLastNoteRead?: () => void
   onAllNotesRead?: () => void
+  onMarkAsUnread?: () => void
   isLastNoteRead?: boolean
   areAllNotesRead?: boolean
 }) {
@@ -252,7 +254,12 @@ export default function CompactedEventCard({
 
                 {/* Show compact mode menu and counter badge */}
                 <div className="flex items-center gap-1">
-                  <CompactModeMenu pubkey={event.pubkey} />
+                  <CompactModeMenu
+                    pubkey={event.pubkey}
+                    isLastNoteRead={isLastNoteRead}
+                    areAllNotesRead={areAllNotesRead}
+                    onMarkAsUnread={onMarkAsUnread}
+                  />
                   <div
                     className={`w-8 h-8 ml-2 rounded-full flex items-center justify-center text-sm font-medium cursor-pointer transition-all hover:border-primary/50 bg-primary/10 border border-primary/20
                       ${areAllNotesRead ? 'text-primary/50 grayscale' : 'text-primary'}`}

@@ -434,6 +434,7 @@ export default {
     GroupedNotesUnpin: '取消置顶用户',
     GroupedNotesBury: '隐藏用户',
     GroupedNotesUnbury: '取消隐藏用户',
+    GroupedNotesMarkUnread: '标记为未读',
     'Connected to': '已连接到',
     'Disconnect Wallet': '断开钱包连接',
     'Are you absolutely sure?': '您确定吗？',

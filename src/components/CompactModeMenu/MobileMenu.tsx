@@ -6,6 +6,8 @@ interface MenuAction {
   label: string
   onClick: () => void
   className?: string
+  disabled?: boolean
+  separator?: boolean
 }
 
 interface MobileMenuProps {
@@ -33,15 +35,20 @@ export function MobileMenu({
             {menuActions.map((action, index) => {
               const Icon = action.icon
               return (
-                <Button
-                  key={index}
-                  onClick={action.onClick}
-                  className={`w-full p-6 justify-start text-lg gap-4 [&_svg]:size-5 ${action.className || ''}`}
-                  variant="ghost"
-                >
-                  <Icon />
-                  {action.label}
-                </Button>
+                <div key={index}>
+                  {action.separator && index > 0 && (
+                    <div className="border-t border-border my-2" />
+                  )}
+                  <Button
+                    onClick={action.onClick}
+                    className={`w-full p-6 justify-start text-lg gap-4 [&_svg]:size-5 ${action.className || ''}`}
+                    variant="ghost"
+                    disabled={action.disabled}
+                  >
+                    <Icon />
+                    {action.label}
+                  </Button>
+                </div>
               )
             })}
           </div>

@@ -443,6 +443,7 @@ export default {
     GroupedNotesUnpin: '사용자 고정 해제',
     GroupedNotesBury: '사용자 묻기',
     GroupedNotesUnbury: '사용자 묻기 해제',
+    GroupedNotesMarkUnread: '읽지 않음으로 표시',
     'Connected to': '연결됨',
     'Disconnect Wallet': '지갑 연결 해제',
     'Are you absolutely sure?': '정말 확실합니까?',

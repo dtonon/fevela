@@ -79,10 +79,19 @@ export function useGroupedNotesReadStatus() {
     return status.countAtRead
   }, [readStatusMap])
 
+  const markAsUnread = useCallback((pubkey: string) => {
+    setReadStatusMap(prev => {
+      const newMap = { ...prev }
+      delete newMap[pubkey]
+      return newMap
+    })
+  }, [])
+
   return {
     markLastNoteRead,
     markAllNotesRead,
     getReadStatus,
-    getUnreadCount
+    getUnreadCount,
+    markAsUnread
   }
 }

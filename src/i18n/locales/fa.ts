@@ -443,6 +443,7 @@ export default {
     GroupedNotesUnpin: 'لغو سنجاق کاربر',
     GroupedNotesBury: 'دفن کاربر',
     GroupedNotesUnbury: 'لغو دفن کاربر',
+    GroupedNotesMarkUnread: 'علامت‌گذاری به عنوان خوانده نشده',
     'Connected to': 'متصل به',
     'Disconnect Wallet': 'قطع اتصال کیف پول',
     'Are you absolutely sure?': 'آیا کاملاً مطمئن هستید؟',

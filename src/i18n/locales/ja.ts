@@ -443,6 +443,7 @@ export default {
     GroupedNotesUnpin: 'ユーザーのピンを外す',
     GroupedNotesBury: 'ユーザーを埋める',
     GroupedNotesUnbury: 'ユーザーを掘り起こす',
+    GroupedNotesMarkUnread: '未読にする',
     'Connected to': '接続先',
     'Disconnect Wallet': 'ウォレットの接続を解除',
     'Are you absolutely sure?': '本当に確かですか？',

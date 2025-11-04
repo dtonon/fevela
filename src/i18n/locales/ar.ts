@@ -440,6 +440,7 @@ export default {
     GroupedNotesUnpin: 'إلغاء تثبيت المستخدم',
     GroupedNotesBury: 'دفن المستخدم',
     GroupedNotesUnbury: 'إلغاء دفن المستخدم',
+    GroupedNotesMarkUnread: 'وضع علامة كغير مقروء',
     'Connected to': 'متصل بـ',
     'Disconnect Wallet': 'قطع الاتصال بالمحفظة',
     'Are you absolutely sure?': 'هل أنت متأكد تماماً؟',

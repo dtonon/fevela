@@ -91,7 +91,7 @@ const NoteList = forwardRef(
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
     const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
-    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount } =
+    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
@@ -515,6 +515,7 @@ const NoteList = forwardRef(
                   }
                 }}
                 onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
+                onMarkAsUnread={() => markAsUnread(event.pubkey)}
                 isLastNoteRead={readStatus.isLastNoteRead}
                 areAllNotesRead={readStatus.areAllNotesRead}
               />

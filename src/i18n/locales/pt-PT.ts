@@ -449,6 +449,7 @@ export default {
     GroupedNotesUnpin: 'Desafixar utilizador',
     GroupedNotesBury: 'Enterrar utilizador',
     GroupedNotesUnbury: 'Desenterrar utilizador',
+    GroupedNotesMarkUnread: 'Marcar como não lido',
     'Connected to': 'Conectado a',
     'Disconnect Wallet': 'Desconectar Carteira',
     'Are you absolutely sure?': 'Tem certeza absoluta?',

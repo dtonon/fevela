@@ -1,7 +1,7 @@
 import { usePinBury } from '@/providers/PinBuryProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { Pin, PinOff, ArrowDown, ArrowUp, Ellipsis } from 'lucide-react'
+import { Pin, PinOff, ArrowDown, ArrowUp, Ellipsis, MailOpen } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DesktopMenu } from './DesktopMenu'
@@ -10,9 +10,18 @@ import { MobileMenu } from './MobileMenu'
 interface CompactModeMenuProps {
   pubkey: string
   className?: string
+  isLastNoteRead?: boolean
+  areAllNotesRead?: boolean
+  onMarkAsUnread?: () => void
 }
 
-export default function CompactModeMenu({ pubkey, className }: CompactModeMenuProps) {
+export default function CompactModeMenu({
+  pubkey,
+  className,
+  isLastNoteRead = false,
+  areAllNotesRead = false,
+  onMarkAsUnread
+}: CompactModeMenuProps) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
@@ -35,7 +44,8 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           clearState(pubkey)
-        }
+        },
+        disabled: false
       })
       actions.push({
         icon: ArrowDown,
@@ -43,7 +53,8 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           setBuried(pubkey)
-        }
+        },
+        disabled: false
       })
     } else if (state === 'buried') {
       actions.push({
@@ -52,7 +63,8 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           clearState(pubkey)
-        }
+        },
+        disabled: false
       })
       actions.push({
         icon: Pin,
@@ -60,7 +72,8 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           setPinned(pubkey)
-        }
+        },
+        disabled: false
       })
     } else {
       actions.push({
@@ -69,7 +82,8 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           setPinned(pubkey)
-        }
+        },
+        disabled: false
       })
       actions.push({
         icon: ArrowDown,
@@ -77,12 +91,36 @@ export default function CompactModeMenu({ pubkey, className }: CompactModeMenuPr
         onClick: () => {
           closeDrawer()
           setBuried(pubkey)
-        }
+        },
+        disabled: false
       })
     }
 
+    // Add "Mark as Unread" action
+    const isReadStateSaved = isLastNoteRead || areAllNotesRead
+    actions.push({
+      icon: MailOpen,
+      label: t('GroupedNotesMarkUnread'),
+      onClick: () => {
+        closeDrawer()
+        onMarkAsUnread?.()
+      },
+      disabled: !isReadStateSaved,
+      separator: true
+    })
+
     return actions
-  }, [state, pubkey, t, setPinned, setBuried, clearState])
+  }, [
+    state,
+    pubkey,
+    t,
+    setPinned,
+    setBuried,
+    clearState,
+    isLastNoteRead,
+    areAllNotesRead,
+    onMarkAsUnread
+  ])
 
   const trigger = (
     <button

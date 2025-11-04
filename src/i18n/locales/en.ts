@@ -441,6 +441,7 @@ export default {
     GroupedNotesUnpin: 'Unpin user',
     GroupedNotesBury: 'Bury user',
     GroupedNotesUnbury: 'Unbury user',
+    GroupedNotesMarkUnread: 'Mark as unread',
     'Connected to': 'Connected to',
     'Disconnect Wallet': 'Disconnect Wallet',
     'Are you absolutely sure?': 'Are you absolutely sure?',
