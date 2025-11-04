@@ -12,7 +12,7 @@ import relayInfoService from '@/services/relay-info.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
-import { current, outbox } from '@/services/outbox.service'
+import { current, outbox, ready } from '@/services/outbox.service'
 
 export default function ProfileFeed({
   pubkey,
@@ -81,15 +81,17 @@ export default function ProfileFeed({
   }, [pubkey, myPubkey, myPinList])
 
   useEffect(() => {
-  const abort = new AbortController()
+    const abort = new AbortController()
 
-  try {
-      outbox.sync([pubkey], {
-        signal: abort.signal
+    ready()
+      .then(() =>
+        outbox.sync([pubkey], {
+          signal: abort.signal
+        })
+      )
+      .catch((err) => {
+        console.warn(`bailing on single-profile sync: ${err}`)
       })
-    } catch (err) {
-      console.warn(`bailing on single-profile sync: ${err}`)
-    }
 
     current.pubkey = pubkey
 

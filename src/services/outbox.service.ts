@@ -22,6 +22,14 @@ export const current: {
   onnew?: (event: NostrEvent) => void
 } = { pubkey: null }
 
+let isReady: () => void
+const _ready = new Promise<void>((resolve) => {
+  isReady = resolve
+})
+export async function ready(): Promise<void> {
+  return _ready
+}
+
 export async function start(pubkey: string, signal: AbortSignal) {
   signal.onabort = () => {
     status.syncing = false
@@ -61,6 +69,8 @@ export async function start(pubkey: string, signal: AbortSignal) {
   const hasNew = await outbox.sync(targets, {
     signal
   })
+
+  isReady()
 
   if (hasNew) {
     current.onsync?.()
