@@ -10,8 +10,11 @@ export function FormattedTimestamp({
   short?: boolean
   className?: string
 }) {
+  const time = dayjs(timestamp * 1000)
+  const fullTimestamp = time.format('YYYY-MM-DD HH:mm:ss')
+
   return (
-    <span className={className}>
+    <span className={className} title={fullTimestamp}>
       <FormattedTimestampContent timestamp={timestamp} short={short} />
     </span>
   )
