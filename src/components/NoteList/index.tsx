@@ -39,7 +39,7 @@ import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 import PinnedNoteCard from '../PinnedNoteCard'
-import { current, outbox, store } from '@/services/outbox.service'
+import { current, ready, outbox, store } from '@/services/outbox.service'
 import { Filter } from '@nostr/tools/filter'
 
 const LIMIT = 200
@@ -329,17 +329,27 @@ const NoteList = forwardRef(
 
         // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
         const allAuthors = localFilters.flatMap((f) => f.authors || [])
-        outbox.live(allAuthors, {
-          signal: abort.signal
-        })
 
-        current.onnew = (event: NostrEvent) => {
-          // buffer it and show the New Notes button
-          setNewEvents((oldEvents) => [event, ...oldEvents])
-        }
-        current.onsync = () => {
-          performLocalStoreRequests(localFilters, limit, groupedNotesSince)
-        }
+        ready().then(() => {
+          outbox.live(allAuthors, {
+            signal: abort.signal
+          })
+
+          current.onnew = (event: NostrEvent) => {
+            // if it's newer than what we had before buffer it and show the New Notes button
+            if (event.created_at > (events[0]?.created_at || 0)) {
+              setNewEvents((oldEvents) => [event, ...oldEvents])
+            } else {
+              // otherwise just merge it with the rest
+              setEvents((events) =>
+                events.concat(event).sort((a, b) => b.created_at - a.created_at)
+              )
+            }
+          }
+          current.onsync = () => {
+            performLocalStoreRequests(localFilters, limit, groupedNotesSince)
+          }
+        })
       }
 
       return () => {

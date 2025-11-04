@@ -3,7 +3,6 @@ import './index.css'
 import './polyfill'
 import './services/lightning.service'
 
-import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { initNostrWasm } from 'nostr-wasm/gzipped'
 import { setNostrWasm, verifyEvent } from '@nostr/tools/wasm'
@@ -23,11 +22,9 @@ initNostrWasm()
     pool.trackRelays = true
 
     createRoot(document.getElementById('root')!).render(
-      <StrictMode>
-        <ErrorBoundary>
-          <App />
-        </ErrorBoundary>
-      </StrictMode>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
     )
   })
 

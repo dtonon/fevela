@@ -24,6 +24,7 @@ const RelayReviewsPage = forwardRef(({ url, index }: { url?: string; index?: num
         showKinds={[ExtendedKind.RELAY_REVIEW]}
         subRequests={[
           {
+            source: 'relays',
             urls: [normalizedUrl, ...BIG_RELAY_URLS],
             filter: { '#d': [normalizedUrl] }
           }
