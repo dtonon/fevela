@@ -18,7 +18,7 @@ import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
-import { TFeedSubRequest, TSubRequestFilter } from '@/types'
+import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
@@ -96,7 +96,6 @@ const NoteList = forwardRef(
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(true)
     const [loading, setLoading] = useState(true)
-    const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
@@ -282,45 +281,19 @@ const NoteList = forwardRef(
         groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
       }
 
-      // prepare relay requests
-      const relaysInvolved = new Set<string>()
-      const relayRequests = subRequests
-        .filter(
-          (req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays'
-        )
-        .map(({ urls, filter }) => {
-          urls.forEach((url) => {
-            relaysInvolved.add(url)
-          })
-
-          return {
-            urls,
-            filter: {
-              kinds: showKinds,
-              ...filter,
-              ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
-              limit
-            }
-          }
-        })
+      const [relayRequests, localFilters] = splitRelayAndLocalRequests(
+        subRequests,
+        showKinds,
+        sinceTimestamp,
+        isFilteredView,
+        limit
+      )
 
       // execute relay requests
       let closeSubs: Promise<() => void> | undefined
       if (relayRequests.length > 0) {
-        closeSubs = performRelayRequests(relayRequests, limit, groupedNotesSince, relaysInvolved)
+        closeSubs = performRelayRequests(relayRequests, limit, groupedNotesSince)
       }
-
-      // prepare local db requests
-      const localFilters = subRequests
-        .filter(
-          (req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local'
-        )
-        .map(({ filter }) => ({
-          kinds: showKinds,
-          ...filter,
-          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
-          limit
-        }))
 
       // execute local db requests
       const abort = new AbortController()
@@ -373,7 +346,7 @@ const NoteList = forwardRef(
         threshold: 0.1
       }
 
-      const loadMore = async () => {
+      async function loadMore() {
         // Don't auto-load if we're in filtered view mode
         if (isFilteredView) return
 
@@ -385,19 +358,57 @@ const NoteList = forwardRef(
           }
         }
 
-        if (!timelineKey || loading || !hasMore) return
         setLoading(true)
-        const newEvents = await client.loadMoreTimeline(
-          timelineKey,
-          events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+
+        const [relayRequests, localFilters] = splitRelayAndLocalRequests(
+          subRequests,
+          showKinds,
+          sinceTimestamp,
+          isFilteredView,
           LIMIT
         )
-        setLoading(false)
-        if (newEvents.length === 0) {
+
+        const moreEvents: NostrEvent[] = []
+
+        // paginate from local store
+        if (localFilters.length) {
+          localFilters.forEach(async (filter) => {
+            for await (const event of store.queryEvents(filter, LIMIT)) {
+              moreEvents.push(event)
+            }
+          })
+        }
+
+        // paginate from relays
+        if (relayRequests.length > 0) {
+          const result = await client.loadMoreTimeline(
+            relayRequests,
+            events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+            LIMIT,
+            {
+              // same as in performRelayRequests call, but add the localFilters.length === 0 requirement,
+              // because if localFilters.length exists here we will have to sort afterwards anyway,
+              // so we don't have to pre-sort
+              needSort:
+                (localFilters.length === 0 && relayRequests.length > 1) ||
+                relayRequests[0].urls.length > 1
+            }
+          )
+
+          moreEvents.push(...result)
+        }
+
+        if (localFilters.length + relayRequests.length > 1) {
+          moreEvents.sort((a, b) => b.created_at - a.created_at)
+        }
+
+        if (moreEvents.length === 0) {
           setHasMore(false)
           return
         }
-        setEvents((oldEvents) => [...oldEvents, ...newEvents])
+
+        setEvents((events) => [...events, ...moreEvents])
+        setLoading(false)
       }
 
       const observerInstance = new IntersectionObserver((entries) => {
@@ -417,7 +428,7 @@ const NoteList = forwardRef(
           observerInstance.unobserve(currentBottomRef)
         }
       }
-    }, [loading, hasMore, events, showCount, timelineKey, isFilteredView])
+    }, [loading, hasMore, events, showCount, isFilteredView])
 
     function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
@@ -574,7 +585,7 @@ const NoteList = forwardRef(
     )
 
     function performLocalStoreRequests(
-      filters: TSubRequestFilter[],
+      filters: (Filter & { limit: number })[],
       limit: number,
       groupedNotesSince: number | undefined
     ) {
@@ -584,39 +595,40 @@ const NoteList = forwardRef(
         for await (const event of store.queryEvents(filter, limit)) {
           events.push(event)
         }
-        setEvents(events)
-        setLoading(false)
-        setHasMore(events.length > 0)
       })
+
+      if (filters.length) events.sort((a, b) => b.created_at - a.created_at)
+
+      setEvents(events)
+      setLoading(false)
+      setHasMore(events.length > 0)
     }
 
     async function performRelayRequests(
-      relayRequests: { urls: string[]; filter: TSubRequestFilter }[],
+      relayRequests: { urls: string[]; filter: Filter & { limit: number } }[],
       limit: number,
-      groupedNotesSince: number | undefined,
-      relaysInvolved: Set<string>
+      groupedNotesSince: number | undefined
     ) {
-      const { closer, timelineKey } = await client.subscribeTimeline(
+      const subc = client.subscribeTimeline(
         relayRequests,
         {
-          onEvents: async (events, eosed) => {
+          onEvents: async (events) => {
             if (events.length > 0) {
               setEvents(events)
             }
-            if (eosed) {
-              setLoading(false)
-              setHasMore(events.length > 0)
 
-              // for grouped mode, automatically load more until we reach timeframe boundary
-              if (groupedNotesSince && events.length > 0) {
-                const oldestEvent = events[events.length - 1]
-                if (oldestEvent.created_at > groupedNotesSince) {
-                  // start loading more data back in time
-                  loadMoreGroupedData(timelineKey, oldestEvent.created_at - 1, groupedNotesSince)
-                } else {
-                  // we've reached the time boundary, no more loading needed
-                  setHasMore(false)
-                }
+            setLoading(false)
+            setHasMore(events.length > 0)
+
+            // for grouped mode, automatically load more until we reach timeframe boundary
+            if (groupedNotesSince && events.length > 0) {
+              const oldestEvent = events[events.length - 1]
+              if (oldestEvent.created_at > groupedNotesSince) {
+                // start loading more data back in time
+                loadMoreGroupedData(relayRequests, oldestEvent.created_at - 1, groupedNotesSince)
+              } else {
+                // we've reached the time boundary, no more loading needed
+                setHasMore(false)
               }
             }
           },
@@ -653,16 +665,19 @@ const NoteList = forwardRef(
           startLogin,
 
           // when querying from a single relay just trust their sort (this pairs well with algo-style relays)
-          needSort: relaysInvolved.size !== 1
+          needSort: relayRequests.length > 1 || relayRequests[0].urls.length > 1
         }
       )
-      setTimelineKey(timelineKey)
 
       // function to load more data for grouped mode
-      const loadMoreGroupedData = async (key: string, until: number, timeframeSince: number) => {
+      const loadMoreGroupedData = async (
+        relayRequests: { urls: string[]; filter: Filter & { limit: number } }[],
+        until: number,
+        timeframeSince: number
+      ) => {
         setGroupedLoadingMore(true)
         try {
-          const moreEvents = await client.loadMoreTimeline(key, until, limit)
+          const moreEvents = await client.loadMoreTimeline(relayRequests, until, limit)
           if (moreEvents.length === 0) {
             setHasMore(false)
             setGroupedLoadingMore(false)
@@ -675,7 +690,7 @@ const NoteList = forwardRef(
           const oldestNewEvent = moreEvents[moreEvents.length - 1]
           if (oldestNewEvent.created_at > timeframeSince) {
             // recursively load more until we reach the time boundary
-            await loadMoreGroupedData(key, oldestNewEvent.created_at - 1, timeframeSince)
+            await loadMoreGroupedData(relayRequests, oldestNewEvent.created_at - 1, timeframeSince)
           } else {
             setHasMore(false)
             setGroupedLoadingMore(false)
@@ -687,7 +702,7 @@ const NoteList = forwardRef(
         }
       }
 
-      return closer
+      return () => subc.close()
     }
   }
 )
@@ -697,4 +712,36 @@ export default NoteList
 export type TNoteListRef = {
   scrollToTop: (behavior?: ScrollBehavior) => void
   refresh: () => void
+}
+
+function splitRelayAndLocalRequests(
+  subRequests: TFeedSubRequest[],
+  showKinds: number[],
+  sinceTimestamp: number | undefined,
+  isFilteredView: boolean,
+  limit: number
+): [{ urls: string[]; filter: Filter & { limit: number } }[], (Filter & { limit: number })[]] {
+  const relayRequests = subRequests
+    .filter((req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays')
+    .map(({ urls, filter }) => ({
+      urls,
+      filter: {
+        kinds: showKinds,
+        ...filter,
+        ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
+        limit
+      }
+    }))
+
+  // prepare local db requests
+  const localFilters = subRequests
+    .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
+    .map(({ filter }) => ({
+      kinds: showKinds,
+      ...filter,
+      ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
+      limit
+    }))
+
+  return [relayRequests, localFilters]
 }

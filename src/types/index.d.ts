@@ -7,8 +7,6 @@ import {
   POLL_TYPE
 } from '../constants'
 
-export type TSubRequestFilter = Omit<Filter, 'since' | 'until'> & { limit: number }
-
 export type TFeedSubRequest =
   | {
       source: 'local'
