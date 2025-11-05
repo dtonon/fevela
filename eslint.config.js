@@ -36,7 +36,8 @@ export default tseslint.config(
         }
       ],
       'react-refresh/only-export-components': 'off',
-      'react-hooks/exhaustive-deps': 'off'
+      'react-hooks/exhaustive-deps': 'off',
+      'no-case-declarations': 'off'
     }
   }
 )

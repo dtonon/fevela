@@ -179,32 +179,45 @@ export function getRootEventHexId(event?: Event) {
   return tag?.[1]
 }
 
-export function getRootTag(event?: Event): { type: 'e' | 'a'; tag: string[] } | undefined {
-  if (!event) return undefined
+export function getRootTag(event: Event): string[] | undefined {
+  let fallback: string[] | undefined
+  for (let i = 0; i < event.tags.length; i++) {
+    const tag = event.tags[i]
+    if (tag.length < 2) continue
 
-  if (event.kind === kinds.ShortTextNote) {
-    const tag = getRootETag(event)
-    return tag ? { type: 'e', tag } : undefined
+    switch (tag[0]) {
+      case 'e':
+        if (!fallback) fallback = tag // fallback
+        if (tag[3] === 'root') {
+          return tag
+        }
+        break
+      case 'E':
+        return tag
+      case 'a':
+        if (!fallback) fallback = tag // fallback
+        break
+      case 'A':
+        return tag
+      case 'I':
+        return tag
+      case 'i':
+      case 'r':
+        break
+    }
   }
-
-  // NIP-22
-  const rootKindStr = event.tags.find(tagNameEquals('K'))?.[1]
-  if (rootKindStr && isReplaceableEvent(parseInt(rootKindStr))) {
-    const tag = getRootATag(event)
-    return tag ? { type: 'a', tag } : undefined
-  }
-
-  const tag = getRootETag(event)
-  return tag ? { type: 'e', tag } : undefined
+  return fallback
 }
 
 export function getRootBech32Id(event?: Event) {
+  if (!event) return undefined
+
   const rootTag = getRootTag(event)
   if (!rootTag) return undefined
 
-  return rootTag.type === 'e'
-    ? generateBech32IdFromETag(rootTag.tag)
-    : generateBech32IdFromATag(rootTag.tag)
+  return rootTag[0] === 'e' || rootTag[0] === 'a'
+    ? generateBech32IdFromETag(rootTag)
+    : generateBech32IdFromATag(rootTag)
 }
 
 // For internal identification of events

@@ -27,7 +27,6 @@ import { NotificationItem } from './NotificationItem'
 import { NotificationSkeleton } from './NotificationItem/Notification'
 import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
-import { SubCloser } from '@nostr/tools/abstract-pool'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -46,6 +45,7 @@ const NotificationList = forwardRef((_, ref) => {
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
   const [visibleNotifications, setVisibleNotifications] = useState<NostrEvent[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
+  const [subRequests, setSubRequests] = useState<Parameters<typeof client.subscribeTimeline>[0]>([])
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
@@ -88,6 +88,20 @@ const NotificationList = forwardRef((_, ref) => {
       kinds: filterKinds
     }
   }, [pubkey, notificationType])
+
+  useEffect(() => {
+    ;(async () => {
+      if (!pubkey) return
+      const relays = await client.fetchRelayList(pubkey)
+
+      setSubRequests([
+        {
+          urls: relays.read,
+          filter: { ...filter, limit: LIMIT }
+        }
+      ])
+    })()
+  }, [pubkey, filter])
 
   useImperativeHandle(
     ref,
@@ -132,31 +146,20 @@ const NotificationList = forwardRef((_, ref) => {
     setShowCount(SHOW_COUNT)
     setLastReadTime(getNotificationsSeenAt())
 
-    let subc: SubCloser | undefined
-    client.fetchRelayList(pubkey).then((relays) => {
-      subc = client.subscribeTimeline(
-        [
-          {
-            urls: relays.read,
-            filter: { ...filter, limit: LIMIT }
-          }
-        ],
-        {
-          onEvents: (events) => {
-            if (events.length > 0) {
-              setNotifications(events.filter((event) => event.pubkey !== pubkey))
-            }
-
-            setLoading(false)
-            setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-            noteStatsService.updateNoteStatsByEvents(events)
-          },
-          onNew: handleNewEvent
+    const subc = client.subscribeTimeline(subRequests, {
+      onEvents: (events) => {
+        if (events.length > 0) {
+          setNotifications(events.filter((event) => event.pubkey !== pubkey))
         }
-      )
+
+        setLoading(false)
+        setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+        noteStatsService.updateNoteStatsByEvents(events)
+      },
+      onNew: handleNewEvent
     })
 
-    return () => subc?.close?.()
+    return () => subc.close()
   }, [pubkey, refreshCount, filter, current])
 
   useEffect(() => {
@@ -187,7 +190,7 @@ const NotificationList = forwardRef((_, ref) => {
       threshold: 1
     }
 
-    const loadMore = async () => {
+    async function loadMore() {
       if (showCount < notifications.length) {
         setShowCount((count) => count + SHOW_COUNT)
         // preload more
@@ -196,18 +199,9 @@ const NotificationList = forwardRef((_, ref) => {
         }
       }
 
-      if (!pubkey || !timelineKey || !until || loading) return
+      if (!pubkey || !subRequests.length || !until || loading) return
       setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(
-        [
-          {
-            urls: (await client.fetchRelayList(pubkey)).read,
-            filter: { ...filter, limit: LIMIT }
-          }
-        ],
-        until,
-        LIMIT
-      )
+      const newNotifications = await client.loadMoreTimeline(subRequests, until, LIMIT)
       setLoading(false)
       if (newNotifications.length === 0) {
         setUntil(undefined)
@@ -241,7 +235,7 @@ const NotificationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, notifications])
+  }, [pubkey, subRequests, until, loading, showCount, notifications])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })

@@ -187,13 +187,11 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadFollowsList(account.pubkey).then(({ items }) => setFollowList(items))
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
-      const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), [
-        {
-          kinds: [kinds.Application],
-          authors: [account.pubkey],
-          '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
-        }
-      ])
+      const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), {
+        kinds: [kinds.Application],
+        authors: [account.pubkey],
+        '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
+      })
       const sortedEvents = events.sort((a, b) => b.created_at - a.created_at)
       const notificationsSeenAtEvent = sortedEvents.find(
         (e) =>
@@ -214,24 +212,22 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!account) return
 
-    const initInteractions = async () => {
+    ;(async () => {
       const pubkey = account.pubkey
       const relayList = await client.fetchRelayList(pubkey)
-      const events = await client.fetchEvents(relayList.write.slice(0, 4), [
-        {
-          authors: [pubkey],
-          kinds: [kinds.Reaction, kinds.Repost],
-          limit: 100
-        },
-        {
-          '#P': [pubkey],
-          kinds: [kinds.Zap],
-          limit: 100
-        }
-      ])
+      const events = await client.fetchEvents(relayList.write.slice(0, 4), {
+        authors: [pubkey],
+        kinds: [kinds.Reaction, kinds.Repost],
+        limit: 100
+      })
+      const zaps = await client.fetchEvents(relayList.write.slice(0, 4), {
+        '#P': [pubkey],
+        kinds: [kinds.Zap],
+        limit: 100
+      })
+      events.push(...zaps)
       noteStatsService.updateNoteStatsByEvents(events)
-    }
-    initInteractions()
+    })()
   }, [account])
 
   useEffect(() => {

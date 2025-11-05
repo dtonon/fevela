@@ -23,6 +23,7 @@ export default function RepostNoteCard({
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const [targetEvent, setTargetEvent] = useState<Event | null>(null)
+
   const shouldHide = useMemo(() => {
     if (!targetEvent) return true
     if (filterMutedNotes && mutePubkeySet.has(targetEvent.pubkey)) {
@@ -33,6 +34,7 @@ export default function RepostNoteCard({
     }
     return false
   }, [targetEvent, filterMutedNotes, hideContentMentioningMutedUsers, mutePubkeySet])
+
   useEffect(() => {
     const fetch = async () => {
       try {

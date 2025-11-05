@@ -53,7 +53,11 @@ export default function Relay({ url, className }: { url?: string; className?: st
       )}
       <NormalFeed
         subRequests={[
-          { urls: [normalizedUrl], filter: debouncedInput ? { search: debouncedInput } : {} }
+          {
+            source: 'relays',
+            urls: [normalizedUrl],
+            filter: debouncedInput ? { search: debouncedInput } : {}
+          }
         ]}
         showRelayCloseReason
       />
