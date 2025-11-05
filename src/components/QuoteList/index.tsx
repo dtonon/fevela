@@ -17,7 +17,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   const { t } = useTranslation()
   const { startLogin } = useNostr()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
-  const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
+  const [subRequests, setSubRequests] = useState<Parameters<typeof client.subscribeTimeline>[0]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [hasMore, setHasMore] = useState<boolean>(true)
@@ -25,62 +25,58 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    async function init() {
-      setLoading(true)
-      setEvents([])
-      setHasMore(true)
-
+    ;(async () => {
       const relayList = await client.fetchRelayList(event.pubkey)
       const relayUrls = relayList.read.concat(BIG_RELAY_URLS)
       const seenOn = client.getSeenEventRelayUrls(event.id)
       relayUrls.unshift(...seenOn)
 
-      const { closer, timelineKey } = await client.subscribeTimeline(
-        [
-          {
-            urls: relayUrls,
-            filter: {
-              '#q': [
-                isReplaceableEvent(event.kind) ? getReplaceableCoordinateFromEvent(event) : event.id
-              ],
-              kinds: [
-                kinds.ShortTextNote,
-                kinds.Highlights,
-                kinds.LongFormArticle,
-                ExtendedKind.COMMENT,
-                ExtendedKind.POLL
-              ],
-              limit: LIMIT
-            }
-          }
-        ],
+      setSubRequests([
         {
-          onEvents: (events, eosed) => {
-            if (events.length > 0) {
-              setEvents(events)
-            }
-            if (eosed) {
-              setLoading(false)
-              setHasMore(events.length > 0)
-            }
-          },
-          onNew: (event) => {
-            setEvents((oldEvents) =>
-              [event, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
-            )
+          urls: relayUrls,
+          filter: {
+            '#q': [
+              isReplaceableEvent(event.kind) ? getReplaceableCoordinateFromEvent(event) : event.id
+            ],
+            kinds: [
+              kinds.ShortTextNote,
+              kinds.Highlights,
+              kinds.LongFormArticle,
+              ExtendedKind.COMMENT,
+              ExtendedKind.POLL
+            ],
+            limit: LIMIT
           }
-        },
-        { startLogin }
-      )
-      setTimelineKey(timelineKey)
-      return closer
-    }
-
-    const promise = init()
-    return () => {
-      promise.then((closer) => closer())
-    }
+        }
+      ])
+    })()
   }, [event])
+
+  useEffect(() => {
+    setLoading(true)
+    setEvents([])
+    setHasMore(true)
+
+    const subc = client.subscribeTimeline(
+      subRequests,
+      {
+        onEvents: (events) => {
+          if (events.length > 0) {
+            setEvents(events)
+          }
+          setLoading(false)
+          setHasMore(events.length > 0)
+        },
+        onNew: (event) => {
+          setEvents((oldEvents) =>
+            [event, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
+          )
+        }
+      },
+      { startLogin }
+    )
+    return () => subc.close()
+  }, [subRequests])
 
   useEffect(() => {
     const options = {
@@ -89,7 +85,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
       threshold: 0.1
     }
 
-    const loadMore = async () => {
+    async function loadMore() {
       if (showCount < events.length) {
         setShowCount((prev) => prev + SHOW_COUNT)
         // preload more
@@ -98,10 +94,10 @@ export default function QuoteList({ event, className }: { event: Event; classNam
         }
       }
 
-      if (!timelineKey || loading || !hasMore) return
+      if (loading || !hasMore) return
       setLoading(true)
       const newEvents = await client.loadMoreTimeline(
-        timelineKey,
+        subRequests,
         events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
         LIMIT
       )
@@ -130,7 +126,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [timelineKey, loading, hasMore, events, showCount])
+  }, [loading, hasMore, events, showCount])
 
   return (
     <div className={className}>

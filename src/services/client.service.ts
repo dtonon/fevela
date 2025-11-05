@@ -375,7 +375,6 @@ class ClientService extends EventTarget {
     urls: string[],
     filter: Filter,
     {
-      onevent,
       cache = false
     }: {
       onevent?: (evt: NostrEvent) => void

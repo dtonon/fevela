@@ -18,7 +18,6 @@ import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
 import { WheelGesturesPlugin } from 'embla-carousel-wheel-gestures'
-import { Filter } from '@nostr/tools/filter'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -55,15 +54,13 @@ export default function RelayReviewsPreview({ relayUrl }: { relayUrl: string }) 
 
   useEffect(() => {
     const init = async () => {
-      const filters: Filter[] = [
-        { kinds: [ExtendedKind.RELAY_REVIEW], '#d': [relayUrl], limit: 100 }
-      ]
-      if (pubkey) {
-        filters.push({ kinds: [ExtendedKind.RELAY_REVIEW], authors: [pubkey], '#d': [relayUrl] })
-      }
-      const events = await client.fetchEvents([relayUrl, ...BIG_RELAY_URLS], filters, {
-        cache: true
-      })
+      const events = await client.fetchEvents(
+        [relayUrl, ...BIG_RELAY_URLS],
+        { kinds: [ExtendedKind.RELAY_REVIEW], '#d': [relayUrl], limit: 100 },
+        {
+          cache: true
+        }
+      )
 
       const pubkeySet = new Set<string>()
       const reviews: NostrEvent[] = []

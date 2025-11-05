@@ -36,7 +36,7 @@ const ExplorePage = forwardRef((_, ref) => {
     ) : tab === 'reviews' ? (
       <NoteList
         showKinds={[ExtendedKind.RELAY_REVIEW]}
-        subRequests={[{ urls: BIG_RELAY_URLS, filter: {} }]}
+        subRequests={[{ source: 'relays', urls: BIG_RELAY_URLS, filter: {} }]}
         filterMutedNotes
         hideUntrustedNotes={hideUntrustedNotes}
         filterFn={relayReviewFilterFn}
