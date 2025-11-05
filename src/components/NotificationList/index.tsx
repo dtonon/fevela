@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
+import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -9,7 +9,7 @@ import noteStatsService from '@/services/note-stats.service'
 import { TNotificationType } from '@/types'
 import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
-import { matchFilter } from '@nostr/tools/filter'
+import { Filter, matchFilter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -27,6 +27,7 @@ import { NotificationItem } from './NotificationItem'
 import { NotificationSkeleton } from './NotificationItem/Notification'
 import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
+import { SubCloser } from '@nostr/tools/abstract-pool'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -41,7 +42,6 @@ const NotificationList = forwardRef((_, ref) => {
   const [notificationType, setNotificationType] = useState<TNotificationType>('all')
   const [lastReadTime, setLastReadTime] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
-  const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
   const [filteredNotifications, setFilteredNotifications] = useState<NostrEvent[]>([])
@@ -52,21 +52,27 @@ const NotificationList = forwardRef((_, ref) => {
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  const filterKinds = useMemo(() => {
+  const filter = useMemo<Filter | undefined>(() => {
+    if (!pubkey) return
+
+    let filterKinds: number[] = []
     switch (notificationType) {
       case 'mentions':
-        return [
+        filterKinds = [
           kinds.ShortTextNote,
           ExtendedKind.COMMENT,
           ExtendedKind.VOICE_COMMENT,
           ExtendedKind.POLL
         ]
+        break
       case 'reactions':
-        return [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
+        filterKinds = [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
+        break
       case 'zaps':
-        return [kinds.Zap]
+        filterKinds = [kinds.Zap]
+        break
       default:
-        return [
+        filterKinds = [
           kinds.ShortTextNote,
           kinds.Repost,
           kinds.Reaction,
@@ -77,7 +83,12 @@ const NotificationList = forwardRef((_, ref) => {
           ExtendedKind.POLL
         ]
     }
-  }, [notificationType])
+
+    return {
+      '#p': [pubkey],
+      kinds: filterKinds
+    }
+  }, [pubkey, notificationType])
 
   // Filter events for mentions and all tabs
   useEffect(() => {
@@ -196,63 +207,45 @@ const NotificationList = forwardRef((_, ref) => {
       return
     }
 
-    const init = async () => {
-      setLoading(true)
-      setNotifications([])
-      setShowCount(SHOW_COUNT)
-      setLastReadTime(getNotificationsSeenAt())
-      const relayList = await client.fetchRelayList(pubkey)
+    setLoading(true)
+    setNotifications([])
+    setShowCount(SHOW_COUNT)
+    setLastReadTime(getNotificationsSeenAt())
 
-      const { closer, timelineKey } = await client.subscribeTimeline(
+    let subc: SubCloser | undefined
+    client.fetchRelayList(pubkey).then((relays) => {
+      subc = client.subscribeTimeline(
         [
           {
-            urls: relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
-            filter: {
-              '#p': [pubkey],
-              kinds: filterKinds,
-              limit: LIMIT
-            }
+            urls: relays.read,
+            filter: { ...filter, limit: LIMIT }
           }
         ],
         {
-          onEvents: (events, eosed) => {
+          onEvents: (events) => {
             if (events.length > 0) {
               setNotifications(events.filter((event) => event.pubkey !== pubkey))
             }
-            if (eosed) {
-              setLoading(false)
-              setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-              noteStatsService.updateNoteStatsByEvents(events)
-            }
+
+            setLoading(false)
+            setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+            noteStatsService.updateNoteStatsByEvents(events)
           },
           onNew: handleNewEvent
         }
       )
-      setTimelineKey(timelineKey)
-      return closer
-    }
+    })
 
-    const promise = init()
-    return () => {
-      promise.then((closer) => closer?.())
-    }
-  }, [pubkey, refreshCount, filterKinds, current])
+    return () => subc?.close?.()
+  }, [pubkey, refreshCount, filter, current])
 
   useEffect(() => {
-    if (!active || !pubkey) return
+    if (!active || !pubkey || !filter) return
 
-    const handler = (data: Event) => {
+    function handler(data: Event) {
       const customEvent = data as CustomEvent<NostrEvent>
       const evt = customEvent.detail
-      if (
-        matchFilter(
-          {
-            kinds: filterKinds,
-            '#p': [pubkey]
-          },
-          evt
-        )
-      ) {
+      if (matchFilter(filter!, evt)) {
         handleNewEvent(evt)
       }
     }
@@ -261,7 +254,7 @@ const NotificationList = forwardRef((_, ref) => {
     return () => {
       client.removeEventListener('newEvent', handler)
     }
-  }, [pubkey, active, filterKinds, handleNewEvent])
+  }, [pubkey, active, filter, handleNewEvent])
 
   useEffect(() => {
     setVisibleNotifications(filteredNotifications.slice(0, showCount))
@@ -283,9 +276,18 @@ const NotificationList = forwardRef((_, ref) => {
         }
       }
 
-      if (!pubkey || !timelineKey || !until || loading) return
+      if (!pubkey || !until || loading) return
       setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(timelineKey, until, LIMIT)
+      const newNotifications = await client.loadMoreTimeline(
+        [
+          {
+            urls: (await client.fetchRelayList(pubkey)).read,
+            filter: { ...filter, limit: LIMIT }
+          }
+        ],
+        until,
+        LIMIT
+      )
       setLoading(false)
       if (newNotifications.length === 0) {
         setUntil(undefined)
@@ -319,7 +321,7 @@ const NotificationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, filteredNotifications])
+  }, [pubkey, until, loading, showCount, filteredNotifications])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -382,5 +384,7 @@ const NotificationList = forwardRef((_, ref) => {
     </div>
   )
 })
+
 NotificationList.displayName = 'NotificationList'
+
 export default NotificationList

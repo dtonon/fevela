@@ -14,6 +14,7 @@ import { utf8Decoder } from '@nostr/tools/utils'
 import client from './client.service'
 import { NostrUser } from '@nostr/gadgets/metadata'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
+import { pool } from '@nostr/gadgets/global'
 
 export type TRecentSupporter = { pubkey: string; amount: number; comment?: string }
 
@@ -132,10 +133,11 @@ class LightningService {
         if (event) {
           filter['#e'] = [event.id]
         }
-        subCloser = client.subscribe(
+        subCloser = pool.subscribe(
           senderRelayList.write.concat(BIG_RELAY_URLS).slice(0, 4),
           filter,
           {
+            label: 'f-zap',
             onevent: (evt) => {
               const info = getZapInfoFromEvent(evt)
               if (!info) return

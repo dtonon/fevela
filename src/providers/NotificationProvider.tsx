@@ -12,6 +12,7 @@ import { useContentPolicy } from './ContentPolicyProvider'
 import { useMuteList } from './MuteListProvider'
 import { useNostr } from './NostrProvider'
 import { useUserTrust } from './UserTrustProvider'
+import { pool } from '@nostr/gadgets/global'
 
 type TNotificationContext = {
   hasNewNotification: boolean
@@ -99,32 +100,29 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       try {
         let eosed = false
         const relayList = await client.fetchRelayList(pubkey)
-        const subCloser = client.subscribe(
+        const subCloser = pool.subscribe(
           relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
-          [
-            {
-              kinds: [
-                kinds.ShortTextNote,
-                kinds.Repost,
-                kinds.Reaction,
-                kinds.Zap,
-                ExtendedKind.COMMENT,
-                ExtendedKind.POLL_RESPONSE,
-                ExtendedKind.VOICE_COMMENT,
-                ExtendedKind.POLL
-              ],
-              '#p': [pubkey],
-              limit: 20
-            }
-          ],
           {
-            oneose: (e) => {
-              if (e) {
-                eosed = e
-                setNewNotifications((prev) => {
-                  return [...prev.sort((a, b) => compareEvents(b, a))]
-                })
-              }
+            kinds: [
+              kinds.ShortTextNote,
+              kinds.Repost,
+              kinds.Reaction,
+              kinds.Zap,
+              ExtendedKind.COMMENT,
+              ExtendedKind.POLL_RESPONSE,
+              ExtendedKind.VOICE_COMMENT,
+              ExtendedKind.POLL
+            ],
+            '#p': [pubkey],
+            limit: 20
+          },
+          {
+            label: 'f-notifications',
+            oneose: () => {
+              eosed = true
+              setNewNotifications((prev) => {
+                return [...prev.sort((a, b) => compareEvents(b, a))]
+              })
             },
             onevent: (evt) => {
               if (evt.pubkey !== pubkey) {
@@ -141,7 +139,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                 })
               }
             },
-            onAllClose: (reasons) => {
+            onclose: (reasons) => {
               if (reasons.every((reason) => reason === 'closed by caller')) {
                 return
               }
