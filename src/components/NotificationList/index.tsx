@@ -269,10 +269,31 @@ const NotificationList = forwardRef((_, ref) => {
   }, [filteredNotifications, showCount])
 
   useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: '10px',
-      threshold: 1
+    if (!pubkey || !subRequests.length || loading || !until) return
+
+    const observerInstance = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
+        }
+      },
+      {
+        root: null,
+        rootMargin: '10px',
+        threshold: 1
+      }
+    )
+
+    const currentBottomRef = bottomRef.current
+
+    if (currentBottomRef) {
+      observerInstance.observe(currentBottomRef)
+    }
+
+    return () => {
+      if (observerInstance && currentBottomRef) {
+        observerInstance.unobserve(currentBottomRef)
+      }
     }
 
     async function loadMore() {
@@ -284,40 +305,19 @@ const NotificationList = forwardRef((_, ref) => {
         }
       }
 
-      if (!pubkey || !subRequests.length || !until || loading) return
       setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
+      const olderNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
       setLoading(false)
-      if (newNotifications.length === 0) {
-        setUntil(undefined)
-        return
-      }
 
-      if (newNotifications.length > 0) {
+      if (olderNotifications.length > 0) {
         setNotifications((oldNotifications) => [
           ...oldNotifications,
-          ...newNotifications.filter((event) => event.pubkey !== pubkey)
+          ...olderNotifications.filter((event) => event.pubkey !== pubkey)
         ])
-      }
-
-      setUntil(newNotifications[newNotifications.length - 1].created_at - 1)
-    }
-
-    const observerInstance = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        loadMore()
-      }
-    }, options)
-
-    const currentBottomRef = bottomRef.current
-
-    if (currentBottomRef) {
-      observerInstance.observe(currentBottomRef)
-    }
-
-    return () => {
-      if (observerInstance && currentBottomRef) {
-        observerInstance.unobserve(currentBottomRef)
+        setUntil(olderNotifications[olderNotifications.length - 1].created_at - 1)
+      } else {
+        setUntil(undefined)
+        return
       }
     }
   }, [pubkey, subRequests, until, loading, showCount, filteredNotifications])
