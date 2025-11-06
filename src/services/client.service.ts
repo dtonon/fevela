@@ -2,11 +2,12 @@ import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
 import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
-import { ISigner, TPublishOptions, TRelayList, TEmoji, TMutedList } from '@/types'
+import { ISigner, TPublishOptions, TRelayList, TEmoji, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
 import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
-import { Filter } from '@nostr/tools/filter'
+import debounce from 'debounce'
+import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
@@ -31,8 +32,9 @@ import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { AddressPointer } from '@nostr/tools/nip19'
 import { verifyEvent } from '@nostr/tools/wasm'
-import { store } from './outbox.service'
+import { current, outbox, ready, store } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
+import { binarySearch } from '@nostr/tools/utils'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -211,10 +213,11 @@ class ClientService extends EventTarget {
   /** =========== Timeline =========== */
 
   subscribeTimeline(
-    subRequests: { urls: string[]; filter: Filter & { limit: number } }[],
+    subRequests: TFeedSubRequest[],
+    filterModification: Filter,
     {
-      onEvents,
-      onNew,
+      onEvents, // called only once
+      onNew, // any events that come after the initial onEvents batch
       onClose
     }: {
       onEvents: (events: NostrEvent[]) => void
@@ -222,87 +225,190 @@ class ClientService extends EventTarget {
       onClose?: (url: string, reason: string) => void
     },
     {
-      startLogin,
-      needSort = true
+      startLogin
     }: {
       startLogin?: () => void
-      needSort?: boolean
     } = {}
   ): SubCloser {
-    let events: NostrEvent[] = []
-    let eosed = false
+    let subc: SubCloser
+    const abort = new AbortController()
 
-    // keep track of this just so we can refer to them for onClose
-    const urls: string[] = []
+    const localFilters = subRequests
+      .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
+      .map(({ filter }) => ({
+        ...filter,
+        ...filterModification
+      }))
 
-    const subc = pool.subscribeMap(
-      subRequests.flatMap(({ urls, filter }) =>
-        urls.flatMap((url) => {
-          if (!urls.includes(url)) urls.push(url)
-          return { url, filter }
-        })
-      ),
-      {
-        label: 'f-timeline',
-        onevent(evt) {
-          if (!eosed) {
-            events.push(evt)
-          } else {
-            onNew(evt)
-          }
-        },
-        oneose() {
-          eosed = true
-          if (needSort) {
-            events.sort((a, b) => b.created_at - a.created_at)
-          }
-          onEvents(events)
-          events = []
-        },
-        onauth: async (authEvt) => {
-          // already logged in
-          if (this.signer) {
-            const evt = await this.signer!.signEvent(authEvt)
-            if (!evt) {
-              throw new Error('sign event failed')
-            }
-            return evt as VerifiedEvent
-          }
+    const relayRequests = subRequests
+      .filter(
+        (req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays'
+      )
+      .map(({ urls, filter }) => ({
+        urls,
+        filter: {
+          ...filter,
+          ...filterModification
+        }
+      }))
 
-          // open login dialog
-          if (startLogin) {
-            startLogin()
-          }
+    const needSort =
+      localFilters.length + relayRequests.length > 1 || relayRequests[0].urls.length > 1
 
-          throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
-        },
-        onclose(reasons) {
-          if (onClose) reasons.forEach((reason, i) => onClose(urls[i], reason))
+    // do local db requests
+    const local = (async () => {
+      const events: NostrEvent[] = []
+      for (let i = 0; i < localFilters.length; i++) {
+        const filter = localFilters[i]
+        for await (const event of store.queryEvents(filter, 5_000)) {
+          events.push(event)
         }
       }
-    )
 
-    return subc
+      // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
+      const allAuthors = localFilters.flatMap((f) => f.authors || [])
+
+      ready().then(() => {
+        outbox.live(allAuthors, {
+          signal: abort.signal
+        })
+
+        current.onnew = (event: NostrEvent) => {
+          if (matchFilters(localFilters, event)) onNew(event)
+        }
+        current.onsync = debounce(async () => {
+          for (let i = 0; i < localFilters.length; i++) {
+            const filter = localFilters[i]
+            for await (const event of store.queryEvents(filter, 5_000)) {
+              // check if this isn't already in the sorted array of events
+              const [_, exists] = binarySearch(events, (b) => {
+                if (event.id === b.id) return 0
+                if (event.created_at === b.created_at) return -1
+                return b.created_at - event.created_at
+              })
+              if (!exists) {
+                onNew(event)
+              }
+            }
+          }
+        }, 2200)
+      })
+
+      return events
+    })()
+
+    // do relay requests
+    const network = new Promise<NostrEvent[]>((resolve) => {
+      let eosed = false
+
+      // keep track of this just so we can refer to them for onClose
+      const urls: string[] = []
+
+      let events: NostrEvent[] = []
+      subc = pool.subscribeMap(
+        relayRequests.flatMap(({ urls, filter }) =>
+          urls.flatMap((url) => {
+            if (!urls.includes(url)) urls.push(url)
+            return { url, filter }
+          })
+        ),
+        {
+          label: 'f-timeline',
+          onevent(evt) {
+            if (!eosed) {
+              events.push(evt)
+            } else {
+              onNew(evt)
+            }
+          },
+          oneose() {
+            eosed = true
+            resolve(events)
+            events = []
+          },
+          onauth: async (authEvt) => {
+            // already logged in
+            if (this.signer) {
+              const evt = await this.signer!.signEvent(authEvt)
+              if (!evt) {
+                throw new Error('sign event failed')
+              }
+              return evt as VerifiedEvent
+            }
+
+            // open login dialog
+            if (startLogin) {
+              startLogin()
+            }
+
+            throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
+          },
+          onclose(reasons) {
+            if (onClose) reasons.forEach((reason, i) => onClose(urls[i], reason))
+            resolve(events)
+          }
+        }
+      )
+    })
+
+    Promise.all([local, network]).then(([eventsL, eventsN]) => {
+      if (eventsL.length > 0 && eventsN.length > 0) {
+        const events = eventsL.concat(eventsN)
+        if (needSort) events.sort((a, b) => b.created_at - a.created_at)
+        onEvents(events)
+      } else if (eventsL.length) {
+        onEvents(eventsL)
+      } else {
+        if (needSort) eventsN.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsN)
+      }
+    })
+
+    return {
+      close() {
+        onClose = undefined
+        abort.abort('<subc>')
+        subc?.close?.()
+      }
+    }
   }
 
   async loadMoreTimeline(
-    subRequests: { urls: string[]; filter: Filter & { limit: number } }[],
-    until: number,
-    limit: number,
+    subRequests: TFeedSubRequest[],
+    filterModification: Filter,
     {
-      startLogin,
-      needSort = true
+      startLogin
     }: {
       startLogin?: () => void
-      needSort?: boolean
     } = {}
   ): Promise<NostrEvent[]> {
-    const events = await new Promise<NostrEvent[]>((resolve) => {
+    const localFilters = subRequests
+      .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
+      .map(({ filter }) => ({
+        ...filter,
+        ...filterModification
+      }))
+
+    const relayRequests = subRequests
+      .filter(
+        (req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays'
+      )
+      .map(({ urls, filter }) => ({
+        urls,
+        filter: {
+          ...filter,
+          ...filterModification
+        }
+      }))
+
+    const needSort =
+      localFilters.length + relayRequests.length > 1 || relayRequests[0].urls.length > 1
+
+    // do relay requests
+    const network = await new Promise<NostrEvent[]>((resolve) => {
       const events: NostrEvent[] = []
       const subc = pool.subscribeMap(
-        subRequests.flatMap(({ urls, filter }) =>
-          urls.flatMap((url) => ({ url, filter: { ...filter, until, limit } }))
-        ),
+        relayRequests.flatMap(({ urls, filter }) => urls.flatMap((url) => ({ url, filter }))),
         {
           label: 'f-more',
           onevent(evt) {
@@ -337,11 +443,30 @@ class ClientService extends EventTarget {
       )
     })
 
-    if (needSort) {
-      events.sort((a, b) => b.created_at - a.created_at)
-    }
+    // do local requests
+    const local = (async () => {
+      const events: NostrEvent[] = []
+      for (let i = 0; i < localFilters.length; i++) {
+        const filter = localFilters[i]
+        for await (const event of store.queryEvents(filter, 5_000)) {
+          events.push(event)
+        }
+      }
+      return events
+    })()
 
-    return events
+    return Promise.all([local, network]).then(([eventsL, eventsN]) => {
+      if (eventsL.length > 0 && eventsN.length > 0) {
+        const events = eventsL.concat(eventsN)
+        if (needSort) events.sort((a, b) => b.created_at - a.created_at)
+        return events
+      } else if (eventsL.length) {
+        return eventsL
+      } else {
+        if (needSort) eventsN.sort((a, b) => b.created_at - a.created_at)
+        return eventsN
+      }
+    })
   }
 
   /** =========== Event =========== */

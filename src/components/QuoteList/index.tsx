@@ -33,6 +33,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
 
       setSubRequests([
         {
+          source: 'relays',
           urls: relayUrls,
           filter: {
             '#q': [
@@ -44,8 +45,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
               kinds.LongFormArticle,
               ExtendedKind.COMMENT,
               ExtendedKind.POLL
-            ],
-            limit: LIMIT
+            ]
           }
         }
       ])
@@ -59,6 +59,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
 
     const subc = client.subscribeTimeline(
       subRequests,
+      { limit: LIMIT },
       {
         onEvents: (events) => {
           if (events.length > 0) {

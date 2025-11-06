@@ -51,7 +51,7 @@ const NotificationList = forwardRef((_, ref) => {
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  const filter = useMemo<Filter | undefined>(() => {
+  const filter = useMemo<Omit<Filter, 'since' | 'until'> | undefined>(() => {
     if (!pubkey) return
 
     let filterKinds: number[] = []
@@ -91,13 +91,14 @@ const NotificationList = forwardRef((_, ref) => {
 
   useEffect(() => {
     ;(async () => {
-      if (!pubkey) return
+      if (!pubkey || !filter) return
       const relays = await client.fetchRelayList(pubkey)
 
       setSubRequests([
         {
+          source: 'relays',
           urls: relays.read,
-          filter: { ...filter, limit: LIMIT }
+          filter
         }
       ])
     })()
@@ -146,18 +147,22 @@ const NotificationList = forwardRef((_, ref) => {
     setShowCount(SHOW_COUNT)
     setLastReadTime(getNotificationsSeenAt())
 
-    const subc = client.subscribeTimeline(subRequests, {
-      onEvents: (events) => {
-        if (events.length > 0) {
-          setNotifications(events.filter((event) => event.pubkey !== pubkey))
-        }
+    const subc = client.subscribeTimeline(
+      subRequests,
+      { limit: LIMIT },
+      {
+        onEvents: (events) => {
+          if (events.length > 0) {
+            setNotifications(events.filter((event) => event.pubkey !== pubkey))
+          }
 
-        setLoading(false)
-        setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-        noteStatsService.updateNoteStatsByEvents(events)
-      },
-      onNew: handleNewEvent
-    })
+          setLoading(false)
+          setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+          noteStatsService.updateNoteStatsByEvents(events)
+        },
+        onNew: handleNewEvent
+      }
+    )
 
     return () => subc.close()
   }, [pubkey, refreshCount, filter, current])
@@ -201,7 +206,7 @@ const NotificationList = forwardRef((_, ref) => {
 
       if (!pubkey || !subRequests.length || !until || loading) return
       setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(subRequests, until, LIMIT)
+      const newNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
       setLoading(false)
       if (newNotifications.length === 0) {
         setUntil(undefined)

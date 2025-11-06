@@ -67,7 +67,7 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
       const rootTag = getRootTag(event)
       if (!rootTag) return
 
-      const filters: (Filter & { limit: number })[] = []
+      const filters: Filter[] = []
       const relays: string[] = client.getSeenEventRelayUrls(event.id)
 
       const hint = rootTag[2]
@@ -77,15 +77,13 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
         case 'e':
           filters.push({
             '#e': [rootTag[1]],
-            kinds: [kinds.ShortTextNote],
-            limit: LIMIT
+            kinds: [kinds.ShortTextNote]
           })
         // eslint-disable-next-line no-fallthrough
         case 'E':
           filters.push({
             '#E': [rootTag[1]],
-            kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT],
-            limit: LIMIT
+            kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT]
           })
 
           const authorHint = event.kind === 1 ? rootTag[4] : rootTag[3]
@@ -105,13 +103,11 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
           filters.push(
             {
               '#a': [rootTag[1]],
-              kinds: [kinds.ShortTextNote],
-              limit: LIMIT
+              kinds: [kinds.ShortTextNote]
             },
             {
               '#A': [rootTag[1]],
-              kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT],
-              limit: LIMIT
+              kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT]
             }
           )
 
@@ -121,13 +117,13 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
         default:
           filters.push({
             '#I': [rootTag[1]],
-            kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT],
-            limit: LIMIT
+            kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT]
           })
       }
 
       setSubRequests(
         filters.map((filter) => ({
+          source: 'relays',
           urls: relays.concat(BIG_RELAY_URLS).slice(0, 5),
           filter
         }))
@@ -142,19 +138,25 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
 
     let subc: SubCloser | undefined
     try {
-      subc = client.subscribeTimeline(subRequests, {
-        onEvents: (evts) => {
-          if (evts.length > 0) {
-            addReplies(evts.filter((evt) => isReplyNoteEvent(evt)))
-          }
-          setUntil(evts.length >= LIMIT ? evts[evts.length - 1].created_at - 1 : undefined)
-          setLoading(false)
+      subc = client.subscribeTimeline(
+        subRequests,
+        {
+          limit: LIMIT
         },
-        onNew: (evt) => {
-          if (!isReplyNoteEvent(evt)) return
-          addReplies([evt])
+        {
+          onEvents: (evts) => {
+            if (evts.length > 0) {
+              addReplies(evts.filter(isReplyNoteEvent))
+            }
+            setUntil(evts.length >= LIMIT ? evts[evts.length - 1].created_at - 1 : undefined)
+            setLoading(false)
+          },
+          onNew: (evt) => {
+            if (!isReplyNoteEvent(evt)) return
+            addReplies([evt])
+          }
         }
-      })
+      )
     } catch (_err) {
       setLoading(false)
     }
@@ -198,7 +200,7 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
     if (loading || !until) return
 
     setLoading(true)
-    const events = await client.loadMoreTimeline(subRequests, until, LIMIT)
+    const events = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
     const olderEvents = events.filter((evt) => isReplyNoteEvent(evt))
     if (olderEvents.length > 0) {
       addReplies(olderEvents)
