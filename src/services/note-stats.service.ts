@@ -132,15 +132,22 @@ class NoteStatsService {
 
     const reactions: Event[] = []
     await new Promise<void>((resolve) => {
-      pool.subscribeManyEose(relayList.read.concat(BIG_RELAY_URLS).slice(0, 5), filters, {
-        label: 'f-stats',
-        onevent(evt) {
-          reactions.push(evt)
-        },
-        onclose() {
-          resolve()
+      const subc = pool.subscribeMap(
+        relayList.read
+          .concat(BIG_RELAY_URLS)
+          .slice(0, 5)
+          .flatMap((url) => filters.map((filter) => ({ url, filter }))),
+        {
+          label: 'f-stats',
+          onevent(evt) {
+            reactions.push(evt)
+          },
+          oneose() {
+            resolve()
+            subc.close()
+          }
         }
-      })
+      )
     })
     this.updateNoteStatsByEvents(reactions)
 
