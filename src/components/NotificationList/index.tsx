@@ -6,7 +6,7 @@ import { useNotification } from '@/providers/NotificationProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
-import { TNotificationType } from '@/types'
+import { TFeedSubRequest, TNotificationType } from '@/types'
 import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { Filter, matchFilter } from '@nostr/tools/filter'
@@ -42,11 +42,10 @@ const NotificationList = forwardRef((_, ref) => {
   const [lastReadTime, setLastReadTime] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<NostrEvent[]>([])
-  const [visibleNotifications, setVisibleNotifications] = useState<NostrEvent[]>([])
+  const [events, setEvents] = useState<NostrEvent[]>([])
+  const [hasMore, setHasMore] = useState(false)
   const [showCount, setShowCount] = useState(SHOW_COUNT)
-  const [subRequests, setSubRequests] = useState<Parameters<typeof client.subscribeTimeline>[0]>([])
-  const [until, setUntil] = useState<number | undefined>(dayjs().unix())
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -92,6 +91,7 @@ const NotificationList = forwardRef((_, ref) => {
   useEffect(() => {
     ;(async () => {
       if (!pubkey || !filter) return
+
       const relays = await client.fetchRelayList(pubkey)
 
       setSubRequests([
@@ -118,7 +118,7 @@ const NotificationList = forwardRef((_, ref) => {
   const handleNewEvent = useCallback(
     (event: NostrEvent) => {
       if (event.pubkey === pubkey) return
-      setNotifications((oldEvents) => {
+      setEvents((oldEvents) => {
         const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
         if (index !== -1 && oldEvents[index].id === event.id) {
           return oldEvents
@@ -135,15 +135,11 @@ const NotificationList = forwardRef((_, ref) => {
   )
 
   useEffect(() => {
+    if (!subRequests || !pubkey) return
     if (current !== 'notifications') return
 
-    if (!pubkey) {
-      setUntil(undefined)
-      return
-    }
-
     setLoading(true)
-    setNotifications([])
+    setEvents([])
     setShowCount(SHOW_COUNT)
     setLastReadTime(getNotificationsSeenAt())
 
@@ -153,11 +149,11 @@ const NotificationList = forwardRef((_, ref) => {
       {
         onEvents: (events) => {
           if (events.length > 0) {
-            setNotifications(events.filter((event) => event.pubkey !== pubkey))
+            setEvents(events.filter((event) => event.pubkey !== pubkey))
+            setHasMore(true)
           }
 
           setLoading(false)
-          setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
           noteStatsService.updateNoteStatsByEvents(events)
         },
         onNew: handleNewEvent
@@ -165,7 +161,7 @@ const NotificationList = forwardRef((_, ref) => {
     )
 
     return () => subc.close()
-  }, [pubkey, refreshCount, filter, current])
+  }, [pubkey, refreshCount, current, subRequests])
 
   useEffect(() => {
     if (!active || !pubkey || !filter) return
@@ -185,11 +181,7 @@ const NotificationList = forwardRef((_, ref) => {
   }, [pubkey, active, filter, handleNewEvent])
 
   useEffect(() => {
-    setVisibleNotifications(notifications.slice(0, showCount))
-  }, [notifications, showCount])
-
-  useEffect(() => {
-    if (!pubkey || !subRequests.length || loading || !until) return
+    if (!pubkey || !subRequests.length || loading || !hasMore) return
 
     const observerInstance = new IntersectionObserver(
       (entries) => {
@@ -217,30 +209,31 @@ const NotificationList = forwardRef((_, ref) => {
     }
 
     async function loadMore() {
-      if (showCount < notifications.length) {
+      if (showCount < events.length) {
         setShowCount((count) => count + SHOW_COUNT)
-        // preload more
-        if (notifications.length - showCount > LIMIT / 2) {
+        // preload more?
+        if (events.length - showCount > LIMIT / 2) {
           return
         }
       }
 
       setLoading(true)
-      const olderNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
+      const olderEvents = await client.loadMoreTimeline(subRequests, {
+        until: events.length > 0 ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+        limit: LIMIT
+      })
       setLoading(false)
 
-      if (olderNotifications.length > 0) {
-        setNotifications((oldNotifications) => [
-          ...oldNotifications,
-          ...olderNotifications.filter((event) => event.pubkey !== pubkey)
+      if (olderEvents.length > 0) {
+        setEvents((currentEvents) => [
+          ...currentEvents,
+          ...olderEvents.filter((event) => event.pubkey !== pubkey)
         ])
-        setUntil(olderNotifications[olderNotifications.length - 1].created_at - 1)
       } else {
-        setUntil(undefined)
-        return
+        setHasMore(false)
       }
     }
-  }, [pubkey, subRequests, until, loading, showCount, notifications])
+  }, [pubkey, subRequests, loading, showCount, hasMore, events])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -251,7 +244,7 @@ const NotificationList = forwardRef((_, ref) => {
 
   const list = (
     <div className={notificationListStyle === NOTIFICATION_LIST_STYLE.COMPACT ? 'pt-2' : ''}>
-      {visibleNotifications.map((notification) => (
+      {events.slice(0, showCount).map((notification) => (
         <NotificationItem
           key={notification.id}
           notification={notification}
@@ -259,7 +252,7 @@ const NotificationList = forwardRef((_, ref) => {
         />
       ))}
       <div className="text-center text-sm text-muted-foreground">
-        {until || loading ? (
+        {hasMore || loading ? (
           <div ref={bottomRef}>
             <NotificationSkeleton />
           </div>

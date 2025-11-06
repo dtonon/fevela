@@ -9,6 +9,7 @@ import * as kinds from '@nostr/tools/kinds'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
 const SHOW_COUNT = 10
@@ -17,7 +18,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   const { t } = useTranslation()
   const { startLogin } = useNostr()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
-  const [subRequests, setSubRequests] = useState<Parameters<typeof client.subscribeTimeline>[0]>([])
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [hasMore, setHasMore] = useState<boolean>(true)
