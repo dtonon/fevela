@@ -755,7 +755,10 @@ class ClientService extends EventTarget {
         return {
           write: r.items.filter((r) => r.write).map((r) => r.url),
           read: r.items.filter((r) => r.read).map((r) => r.url),
-          originalRelays: []
+          originalRelays: r.items.map(({ url, read, write }) => ({
+            url,
+            scope: read && write ? 'both' : read ? 'read' : 'write'
+          }))
         }
       }
     })
