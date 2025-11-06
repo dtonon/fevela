@@ -79,8 +79,15 @@ export default function ReplyNoteList({
 
   useEffect(() => {
     ;(async () => {
-      const rootTag = getRootTag(event)
-      if (!rootTag) return
+      let rootTag = getRootTag(event)
+      if (!rootTag) {
+        // if nothing is found that means the current event is the root,
+        // so we fake some tags here to represent that:
+        rootTag =
+          event.kind === 1
+            ? ['e', event.id, '', '', event.pubkey]
+            : ['E', event.id, '', event.pubkey]
+      }
 
       const filters: Filter[] = []
       const relays: string[] = client.getSeenEventRelayUrls(event.id)
