@@ -20,7 +20,7 @@ import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, NostrEvent } from '@nostr/tools/wasm'
+import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { userIdToPubkey } from '@/lib/pubkey'
 import {
@@ -39,8 +39,6 @@ import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 import PinnedNoteCard from '../PinnedNoteCard'
-import { current, ready, outbox, store } from '@/services/outbox.service'
-import { Filter } from '@nostr/tools/filter'
 
 const LIMIT = 200
 const SHOW_COUNT = 10
@@ -281,63 +279,103 @@ const NoteList = forwardRef(
         groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
       }
 
-      const [relayRequests, localFilters] = splitRelayAndLocalRequests(
+      const subc = client.subscribeTimeline(
         subRequests,
-        showKinds,
-        sinceTimestamp,
-        isFilteredView,
-        limit
+        {
+          kinds: showKinds,
+          limit,
+          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+        },
+        {
+          onEvents: async (events) => {
+            if (events.length > 0) {
+              setEvents(events)
+            }
+
+            setLoading(false)
+            setHasMore(events.length > 0)
+
+            // for grouped mode, automatically load more until we reach timeframe boundary
+            if (groupedNotesSince && events.length > 0) {
+              const oldestEvent = events[events.length - 1]
+              if (oldestEvent.created_at > groupedNotesSince) {
+                // start loading more data back in time
+                loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
+              } else {
+                // we've reached the time boundary, no more loading needed
+                setHasMore(false)
+              }
+            }
+          },
+          onNew: (event) => {
+            if (pubkey && event.pubkey === pubkey) {
+              // if the new event is from the current user, insert it directly into the feed
+              setEvents((oldEvents) =>
+                oldEvents.some((e) => e.id === event.id) ? oldEvents : [event, ...oldEvents]
+              )
+            } else {
+              // otherwise, buffer it and show the New Notes button
+              setNewEvents((oldEvents) => [event, ...oldEvents])
+            }
+          },
+          onClose: (url, reason) => {
+            if (!showRelayCloseReason) return
+            // ignore reasons from @nostr/tools
+            if (
+              [
+                'closed by caller',
+                'relay connection errored',
+                'relay connection closed',
+                'pingpong timed out',
+                'relay connection closed by us'
+              ].includes(reason)
+            ) {
+              return
+            }
+
+            toast.error(`${url}: ${reason}`)
+          }
+        },
+        {
+          startLogin
+        }
       )
 
-      // execute relay requests
-      let closeSubs: Promise<() => void> | undefined
-      if (relayRequests.length > 0) {
-        closeSubs = performRelayRequests(relayRequests, limit, groupedNotesSince)
-      }
-
-      // execute local db requests
-      const abort = new AbortController()
-      if (localFilters.length) {
-        performLocalStoreRequests(localFilters, limit, groupedNotesSince)
-
-        // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
-        const allAuthors = localFilters.flatMap((f) => f.authors || [])
-
-        ready().then(() => {
-          outbox.live(allAuthors, {
-            signal: abort.signal
+      // function to load more data for grouped mode
+      async function loadMoreGroupedData(until: number, timeframeSince: number) {
+        setGroupedLoadingMore(true)
+        try {
+          const moreEvents = await client.loadMoreTimeline(subRequests, {
+            until,
+            limit,
+            ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
           })
-
-          current.onnew = (event: NostrEvent) => {
-            // if it's newer than what we had before buffer it and show the New Notes button
-            if (event.created_at > (events[0]?.created_at || 0)) {
-              setNewEvents((oldEvents) => [event, ...oldEvents])
-            } else {
-              // otherwise just merge it with the rest
-              setEvents((events) =>
-                events.concat(event).sort((a, b) => b.created_at - a.created_at)
-              )
-            }
+          if (moreEvents.length === 0) {
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+            return
           }
-          current.onsync = () => {
-            performLocalStoreRequests(localFilters, limit, groupedNotesSince)
-          }
-        })
-      }
 
-      return () => {
-        if (closeSubs) {
-          closeSubs.then((close) => close())
+          setEvents((prevEvents) => [...prevEvents, ...moreEvents])
+
+          // check if we need to load even more
+          const oldestNewEvent = moreEvents[moreEvents.length - 1]
+          if (oldestNewEvent.created_at > timeframeSince) {
+            // recursively load more until we reach the time boundary
+            await loadMoreGroupedData(oldestNewEvent.created_at - 1, timeframeSince)
+          } else {
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+          }
+        } catch (error) {
+          console.error('Error loading more grouped data:', error)
+          setHasMore(false)
+          setGroupedLoadingMore(false)
         }
-        abort.abort('<unmounted>')
       }
-    }, [
-      JSON.stringify(subRequests),
-      refreshCount,
-      showKinds,
-      groupedMode,
-      JSON.stringify(groupedNotesSettings)
-    ])
+
+      return () => subc.close()
+    }, [subRequests, refreshCount, showKinds, groupedMode, groupedNotesSettings])
 
     useEffect(() => {
       const options = {
@@ -347,8 +385,7 @@ const NoteList = forwardRef(
       }
 
       async function loadMore() {
-        // Don't auto-load if we're in filtered view mode
-        if (isFilteredView) return
+        if (!hasMore || loading || isFilteredView) return
 
         if (showCount < events.length) {
           setShowCount((prev) => prev + SHOW_COUNT)
@@ -360,47 +397,11 @@ const NoteList = forwardRef(
 
         setLoading(true)
 
-        const [relayRequests, localFilters] = splitRelayAndLocalRequests(
-          subRequests,
-          showKinds,
-          sinceTimestamp,
-          isFilteredView,
-          LIMIT
-        )
-
-        const moreEvents: NostrEvent[] = []
-
-        // paginate from local store
-        if (localFilters.length) {
-          localFilters.forEach(async (filter) => {
-            for await (const event of store.queryEvents(filter, LIMIT)) {
-              moreEvents.push(event)
-            }
-          })
-        }
-
-        // paginate from relays
-        if (relayRequests.length > 0) {
-          const result = await client.loadMoreTimeline(
-            relayRequests,
-            events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-            LIMIT,
-            {
-              // same as in performRelayRequests call, but add the localFilters.length === 0 requirement,
-              // because if localFilters.length exists here we will have to sort afterwards anyway,
-              // so we don't have to pre-sort
-              needSort:
-                (localFilters.length === 0 && relayRequests.length > 1) ||
-                relayRequests[0].urls.length > 1
-            }
-          )
-
-          moreEvents.push(...result)
-        }
-
-        if (localFilters.length + relayRequests.length > 1) {
-          moreEvents.sort((a, b) => b.created_at - a.created_at)
-        }
+        const moreEvents = await client.loadMoreTimeline(subRequests, {
+          until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+          limit: LIMIT,
+          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+        })
 
         if (moreEvents.length === 0) {
           setHasMore(false)
@@ -428,7 +429,7 @@ const NoteList = forwardRef(
           observerInstance.unobserve(currentBottomRef)
         }
       }
-    }, [loading, hasMore, events, showCount, isFilteredView])
+    }, [])
 
     function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
@@ -584,127 +585,6 @@ const NoteList = forwardRef(
         )}
       </div>
     )
-
-    function performLocalStoreRequests(
-      filters: (Filter & { limit: number })[],
-      limit: number,
-      groupedNotesSince: number | undefined
-    ) {
-      filters.forEach(async (filter) => {
-        ;(filter as Filter).since = groupedNotesSince
-        const events: NostrEvent[] = []
-        for await (const event of store.queryEvents(filter, limit)) {
-          events.push(event)
-        }
-      })
-
-      if (filters.length) events.sort((a, b) => b.created_at - a.created_at)
-
-      setEvents(events)
-      setLoading(false)
-      setHasMore(events.length > 0)
-    }
-
-    async function performRelayRequests(
-      relayRequests: { urls: string[]; filter: Filter & { limit: number } }[],
-      limit: number,
-      groupedNotesSince: number | undefined
-    ) {
-      const subc = client.subscribeTimeline(
-        relayRequests,
-        {
-          onEvents: async (events) => {
-            if (events.length > 0) {
-              setEvents(events)
-            }
-
-            setLoading(false)
-            setHasMore(events.length > 0)
-
-            // for grouped mode, automatically load more until we reach timeframe boundary
-            if (groupedNotesSince && events.length > 0) {
-              const oldestEvent = events[events.length - 1]
-              if (oldestEvent.created_at > groupedNotesSince) {
-                // start loading more data back in time
-                loadMoreGroupedData(relayRequests, oldestEvent.created_at - 1, groupedNotesSince)
-              } else {
-                // we've reached the time boundary, no more loading needed
-                setHasMore(false)
-              }
-            }
-          },
-          onNew: (event) => {
-            if (pubkey && event.pubkey === pubkey) {
-              // if the new event is from the current user, insert it directly into the feed
-              setEvents((oldEvents) =>
-                oldEvents.some((e) => e.id === event.id) ? oldEvents : [event, ...oldEvents]
-              )
-            } else {
-              // otherwise, buffer it and show the New Notes button
-              setNewEvents((oldEvents) => [event, ...oldEvents])
-            }
-          },
-          onClose: (url, reason) => {
-            if (!showRelayCloseReason) return
-            // ignore reasons from @nostr/tools
-            if (
-              [
-                'closed by caller',
-                'relay connection errored',
-                'relay connection closed',
-                'pingpong timed out',
-                'relay connection closed by us'
-              ].includes(reason)
-            ) {
-              return
-            }
-
-            toast.error(`${url}: ${reason}`)
-          }
-        },
-        {
-          startLogin,
-
-          // when querying from a single relay just trust their sort (this pairs well with algo-style relays)
-          needSort: relayRequests.length > 1 || relayRequests[0].urls.length > 1
-        }
-      )
-
-      // function to load more data for grouped mode
-      const loadMoreGroupedData = async (
-        relayRequests: { urls: string[]; filter: Filter & { limit: number } }[],
-        until: number,
-        timeframeSince: number
-      ) => {
-        setGroupedLoadingMore(true)
-        try {
-          const moreEvents = await client.loadMoreTimeline(relayRequests, until, limit)
-          if (moreEvents.length === 0) {
-            setHasMore(false)
-            setGroupedLoadingMore(false)
-            return
-          }
-
-          setEvents((prevEvents) => [...prevEvents, ...moreEvents])
-
-          // check if we need to load even more
-          const oldestNewEvent = moreEvents[moreEvents.length - 1]
-          if (oldestNewEvent.created_at > timeframeSince) {
-            // recursively load more until we reach the time boundary
-            await loadMoreGroupedData(relayRequests, oldestNewEvent.created_at - 1, timeframeSince)
-          } else {
-            setHasMore(false)
-            setGroupedLoadingMore(false)
-          }
-        } catch (error) {
-          console.error('Error loading more grouped data:', error)
-          setHasMore(false)
-          setGroupedLoadingMore(false)
-        }
-      }
-
-      return () => subc.close()
-    }
   }
 )
 NoteList.displayName = 'NoteList'
@@ -713,36 +593,4 @@ export default NoteList
 export type TNoteListRef = {
   scrollToTop: (behavior?: ScrollBehavior) => void
   refresh: () => void
-}
-
-function splitRelayAndLocalRequests(
-  subRequests: TFeedSubRequest[],
-  showKinds: number[],
-  sinceTimestamp: number | undefined,
-  isFilteredView: boolean,
-  limit: number
-): [{ urls: string[]; filter: Filter & { limit: number } }[], (Filter & { limit: number })[]] {
-  const relayRequests = subRequests
-    .filter((req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays')
-    .map(({ urls, filter }) => ({
-      urls,
-      filter: {
-        kinds: showKinds,
-        ...filter,
-        ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
-        limit
-      }
-    }))
-
-  // prepare local db requests
-  const localFilters = subRequests
-    .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
-    .map(({ filter }) => ({
-      kinds: showKinds,
-      ...filter,
-      ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
-      limit
-    }))
-
-  return [relayRequests, localFilters]
 }
