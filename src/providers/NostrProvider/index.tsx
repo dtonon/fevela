@@ -537,7 +537,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
     const deletionRequest = await signEvent(createDeletionRequestDraftEvent(targetEvent))
 
-    const seenOn = client.getSeenEventRelayUrls(targetEvent.id)
+    const seenOn = client.getSeenEventRelayUrls(targetEvent.id, targetEvent)
     const relays = await client.determineTargetRelays(targetEvent, {
       specifiedRelayUrls: isProtectedEvent(targetEvent) ? seenOn : undefined,
       additionalRelayUrls: seenOn

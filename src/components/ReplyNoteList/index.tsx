@@ -90,7 +90,7 @@ export default function ReplyNoteList({
       }
 
       const filters: Filter[] = []
-      const relays: string[] = client.getSeenEventRelayUrls(event.id)
+      const relays: string[] = client.getSeenEventRelayUrls(event.id, event)
 
       const hint = rootTag[2]
       if (hint) relays.push(hint)

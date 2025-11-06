@@ -45,7 +45,7 @@ export default function Likes({ event }: { event: Event }) {
 
       try {
         const reaction = createReactionDraftEvent(event, emoji)
-        const seenOn = client.getSeenEventRelayUrls(event.id)
+        const seenOn = client.getSeenEventRelayUrls(event.id, event)
         const evt = await publish(reaction, { additionalRelayUrls: seenOn })
         noteStatsService.updateNoteStatsByEvents([evt])
       } catch (error) {

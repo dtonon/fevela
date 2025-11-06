@@ -29,7 +29,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
     ;(async () => {
       const relayList = await client.fetchRelayList(event.pubkey)
       const relayUrls = relayList.read.concat(BIG_RELAY_URLS)
-      const seenOn = client.getSeenEventRelayUrls(event.id)
+      const seenOn = client.getSeenEventRelayUrls(event.id, event)
       relayUrls.unshift(...seenOn)
 
       setSubRequests([
