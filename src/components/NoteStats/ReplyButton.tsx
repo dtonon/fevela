@@ -66,8 +66,12 @@ export default function ReplyButton({ event }: { event: Event }) {
         }}
         title={t('Reply')}
       >
-        <MessageCircle />
-        {!!replyCount && <div className="text-sm">{formatCount(replyCount)}</div>}
+        <MessageCircle className={`${replyCount > 0 ? 'text-primary' : ''}`} />
+        {!!replyCount && (
+          <div className={`text-sm ${replyCount > 0 ? 'text-primary' : ''}`}>
+            {formatCount(replyCount)}
+          </div>
+        )}
       </button>
       <PostEditor parentEvent={event} open={open} setOpen={setOpen} />
     </>
