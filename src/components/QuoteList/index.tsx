@@ -97,11 +97,10 @@ export default function QuoteList({ event, className }: { event: Event; classNam
 
       if (loading || !hasMore) return
       setLoading(true)
-      const newEvents = await client.loadMoreTimeline(
-        subRequests,
-        events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-        LIMIT
-      )
+      const newEvents = await client.loadMoreTimeline(subRequests, {
+        until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+        limit: LIMIT
+      })
       setLoading(false)
       if (newEvents.length === 0) {
         setHasMore(false)

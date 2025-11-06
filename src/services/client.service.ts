@@ -253,103 +253,116 @@ class ClientService extends EventTarget {
       }))
 
     const needSort =
-      localFilters.length + relayRequests.length > 1 || relayRequests[0].urls.length > 1
+      localFilters.length + relayRequests.length > 1 || relayRequests[0]?.urls?.length > 1
 
     // do local db requests
-    const local = (async () => {
-      const events: NostrEvent[] = []
-      for (let i = 0; i < localFilters.length; i++) {
-        const filter = localFilters[i]
-        for await (const event of store.queryEvents(filter, 5_000)) {
-          events.push(event)
-        }
-      }
-
-      // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
-      const allAuthors = localFilters.flatMap((f) => f.authors || [])
-
-      ready().then(() => {
-        outbox.live(allAuthors, {
-          signal: abort.signal
-        })
-
-        current.onnew = (event: NostrEvent) => {
-          if (matchFilters(localFilters, event)) onNew(event)
-        }
-        current.onsync = debounce(async () => {
-          for (let i = 0; i < localFilters.length; i++) {
-            const filter = localFilters[i]
-            for await (const event of store.queryEvents(filter, 5_000)) {
-              // check if this isn't already in the sorted array of events
-              const [_, exists] = binarySearch(events, (b) => {
-                if (event.id === b.id) return 0
-                if (event.created_at === b.created_at) return -1
-                return b.created_at - event.created_at
-              })
-              if (!exists) {
-                onNew(event)
+    const local =
+      localFilters.length === 0
+        ? Promise.resolve([])
+        : (async () => {
+            const events: NostrEvent[] = []
+            for (let i = 0; i < localFilters.length; i++) {
+              const filter = localFilters[i]
+              for await (const event of store.queryEvents(filter, 5_000)) {
+                events.push(event)
               }
             }
-          }
-        }, 2200)
-      })
 
-      return events
-    })()
+            // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
+            const allAuthors = localFilters.flatMap((f) => f.authors || [])
+
+            ready().then(() => {
+              outbox.live(allAuthors, {
+                signal: abort.signal
+              })
+
+              current.onnew = (event: NostrEvent) => {
+                if (matchFilters(localFilters, event)) onNew(event)
+              }
+              current.onsync = debounce(async () => {
+                for (let i = 0; i < localFilters.length; i++) {
+                  const filter = localFilters[i]
+                  for await (const event of store.queryEvents(filter, 5_000)) {
+                    // check if this isn't already in the sorted array of events
+                    const [_, exists] = binarySearch(events, (b) => {
+                      if (event.id === b.id) return 0
+                      if (event.created_at === b.created_at) return -1
+                      return b.created_at - event.created_at
+                    })
+                    if (!exists) {
+                      onNew(event)
+                    }
+                  }
+                }
+              }, 2200)
+            })
+
+            return events
+          })()
 
     // do relay requests
-    const network = new Promise<NostrEvent[]>((resolve) => {
-      let eosed = false
+    const network =
+      relayRequests.length === 0
+        ? Promise.resolve([])
+        : new Promise<NostrEvent[]>((resolve) => {
+            let eosed = false
 
-      // keep track of this just so we can refer to them for onClose
-      const urls: string[] = []
+            // keep track of this just so we can refer to them for onClose
+            const urls: string[] = []
 
-      let events: NostrEvent[] = []
-      subc = pool.subscribeMap(
-        relayRequests.flatMap(({ urls, filter }) =>
-          urls.flatMap((url) => {
-            if (!urls.includes(url)) urls.push(url)
-            return { url, filter }
-          })
-        ),
-        {
-          label: 'f-timeline',
-          onevent(evt) {
-            if (!eosed) {
-              events.push(evt)
-            } else {
-              onNew(evt)
-            }
-          },
-          oneose() {
-            eosed = true
-            resolve(events)
-            events = []
-          },
-          onauth: async (authEvt) => {
-            // already logged in
-            if (this.signer) {
-              const evt = await this.signer!.signEvent(authEvt)
-              if (!evt) {
-                throw new Error('sign event failed')
+            let events: NostrEvent[] = []
+            subc = pool.subscribeMap(
+              relayRequests.flatMap(({ urls, filter }) =>
+                urls.flatMap((url) => {
+                  if (!urls.includes(url)) urls.push(url)
+                  return { url, filter }
+                })
+              ),
+              {
+                label: 'f-timeline',
+                onevent(evt) {
+                  if (!eosed) {
+                    events.push(evt)
+                  } else {
+                    onNew(evt)
+                  }
+                },
+                oneose() {
+                  eosed = true
+                  resolve(events)
+                  events = []
+                },
+                onauth: async (authEvt) => {
+                  // already logged in
+                  if (this.signer) {
+                    const evt = await this.signer!.signEvent(authEvt)
+                    if (!evt) {
+                      throw new Error('sign event failed')
+                    }
+                    return evt as VerifiedEvent
+                  }
+
+                  // open login dialog
+                  if (startLogin) {
+                    startLogin()
+                  }
+
+                  throw new Error(
+                    "<not logged in, can't auth to relay during this.subscribeTimeline>"
+                  )
+                },
+                onclose(reasons) {
+                  if (onClose) {
+                    for (let i = 0; i < reasons.length; i++) {
+                      const reason = reasons[i]
+                      onClose(urls[i], reason)
+                    }
+                  }
+                  resolve(events)
+                }
               }
-              return evt as VerifiedEvent
-            }
-
-            // open login dialog
-            if (startLogin) {
-              startLogin()
-            }
-
-            throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
-          },
-          onclose(reasons) {
-            if (onClose) reasons.forEach((reason, i) => onClose(urls[i], reason))
-            resolve(events)
-          }
-        }
-      )
-    })
+            )
+          })
 
     Promise.all([local, network]).then(([eventsL, eventsN]) => {
       if (eventsL.length > 0 && eventsN.length > 0) {
@@ -405,61 +418,69 @@ class ClientService extends EventTarget {
       localFilters.length + relayRequests.length > 1 || relayRequests[0].urls.length > 1
 
     // do relay requests
-    const network = await new Promise<NostrEvent[]>((resolve) => {
-      const events: NostrEvent[] = []
-      const subc = pool.subscribeMap(
-        relayRequests.flatMap(({ urls, filter }) => urls.flatMap((url) => ({ url, filter }))),
-        {
-          label: 'f-more',
-          onevent(evt) {
-            events.push(evt)
-          },
-          oneose() {
-            subc.close()
-            resolve(events)
-          },
-          onclose() {
-            resolve(events)
-          },
-          onauth: async (authEvt) => {
-            // already logged in
-            if (this.signer) {
-              const evt = await this.signer!.signEvent(authEvt)
-              if (!evt) {
-                throw new Error('sign event failed')
+    const network =
+      relayRequests.length === 0
+        ? Promise.resolve([])
+        : await new Promise<NostrEvent[]>((resolve) => {
+            const events: NostrEvent[] = []
+            const subc = pool.subscribeMap(
+              relayRequests.flatMap(({ urls, filter }) => urls.flatMap((url) => ({ url, filter }))),
+              {
+                label: 'f-more',
+                onevent(evt) {
+                  events.push(evt)
+                },
+                oneose() {
+                  subc.close()
+                  resolve(events)
+                },
+                onclose() {
+                  resolve(events)
+                },
+                onauth: async (authEvt) => {
+                  // already logged in
+                  if (this.signer) {
+                    const evt = await this.signer!.signEvent(authEvt)
+                    if (!evt) {
+                      throw new Error('sign event failed')
+                    }
+                    return evt as VerifiedEvent
+                  }
+
+                  // open login dialog
+                  if (startLogin) {
+                    startLogin()
+                    return
+                  }
+
+                  throw new Error(
+                    "<not logged in, can't auth to relay during this.loadMoreTimeline>"
+                  )
+                }
               }
-              return evt as VerifiedEvent
-            }
-
-            // open login dialog
-            if (startLogin) {
-              startLogin()
-              return
-            }
-
-            throw new Error("<not logged in, can't auth to relay during this.loadMoreTimeline>")
-          }
-        }
-      )
-    })
+            )
+          })
 
     // do local requests
-    const local = (async () => {
-      const events: NostrEvent[] = []
-      for (let i = 0; i < localFilters.length; i++) {
-        const filter = localFilters[i]
-        for await (const event of store.queryEvents(filter, 5_000)) {
-          events.push(event)
-        }
-      }
-      return events
-    })()
+    const local =
+      localFilters.length === 0
+        ? Promise.resolve([])
+        : (async () => {
+            const events: NostrEvent[] = []
+            for (let i = 0; i < localFilters.length; i++) {
+              const filter = localFilters[i]
+              for await (const event of store.queryEvents(filter, 5_000)) {
+                events.push(event)
+              }
+            }
+            return events
+          })()
 
     return Promise.all([local, network]).then(([eventsL, eventsN]) => {
       if (eventsL.length > 0 && eventsN.length > 0) {
-        const events = eventsL.concat(eventsN)
-        if (needSort) events.sort((a, b) => b.created_at - a.created_at)
-        return events
+        eventsL.push(...eventsN)
+        if (needSort) eventsL.sort((a, b) => b.created_at - a.created_at)
+        return eventsL
       } else if (eventsL.length) {
         return eventsL
       } else {

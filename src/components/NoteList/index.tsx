@@ -202,7 +202,7 @@ const NoteList = forwardRef(
       searchProfiles()
     }, [groupedMode, userFilter])
 
-    // Apply user filter for grouped mode
+    // apply user filter for grouped mode
     const userFilteredEvents = useMemo(() => {
       if (!groupedMode || !userFilter.trim() || matchingPubkeys === null) {
         return filteredEvents
@@ -378,15 +378,34 @@ const NoteList = forwardRef(
     }, [subRequests, refreshCount, showKinds, groupedMode, groupedNotesSettings])
 
     useEffect(() => {
-      const options = {
-        root: null,
-        rootMargin: '10px',
-        threshold: 0.1
+      if (!hasMore || loading || isFilteredView) return
+
+      const observerInstance = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore) {
+            loadMore()
+          }
+        },
+        {
+          root: null,
+          rootMargin: '10px',
+          threshold: 0.1
+        }
+      )
+
+      const currentBottomRef = bottomRef.current
+
+      if (currentBottomRef) {
+        observerInstance.observe(currentBottomRef)
+      }
+
+      return () => {
+        if (observerInstance && currentBottomRef) {
+          observerInstance.unobserve(currentBottomRef)
+        }
       }
 
       async function loadMore() {
-        if (!hasMore || loading || isFilteredView) return
-
         if (showCount < events.length) {
           setShowCount((prev) => prev + SHOW_COUNT)
           // preload more
@@ -411,25 +430,7 @@ const NoteList = forwardRef(
         setEvents((events) => [...events, ...moreEvents])
         setLoading(false)
       }
-
-      const observerInstance = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore()
-        }
-      }, options)
-
-      const currentBottomRef = bottomRef.current
-
-      if (currentBottomRef) {
-        observerInstance.observe(currentBottomRef)
-      }
-
-      return () => {
-        if (observerInstance && currentBottomRef) {
-          observerInstance.unobserve(currentBottomRef)
-        }
-      }
-    }, [])
+    }, [hasMore, loading, isFilteredView, showCount])
 
     function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
