@@ -23,6 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { LoadingBar } from '../LoadingBar'
 import ReplyNote, { ReplyNoteSkeleton } from '../ReplyNote'
 import { SubCloser } from '@nostr/tools/abstract-pool'
+import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
 const SHOW_COUNT = 10
@@ -41,7 +42,7 @@ export default function ReplyNoteList({
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
-  const [subRequests, setSubRequests] = useState<Parameters<typeof client.subscribeTimeline>[0]>([])
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const { repliesMap, addReplies } = useReply()
   const replies = useMemo(() => {
     const replyKeySet = new Set<string>()
