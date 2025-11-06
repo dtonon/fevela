@@ -205,6 +205,7 @@ export default {
     'Temporarily display this reply': 'عرض هذا الرد مؤقتاً',
     'Note not found': 'لم يتم العثور على الملاحظة',
     'no more replies': 'لا توجد مزيد من الردود',
+    ShowOnlyFirstLevelReplies: 'إظهار الردود من المستوى الأول فقط',
     'Relay sets': 'مجموعات الريلاي',
     'Favorite Relays': 'الريلايات المفضلة',
     "Following's Favorites": 'المفضلات من المتابعين',

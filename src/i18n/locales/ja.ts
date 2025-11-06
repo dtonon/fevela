@@ -206,6 +206,7 @@ export default {
     'Temporarily display this reply': 'この返信を一時的に表示',
     'Note not found': 'ノートが見つかりません',
     'no more replies': 'これ以上の返信はありません',
+    ShowOnlyFirstLevelReplies: '第1レベルの返信のみを表示',
     'Relay sets': 'リレイセット',
     'Favorite Relays': 'お気に入りのリレイ',
     "Following's Favorites": 'フォロー中のお気に入り',

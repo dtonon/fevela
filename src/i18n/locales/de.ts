@@ -209,6 +209,7 @@ export default {
     'Temporarily display this reply': 'Antwort vorübergehend anzeigen',
     'Note not found': 'Die Notiz wurde nicht gefunden',
     'no more replies': 'keine weiteren Antworten',
+    ShowOnlyFirstLevelReplies: 'Nur Antworten erster Ebene anzeigen',
     'Relay sets': 'Relay-Sets',
     'Favorite Relays': 'Lieblings-Relays',
     "Following's Favorites": 'Favoriten der Folgenden',

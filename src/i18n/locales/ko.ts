@@ -207,6 +207,7 @@ export default {
     'Temporarily display this reply': '이 답글 임시 표시',
     'Note not found': '노트를 찾을 수 없음',
     'no more replies': '더 이상 답글 없음',
+    ShowOnlyFirstLevelReplies: '첫 번째 수준의 답글만 표시',
     'Relay sets': '릴레이 세트',
     'Favorite Relays': '즐겨찾는 릴레이',
     "Following's Favorites": '팔로잉의 즐겨찾기',

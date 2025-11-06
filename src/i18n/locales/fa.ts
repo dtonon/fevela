@@ -207,6 +207,7 @@ export default {
     'Temporarily display this reply': 'نمایش موقت این پاسخ',
     'Note not found': 'یادداشت یافت نشد',
     'no more replies': 'پاسخ بیشتری وجود ندارد',
+    ShowOnlyFirstLevelReplies: 'فقط پاسخ‌های سطح اول را نشان بده',
     'Relay sets': 'مجموعه‌های رله',
     'Favorite Relays': 'رله‌های مورد علاقه',
     "Following's Favorites": 'مورد علاقه دنبال شونده‌ها',

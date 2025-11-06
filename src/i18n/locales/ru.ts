@@ -210,6 +210,7 @@ export default {
     'Temporarily display this reply': 'Временно отобразить этот ответ',
     'Note not found': 'Заметка не найдена',
     'no more replies': 'больше нет ответов',
+    ShowOnlyFirstLevelReplies: 'Показать только ответы первого уровня',
     'Relay sets': 'Наборы ретрансляторов',
     'Favorite Relays': 'Избранные ретрансляторы',
     "Following's Favorites": 'Избранные ретрансляторы подписчиков',

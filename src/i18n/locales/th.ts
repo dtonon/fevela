@@ -204,6 +204,7 @@ export default {
     'Temporarily display this reply': 'แสดงการตอบกลับนี้ชั่วคราว',
     'Note not found': 'ไม่พบโน้ต',
     'no more replies': 'ไม่มีการตอบกลับเพิ่มเติม',
+    ShowOnlyFirstLevelReplies: 'แสดงเฉพาะการตอบกลับระดับแรก',
     'Relay sets': 'ชุดรีเลย์',
     'Favorite Relays': 'รีเลย์โปรด',
     "Following's Favorites": 'รายการโปรดของผู้ที่ติดตาม',

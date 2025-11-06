@@ -33,7 +33,15 @@ type TRootInfo =
 const LIMIT = 100
 const SHOW_COUNT = 10
 
-export default function ReplyNoteList({ index, event }: { index?: number; event: NEvent }) {
+export default function ReplyNoteList({
+  index,
+  event,
+  showOnlyFirstLevel = false
+}: {
+  index?: number
+  event: NEvent
+  showOnlyFirstLevel?: boolean
+}) {
   const { t } = useTranslation()
   const { push, currentIndex } = useSecondaryPage()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
@@ -46,7 +54,12 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
     const replyEvents: NEvent[] = []
     const currentEventKey = getEventKey(event)
     let parentEventKeys = [currentEventKey]
-    while (parentEventKeys.length > 0) {
+
+    // If showOnlyFirstLevel is true, only get direct replies
+    const maxDepth = showOnlyFirstLevel ? 1 : Infinity
+    let depth = 0
+
+    while (parentEventKeys.length > 0 && depth < maxDepth) {
       const events = parentEventKeys.flatMap((key) => repliesMap.get(key)?.events || [])
       events.forEach((evt) => {
         const key = getEventKey(evt)
@@ -58,9 +71,10 @@ export default function ReplyNoteList({ index, event }: { index?: number; event:
         replyEvents.push(evt)
       })
       parentEventKeys = events.map((evt) => getEventKey(evt))
+      depth++
     }
     return replyEvents.sort((a, b) => a.created_at - b.created_at)
-  }, [event.id, repliesMap])
+  }, [event.id, repliesMap, showOnlyFirstLevel])
   const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [until, setUntil] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState<boolean>(false)

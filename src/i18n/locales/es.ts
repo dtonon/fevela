@@ -209,6 +209,7 @@ export default {
     'Temporarily display this reply': 'Mostrar temporalmente esta respuesta',
     'Note not found': 'No se encontró la nota',
     'no more replies': 'no hay más respuestas',
+    ShowOnlyFirstLevelReplies: 'Mostrar solo respuestas de primer nivel',
     'Relay sets': 'Conjuntos de relés',
     'Favorite Relays': 'Relés favoritos',
     "Following's Favorites": 'Favoritos de los seguidos',

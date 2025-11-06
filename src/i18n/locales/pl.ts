@@ -207,6 +207,7 @@ export default {
     'Temporarily display this reply': 'Tymczasowo wyświetl tę odpowiedź',
     'Note not found': 'Nie znaleziono wpisu',
     'no more replies': 'brak kolejnych odpowiedzi',
+    ShowOnlyFirstLevelReplies: 'Pokaż tylko odpowiedzi pierwszego poziomu',
     'Relay sets': 'Zestawy transmiterów',
     'Favorite Relays': 'Ulubione transmitery',
     "Following's Favorites": 'Ulubione transmitery obserwowanych',

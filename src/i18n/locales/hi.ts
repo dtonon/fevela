@@ -208,6 +208,7 @@ export default {
     'Temporarily display this reply': 'इस उत्तर को अस्थायी रूप से प्रदर्शित करें',
     'Note not found': 'नोट नहीं मिला',
     'no more replies': 'कोई और उत्तर नहीं',
+    ShowOnlyFirstLevelReplies: 'केवल पहले स्तर के उत्तर दिखाएं',
     'Relay sets': 'रिले सेट',
     'Favorite Relays': 'पसंदीदा रिले',
     "Following's Favorites": 'फॉलोइंग के पसंदीदा',

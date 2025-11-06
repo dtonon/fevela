@@ -208,6 +208,7 @@ export default {
     'Temporarily display this reply': 'Afficher temporairement cette réponse',
     'Note not found': 'Note introuvable',
     'no more replies': 'aucune autre réponse',
+    ShowOnlyFirstLevelReplies: 'Afficher uniquement les réponses de premier niveau',
     'Relay sets': 'Groupes de relais',
     'Favorite Relays': 'Relais favoris',
     "Following's Favorites": "Following's Favorites",

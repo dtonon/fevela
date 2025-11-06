@@ -206,6 +206,7 @@ export default {
     'Temporarily display this reply': '临时显示此回复',
     'Note not found': '未找到该笔记',
     'no more replies': '没有更多回复了',
+    ShowOnlyFirstLevelReplies: '仅显示第一级回复',
     'Relay sets': '服务器组',
     'Favorite Relays': '收藏的服务器',
     "Following's Favorites": '关注人的收藏',
