@@ -43,7 +43,6 @@ export default function RepostNoteCard({
           if (eventFromContent.kind === kinds.Repost) {
             return
           }
-          client.addEventToCache(eventFromContent)
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
           if (targetSeenOn.length === 0) {
             const seenOn = client.getSeenEventRelays(event.id)
@@ -52,6 +51,7 @@ export default function RepostNoteCard({
             })
           }
           setTargetEvent(eventFromContent)
+          client.addEventToCache(eventFromContent)
           return
         }
 

@@ -496,16 +496,25 @@ class ClientService extends EventTarget {
     return Array.from(pool.seenOn.get(eventId)?.values() || [])
   }
 
-  getSeenEventRelayUrls(eventId: string) {
-    return this.getSeenEventRelays(eventId).map((relay) => relay.url)
+  getSeenEventRelayUrls(eventId: string, event?: NostrEvent) {
+    const poolUrls = this.getSeenEventRelays(eventId).map((relay) => relay.url)
+
+    // events loaded from the store may have a "seen_on" field (added by us and by gadgets/outbox)
+    const seenOn = event && (event as { seen_on?: string[] }).seen_on
+    if (seenOn && Array.isArray(seenOn)) {
+      const combined = new Set([...poolUrls, ...seenOn])
+      return Array.from(combined)
+    }
+
+    return poolUrls
   }
 
-  getEventHints(eventId: string) {
-    return this.getSeenEventRelayUrls(eventId).filter((url) => !isLocalNetworkUrl(url))
+  getEventHints(eventId: string, event?: NostrEvent) {
+    return this.getSeenEventRelayUrls(eventId, event).filter((url) => !isLocalNetworkUrl(url))
   }
 
-  getEventHint(eventId: string) {
-    return this.getSeenEventRelayUrls(eventId).find((url) => !isLocalNetworkUrl(url)) ?? ''
+  getEventHint(eventId: string, event?: NostrEvent) {
+    return this.getSeenEventRelayUrls(eventId, event).find((url) => !isLocalNetworkUrl(url)) ?? ''
   }
 
   trackEventSeenOn(eventId: string, relay: AbstractRelay) {
@@ -576,7 +585,10 @@ class ClientService extends EventTarget {
   }
 
   addEventToCache(event: NostrEvent) {
-    store.saveEvent(event)
+    store.saveEvent({
+      ...event,
+      seen_on: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
+    } as NostrEvent)
   }
 
   async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {

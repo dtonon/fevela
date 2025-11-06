@@ -240,7 +240,7 @@ export function getReplaceableCoordinateFromEvent(event: Event) {
 }
 
 export function getNoteBech32Id(event: Event) {
-  const hints = client.getEventHints(event.id).slice(0, 2)
+  const hints = client.getEventHints(event.id, event).slice(0, 2)
   if (isReplaceableEvent(event.kind)) {
     const identifier = event.tags.find(tagNameEquals('d'))?.[1] ?? ''
     return nip19.naddrEncode({ pubkey: event.pubkey, kind: event.kind, identifier, relays: hints })

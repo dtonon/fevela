@@ -55,7 +55,7 @@ export default function PostRelaySelector({
     if (!parentEvent || !isProtectedEvent(parentEvent)) {
       return []
     }
-    return client.getSeenEventRelayUrls(parentEvent.id)
+    return client.getSeenEventRelayUrls(parentEvent.id, parentEvent)
   }, [parentEvent])
   const selectableRelays = useMemo(() => {
     return Array.from(new Set(parentEventSeenOnRelays.concat(relayUrls).concat(urls)))

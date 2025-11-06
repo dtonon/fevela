@@ -27,7 +27,7 @@ export default function SeenOnButton({ event }: { event: Event }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   useEffect(() => {
-    const seenOn = client.getSeenEventRelayUrls(event.id)
+    const seenOn = client.getSeenEventRelayUrls(event.id, event)
     setRelays(seenOn)
   }, [])
 
