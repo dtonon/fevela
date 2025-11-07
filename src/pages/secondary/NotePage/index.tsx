@@ -24,13 +24,14 @@ import { cn } from '@/lib/utils'
 import { Ellipsis } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
-import { forwardRef, useMemo } from 'react'
+import { forwardRef, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFound from './NotFound'
 
 const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref) => {
   const { t } = useTranslation()
   const { event, isFetching } = useFetchEvent(id)
+  const [repostTargetEvent, setRepostTargetEvent] = useState<Event | null>(null)
   const parentEventId = useMemo(() => getParentBech32Id(event), [event])
   const rootEventId = useMemo(() => getRootBech32Id(event), [event])
   const rootITag = useMemo(
@@ -80,8 +81,18 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
     return (
       <SecondaryPageLayout ref={ref} index={index} title={t('Note')} displayScrollToTopButton>
         <div className="pt-3">
-          <RepostNoteCard event={event} className="" filterMutedNotes={false} />
+          <RepostNoteCard
+            event={event}
+            className=""
+            filterMutedNotes={false}
+            onTargetEventLoaded={setRepostTargetEvent}
+          />
         </div>
+        <NoteInteractions
+          key={`note-interactions-${repostTargetEvent?.id ?? event.id}`}
+          pageIndex={index}
+          event={repostTargetEvent ?? event}
+        />
       </SecondaryPageLayout>
     )
   }

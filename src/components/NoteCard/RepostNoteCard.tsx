@@ -7,18 +7,26 @@ import { Event, verifyEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { neventEncode } from '@nostr/tools/nip19'
 import { useEffect, useMemo, useState } from 'react'
-import MainNoteCard from './MainNoteCard'
+import Collapsible from '../Collapsible'
+import Note from '../Note'
+import NoteStats from '../NoteStats'
+import PinnedButton from './PinnedButton'
+import RepostDescription from './RepostDescription'
+import { useSecondaryPage } from '@/PageManager'
+import { toNote } from '@/lib/link'
 
 export default function RepostNoteCard({
   event,
   className,
   filterMutedNotes = true,
-  pinned = false
+  pinned = false,
+  onTargetEventLoaded
 }: {
   event: Event
   className?: string
   filterMutedNotes?: boolean
   pinned?: boolean
+  onTargetEventLoaded?: (event: Event) => void
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -33,6 +41,7 @@ export default function RepostNoteCard({
     }
     return false
   }, [targetEvent, filterMutedNotes, hideContentMentioningMutedUsers, mutePubkeySet])
+
   useEffect(() => {
     const fetch = async () => {
       try {
@@ -50,6 +59,7 @@ export default function RepostNoteCard({
             })
           }
           setTargetEvent(eventFromContent)
+          onTargetEventLoaded?.(eventFromContent)
           return
         }
 
@@ -65,6 +75,7 @@ export default function RepostNoteCard({
         const targetEvent = await client.fetchEvent(targetEventId)
         if (targetEvent) {
           setTargetEvent(targetEvent)
+          onTargetEventLoaded?.(targetEvent)
         }
       } catch {
         // ignore
@@ -73,14 +84,26 @@ export default function RepostNoteCard({
     fetch()
   }, [event])
 
+  const { push } = useSecondaryPage()
+
   if (!targetEvent || shouldHide) return null
 
   return (
-    <MainNoteCard
+    <div
       className={className}
-      reposter={event.pubkey}
-      event={targetEvent}
-      pinned={pinned}
-    />
+      onClick={(e) => {
+        e.stopPropagation()
+        push(toNote(targetEvent.id ?? event))
+      }}
+    >
+      <div className="clickable py-3">
+        <Collapsible alwaysExpand={false}>
+          {pinned && <PinnedButton event={targetEvent} />}
+          <RepostDescription className="px-4" reposter={event.pubkey} />
+          <Note className="px-4" size="normal" event={targetEvent} originalNoteId={event.id} />
+        </Collapsible>
+        <NoteStats className="mt-3 px-4 pb-4" event={targetEvent} fetchIfNotExisting />
+      </div>
+    </div>
   )
 }
