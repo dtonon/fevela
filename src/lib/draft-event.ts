@@ -96,8 +96,6 @@ export function createRepostDraftEvent(event: Event): TDraftEvent {
     tags.push(buildATag(event))
   }
 
-  delete (event as any).seen_on
-
   return {
     kind: kinds.Repost,
     content: isProtected ? '' : JSON.stringify(event),
