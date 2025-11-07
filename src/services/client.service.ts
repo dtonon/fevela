@@ -35,6 +35,7 @@ import { verifyEvent } from '@nostr/tools/wasm'
 import { current, outbox, ready, store } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch } from '@nostr/tools/utils'
+import { seenOn } from '@nostr/gadgets/store'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -499,14 +500,11 @@ class ClientService extends EventTarget {
   getSeenEventRelayUrls(eventId: string, event?: NostrEvent) {
     const poolUrls = this.getSeenEventRelays(eventId).map((relay) => relay.url)
 
-    // events loaded from the store may have a "seen_on" field (added by us and by gadgets/outbox)
-    const seenOn = event && (event as { seen_on?: string[] }).seen_on
-    if (seenOn && Array.isArray(seenOn)) {
-      const combined = new Set([...poolUrls, ...seenOn])
-      return Array.from(combined)
-    }
+    // events loaded from the store may have a special list of "seenOn" relays attached
+    const relays = event ? seenOn(event) : []
+    const combined = new Set([...poolUrls, ...relays])
 
-    return poolUrls
+    return Array.from(combined)
   }
 
   getEventHints(eventId: string, event?: NostrEvent) {

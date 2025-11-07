@@ -57,7 +57,8 @@ export async function start(pubkey: string, signal: AbortSignal) {
         current.onnew?.(event)
       }
     },
-    defaultRelaysForConfusedPeople: BIG_RELAY_URLS
+    defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
+    storeRelaysSeenOn: true
   })
 
   status.syncing = true
