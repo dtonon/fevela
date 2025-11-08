@@ -20,8 +20,15 @@ export default function FollowingFeed() {
       // no need to call outbox.sync() here since that will already happen on NostrProvider
       // for people that the current logged user follows
 
-      const followings = (await loadFollowsList(pubkey)).items
-      setSubRequests([{ source: 'local', filter: { authors: [pubkey, ...followings] } }])
+      setSubRequests([
+        { source: 'local', filter: { authors: [pubkey] } },
+        {
+          source: 'local',
+          filter: {
+            followedBy: pubkey
+          }
+        }
+      ])
     }
 
     init()

@@ -10,7 +10,7 @@ import {
 export type TFeedSubRequest =
   | {
       source: 'local'
-      filter: Omit<Filter, 'since' | 'until'>
+      filter: Omit<Filter, 'since' | 'until'> & { followedBy?: string }
     }
   | {
       source: 'relays'

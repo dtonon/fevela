@@ -29,7 +29,7 @@ import { Event, VerifiedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import * as nip49 from '@nostr/tools/nip49'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useDeletedEvent } from '../DeletedEventProvider'
@@ -47,10 +47,11 @@ import {
   loadPins
 } from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
-import { start, end, status } from '@/services/outbox.service'
+import { start, end, status, updateFollowedEventsIndex } from '@/services/outbox.service'
 
 type TNostrContext = {
   isInitialized: boolean
+  isReady: boolean
   pubkey: string | null
   profile: NostrUser | null
   relayList: TRelayList | null
@@ -127,6 +128,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [pinList, setPinList] = useState<string[]>([])
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(-1)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -135,11 +137,18 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       }
 
       const accounts = storage.getAccounts()
-      const act = storage.getCurrentAccount() ?? accounts[0] // auto login the first account
-      if (!act) return
-
-      await loginWithAccountPointer(act)
+      const act = storage.getCurrentAccount()
+      if (act) {
+        await loginWithAccountPointer(act, true)
+        return
+      }
+      if (accounts[0]) {
+        // auto login the first account
+        await loginWithAccountPointer(accounts[0], false)
+        return
+      }
     }
+
     init().then(() => {
       setIsInitialized(true)
     })
@@ -158,11 +167,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    const globalSyncAbort = new AbortController()
+
+      // initialize current account
     ;(async () => {
       setRelayList(null)
       setProfile(null)
       setNsec(null)
       setNotificationsSeenAt(-1)
+
       if (!account) {
         return
       }
@@ -182,6 +195,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
       const storedNotificationsSeenAt = storage.getLastReadNotificationTime(account.pubkey)
 
+      // current account replaceables
       const relayList = await client.fetchRelayList(account.pubkey)
       setRelayList(relayList)
 
@@ -190,9 +204,29 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
       loadPins(account.pubkey).then(({ items }) => setPinList(items))
       client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
-      loadFollowsList(account.pubkey).then(({ items }) => setFollowList(items))
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
+      // first fetch with no network
+      loadFollowsList(account.pubkey, [], false).then(({items: previous}) => {
+        // then fetch with network so we can check the difference
+        loadFollowsList(account.pubkey, [], true).then((list) => {
+            updateFollowedEventsIndex(account.pubkey, previous, list.items)
+          setFollowList(list.items)
+
+          // initialize outbox manager for this user
+          if (status.syncing && status.pubkey === account.pubkey) {
+            // we're already logged with this same pubkey, so don't stop it only to start again
+            // (react shouldn't have called this twice)
+            return
+          }
+
+          // stop the previous sync (if any) and start again on the new key
+          start(account.pubkey, list.items, globalSyncAbort.signal)
+          setIsReady(true)
+        })
+      })
+
+      // load application settings
       const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), {
         kinds: [kinds.Application],
         authors: [account.pubkey],
@@ -213,9 +247,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
       client.initUserIndexFromFollowings(account.pubkey)
     })()
+
+    return () => {
+      end()
+      globalSyncAbort.abort('<account-changed>')
+    }
   }, [account])
 
   useEffect(() => {
+    // fetch our latest reactions and process them
     if (!account) return
     ;(async () => {
       const pubkey = account.pubkey
@@ -255,24 +295,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     customEmojiService.init(userEmojiList)
   }, [userEmojiList])
 
-  const globalSyncAbort = useRef(new AbortController())
-
-  useEffect(() => {
-    if (!account) return
-
-    if (status.syncing && status.pubkey === account.pubkey) {
-      // we're already logged with this same pubkey, so don't stop it only to start again
-      // (react shouldn't have called this twice)
-      return
-    }
-
-    // stop the previous sync (if any) and start again on the new key
-    end()
-    globalSyncAbort.current.abort('<account-changed>')
-    globalSyncAbort.current = new AbortController()
-    start(account.pubkey, globalSyncAbort.current.signal)
-  }, [account])
-
   const hasNostrLoginHash = () => {
     return window.location.hash && window.location.hash.startsWith('#nostr-login')
   }
@@ -291,10 +313,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = (signer: ISigner, act: TAccount) => {
+  const login = async (signer: ISigner, act: TAccount, shouldWipeFollowedByIndexes: boolean) => {
+    if (shouldWipeFollowedByIndexes) {
+        await loadFollowsList(act.pubkey, [], null)
+    }
+
     const newAccounts = storage.addAccount(act)
     setAccounts(newAccounts)
     storage.switchAccount(act)
+
     setAccount({ pubkey: act.pubkey, signerType: act.signerType })
     setSigner(signer)
     return act.pubkey
@@ -316,7 +343,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setSigner(null)
       return
     }
-    await loginWithAccountPointer(act)
+    await loginWithAccountPointer(act, false)
   }
 
   const nsecLogin = async (nsecOrHex: string, password?: string, needSetup?: boolean) => {
@@ -336,9 +363,9 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const pubkey = nsecSigner.login(privkey)!
     if (password) {
       const ncryptsec = nip49.encrypt(privkey, password)
-      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
+      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
     } else {
-      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) })
+      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) }, true)
     }
     if (needSetup) {
       setupNewUser(nsecSigner)
@@ -354,13 +381,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const privkey = nip49.decrypt(ncryptsec, password)
     const browserNsecSigner = new NsecSigner()
     const pubkey = browserNsecSigner.login(privkey)!
-    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
+    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
   }
 
   const npubLogin = async (npub: string) => {
     const npubSigner = new NpubSigner()
     const pubkey = npubSigner.login(npub)
-    return login(npubSigner, { pubkey, signerType: 'npub', npub })
+    return login(npubSigner, { pubkey, signerType: 'npub', npub }, true)
   }
 
   const nip07Login = async () => {
@@ -371,7 +398,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       if (!pubkey) {
         throw new Error('You did not allow to access your pubkey')
       }
-      return login(nip07Signer, { pubkey, signerType: 'nip-07' })
+      return login(nip07Signer, { pubkey, signerType: 'nip-07' }, true)
     } catch (err) {
       toast.error(t('Login failed') + ': ' + (err as Error).message)
       throw err
@@ -391,7 +418,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       signerType: 'bunker',
       bunker: bunkerUrl.toString(),
       bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    })
+    }, true)
   }
 
   const nostrConnectionLogin = async (clientSecretKey: Uint8Array, connectionString: string) => {
@@ -407,10 +434,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       signerType: 'bunker',
       bunker: bunkerUrl.toString(),
       bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    })
+    }, true)
   }
 
-  const loginWithAccountPointer = async (act: TAccountPointer): Promise<string | null> => {
+  const loginWithAccountPointer = async (
+    act: TAccountPointer,
+    wasCurrent: boolean // when this is true that means we don't have to wipe the followedBy indexes
+  ): Promise<string | null> => {
     let account = storage.findAccount(act)
     if (!account) {
       return null
@@ -425,7 +455,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, signerType: 'nsec' }
           storage.addAccount(account)
         }
-        return login(browserNsecSigner, account)
+        return login(browserNsecSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'ncryptsec') {
       if (account.ncryptsec) {
@@ -436,12 +466,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         const privkey = nip49.decrypt(account.ncryptsec, password)
         const browserNsecSigner = new NsecSigner()
         browserNsecSigner.login(privkey)
-        return login(browserNsecSigner, account)
+        return login(browserNsecSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'nip-07') {
       const nip07Signer = new Nip07Signer()
       await nip07Signer.init()
-      return login(nip07Signer, account)
+      return login(nip07Signer, account, !wasCurrent)
     } else if (account.signerType === 'bunker') {
       if (account.bunker && account.bunkerClientSecretKey) {
         const bunkerSigner = new BunkerSigner(account.bunkerClientSecretKey)
@@ -455,7 +485,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, pubkey }
           storage.addAccount(account)
         }
-        return login(bunkerSigner, account)
+        return login(bunkerSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'npub' && account.npub) {
       const npubSigner = new NpubSigner()
@@ -469,7 +499,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         account = { ...account, pubkey }
         storage.addAccount(account)
       }
-      return login(npubSigner, account)
+      return login(npubSigner, account, !wasCurrent)
     }
     storage.removeAccount(account)
     return null
@@ -593,8 +623,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateFollowListEvent = async (followListEvent: Event) => {
+    const previous = followList
     const { items } = await loadFollowsList(followListEvent.pubkey, [], followListEvent)
     setFollowList(items)
+    updateFollowedEventsIndex(account!.pubkey, previous, items)
   }
 
   const updateMuteListEvent = async (muteListEvent: Event) => {
@@ -643,6 +675,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     <NostrContext.Provider
       value={{
         isInitialized,
+        isReady,
         pubkey: account?.pubkey ?? null,
         profile,
         relayList,
