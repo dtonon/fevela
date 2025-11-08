@@ -7,7 +7,7 @@ import { createBlossomServerListDraftEvent } from '@/lib/draft-event'
 import { normalizeHttpUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
-import client from '@/services/client.service'
+import { loadBlossomServers } from '@nostr/gadgets/lists'
 import { AlertCircle, ArrowUpToLine, Loader, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -27,7 +27,7 @@ export default function BlossomServerListSetting() {
         setServerURLs([])
         return
       }
-      const { items: servers } = await client.loadBlossomServers(pubkey)
+      const { items: servers } = await loadBlossomServers(pubkey)
       setServerURLs(servers)
     }
     init()
@@ -39,7 +39,7 @@ export default function BlossomServerListSetting() {
     try {
       const draftEvent = createBlossomServerListDraftEvent([...serverURLs, url])
       const newEvent = await publish(draftEvent)
-      const { items: servers } = await client.loadBlossomServers(pubkey, [], newEvent)
+      const { items: servers } = await loadBlossomServers(pubkey, [], newEvent)
       setServerURLs(servers)
       setUrl('')
     } catch (error) {
@@ -64,7 +64,7 @@ export default function BlossomServerListSetting() {
     try {
       const draftEvent = createBlossomServerListDraftEvent(serverURLs.filter((_, i) => i !== idx))
       const newEvent = await publish(draftEvent)
-      const { items: servers } = await client.loadBlossomServers(pubkey, [], newEvent)
+      const { items: servers } = await loadBlossomServers(pubkey, [], newEvent)
       setServerURLs(servers)
     } catch (error) {
       console.error('Failed to remove Blossom URL:', error)
@@ -80,7 +80,7 @@ export default function BlossomServerListSetting() {
       const newUrls = [serverURLs[idx], ...serverURLs.filter((_, i) => i !== idx)]
       const draftEvent = createBlossomServerListDraftEvent(newUrls)
       const newEvent = await publish(draftEvent)
-      const { items: servers } = await client.loadBlossomServers(pubkey, [], newEvent)
+      const { items: servers } = await loadBlossomServers(pubkey, [], newEvent)
       setServerURLs(servers)
     } catch (error) {
       console.error('Failed to move Blossom URL to top:', error)

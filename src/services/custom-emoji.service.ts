@@ -1,7 +1,7 @@
 import { parseEmojiPickerUnified } from '@/lib/utils'
-import client from '@/services/client.service'
 import { TEmoji } from '@/types'
 import { sha256 } from '@noble/hashes/sha2'
+import { loadEmojiSets } from '@nostr/gadgets/sets'
 import { AddressPointer } from '@nostr/tools/nip19'
 import { SkinTones } from 'emoji-picker-react'
 import { getSuggested, setSuggested } from 'emoji-picker-react/src/dataUtils/suggested'
@@ -29,7 +29,7 @@ class CustomEmojiService {
     await this.addEmojisToIndex(emojis)
 
     emojiSetAddrs.forEach((addr) => {
-      client.loadEmojiSets(addr.pubkey).then((sets) => {
+      loadEmojiSets(addr.pubkey).then((sets) => {
         const set = sets[addr.identifier]
         if (set) {
           this.addEmojisToIndex(set.items)

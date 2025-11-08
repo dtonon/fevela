@@ -4,6 +4,7 @@ import client from '@/services/client.service'
 import { Event } from '@nostr/tools/wasm'
 import { createContext, useContext } from 'react'
 import { useNostr } from './NostrProvider'
+import { loadBookmarks } from '@nostr/gadgets/lists'
 
 type TBookmarksContext = {
   addBookmark: (event: Event) => Promise<void>
@@ -26,7 +27,7 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   const addBookmark = async (event: Event) => {
     if (!accountPubkey) return
 
-    const bookmarkList = await client.loadBookmarks(accountPubkey)
+    const bookmarkList = await loadBookmarks(accountPubkey)
     const currentTags = bookmarkList.event?.tags || []
     const isReplaceable = isReplaceableEvent(event.kind)
     const eventKey = isReplaceable ? getReplaceableCoordinateFromEvent(event) : event.id
@@ -54,7 +55,7 @@ export function BookmarksProvider({ children }: { children: React.ReactNode }) {
   const removeBookmark = async (event: Event) => {
     if (!accountPubkey) return
 
-    const bookmarkList = await client.loadBookmarks(accountPubkey)
+    const bookmarkList = await loadBookmarks(accountPubkey)
     if (!bookmarkList.event) return
 
     const isReplaceable = isReplaceableEvent(event.kind)
