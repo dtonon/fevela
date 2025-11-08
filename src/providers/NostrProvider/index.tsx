@@ -39,7 +39,13 @@ import { NostrConnectionSigner } from './nostrConnection.signer'
 import { NpubSigner } from './npub.signer'
 import { NsecSigner } from './nsec.signer'
 import { NostrUser } from '@nostr/gadgets/metadata'
-import { loadFavoriteRelays, loadFollowsList } from '@nostr/gadgets/lists'
+import {
+  loadBookmarks,
+  loadEmojis,
+  loadFavoriteRelays,
+  loadFollowsList,
+  loadPins
+} from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
 import { start, end, status } from '@/services/outbox.service'
 
@@ -180,9 +186,9 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setRelayList(relayList)
 
       client.fetchProfile(account.pubkey).then(setProfile)
-      client.loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
-      client.loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
-      client.loadPins(account.pubkey).then(({ items }) => setPinList(items))
+      loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
+      loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
+      loadPins(account.pubkey).then(({ items }) => setPinList(items))
       client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
       loadFollowsList(account.pubkey).then(({ items }) => setFollowList(items))
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
@@ -211,7 +217,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!account) return
-
     ;(async () => {
       const pubkey = account.pubkey
       const relayList = await client.fetchRelayList(pubkey)
@@ -598,7 +603,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateBookmarkListEvent = async (bookmarkListEvent: Event) => {
-    const { items } = await client.loadBookmarks(bookmarkListEvent.pubkey, [], bookmarkListEvent)
+    const { items } = await loadBookmarks(bookmarkListEvent.pubkey, [], bookmarkListEvent)
     setBookmarkList(items)
   }
 
@@ -608,7 +613,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updatePinListEvent = async (pinListEvent: Event) => {
-    const { items } = await client.loadPins(pinListEvent.pubkey, [], pinListEvent)
+    const { items } = await loadPins(pinListEvent.pubkey, [], pinListEvent)
     setPinList(items.slice(0, MAX_PINNED_NOTES))
   }
 

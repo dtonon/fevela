@@ -13,6 +13,7 @@ import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
 import { current, outbox, ready } from '@/services/outbox.service'
+import { loadPins } from '@nostr/gadgets/lists'
 
 export default function ProfileFeed({
   pubkey,
@@ -74,7 +75,7 @@ export default function ProfileFeed({
       if (pubkey === myPubkey) {
         pinList = myPinList
       } else {
-        pinList = (await client.loadPins(pubkey)).items
+        pinList = (await loadPins(pubkey)).items
       }
       setPinnedEventIds(pinList)
     })()

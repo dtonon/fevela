@@ -809,64 +809,6 @@ class ClientService extends EventTarget {
     return muteList
   }
 
-  loadBookmarks = makeListFetcher<string>(
-    kinds.BookmarkList,
-    [],
-    itemsFromTags<string>((tag: string[]): string | undefined => {
-      if (tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'a') && tag[1]) {
-        return tag[1]
-      }
-    }),
-    (_) => []
-  )
-
-  loadBlossomServers = makeListFetcher<string>(
-    ExtendedKind.BLOSSOM_SERVER_LIST,
-    [],
-    (event) =>
-      event
-        ? event.tags
-            .filter(tagNameEquals('server'))
-            .map(([, url]) => (url ? normalizeHttpUrl(url) : ''))
-            .filter(Boolean)
-        : [],
-    (_) => []
-  )
-
-  loadEmojis = makeListFetcher<TEmoji | AddressPointer>(
-    kinds.UserEmojiList,
-    [],
-    itemsFromTags<TEmoji | AddressPointer>((tag: string[]): TEmoji | AddressPointer | undefined => {
-      if (tag.length < 2) return
-      if (tag[0] === 'a') {
-        const spl = tag[1].split(':')
-        if (!isHex32(spl[1]) || spl[0] !== '30030') return undefined
-        return {
-          identifier: spl.slice(2).join(':'),
-          pubkey: spl[1],
-          kind: parseInt(spl[0]),
-          relays: tag[2] ? [tag[2]] : []
-        }
-      }
-      if (tag.length < 3 || tag[0] !== 'emoji') return undefined
-      return { shortcode: tag[1], url: tag[2] }
-    }),
-    (_) => []
-  )
-
-  loadPins = makeListFetcher<string>(
-    kinds.Pinlist,
-    [],
-    itemsFromTags<string>((tag: string[]): string | undefined => {
-      if (tag.length >= 2 && tag[0] === 'e' && tag[1]) {
-        return tag[1]
-      }
-    }),
-    (_) => []
-  )
-
-  loadEmojiSets = makeSetFetcher(kinds.Emojisets, (event) => getEmojiInfosFromEmojiTags(event.tags))
-
   /** =========== Following favorite relays =========== */
 
   async fetchFollowingFavoriteRelays(pubkey: string): Promise<[string, Set<string>][]> {
