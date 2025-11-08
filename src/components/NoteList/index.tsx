@@ -92,7 +92,7 @@ const NoteList = forwardRef(
       useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
-    const [hasMore, setHasMore] = useState<boolean>(true)
+    const [hasMore, setHasMore] = useState<boolean>(false)
     const [loading, setLoading] = useState(true)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
@@ -287,7 +287,7 @@ const NoteList = forwardRef(
           ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
         },
         {
-          onEvents: async (events) => {
+          async onEvents(events) {
             if (events.length > 0) {
               setEvents(events)
             }
@@ -307,7 +307,7 @@ const NoteList = forwardRef(
               }
             }
           },
-          onNew: (event) => {
+          onNew(event) {
             if (pubkey && event.pubkey === pubkey) {
               // if the new event is from the current user, insert it directly into the feed
               setEvents((oldEvents) =>
@@ -318,7 +318,7 @@ const NoteList = forwardRef(
               setNewEvents((oldEvents) => [event, ...oldEvents])
             }
           },
-          onClose: (url, reason) => {
+          onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools
             if (

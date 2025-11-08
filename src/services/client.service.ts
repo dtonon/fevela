@@ -1,8 +1,8 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
-import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
-import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
-import { ISigner, TPublishOptions, TRelayList, TEmoji, TMutedList, TFeedSubRequest } from '@/types'
+import { tagNameEquals } from '@/lib/tag'
+import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
+import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
 import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
@@ -21,16 +21,13 @@ import {
 } from '@nostr/gadgets/metadata'
 import {
   loadRelayList,
-  makeListFetcher,
-  itemsFromTags,
   loadFollowsList,
   loadMuteList,
   loadFavoriteRelays
 } from '@nostr/gadgets/lists'
-import { loadRelaySets, makeSetFetcher } from '@nostr/gadgets/sets'
+import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
-import { AddressPointer } from '@nostr/tools/nip19'
 import { verifyEvent } from '@nostr/tools/wasm'
 import { current, outbox, ready, store } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
@@ -253,24 +250,31 @@ class ClientService extends EventTarget {
         }
       }))
 
-    const needSort =
-      localFilters.length + relayRequests.length > 1 || relayRequests[0]?.urls?.length > 1
-
     // do local db requests
     const local =
       localFilters.length === 0
         ? Promise.resolve([])
         : (async () => {
-            const events: NostrEvent[] = []
+            const events: NostrEvent[] = new Array(200)
+            let f = 0
             for (let i = 0; i < localFilters.length; i++) {
               const filter = localFilters[i]
               for await (const event of store.queryEvents(filter, 5_000)) {
-                events.push(event)
+                events[f] = event
+                f++
               }
             }
 
-            // listen for updates to local db (pubkeys to which we're already subscribed will be ignored)
-            const allAuthors = localFilters.flatMap((f) => f.authors || [])
+            // listen for updates to local db
+            const allAuthors = (
+              await Promise.all(
+                localFilters.map(async (f) => {
+                  if (f.authors) return f.authors
+                  if (f.followedBy) return (await loadFollowsList(f.followedBy)).items
+                  return []
+                })
+              )
+            ).flat()
 
             ready().then(() => {
               outbox.live(allAuthors, {
@@ -367,13 +371,15 @@ class ClientService extends EventTarget {
 
     Promise.all([local, network]).then(([eventsL, eventsN]) => {
       if (eventsL.length > 0 && eventsN.length > 0) {
-        const events = eventsL.concat(eventsN)
-        if (needSort) events.sort((a, b) => b.created_at - a.created_at)
-        onEvents(events)
+        eventsL.push(...eventsN)
+        eventsL.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsL)
       } else if (eventsL.length) {
+        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
         onEvents(eventsL)
       } else {
-        if (needSort) eventsN.sort((a, b) => b.created_at - a.created_at)
+        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+          eventsN.sort((a, b) => b.created_at - a.created_at)
         onEvents(eventsN)
       }
     })
@@ -414,9 +420,6 @@ class ClientService extends EventTarget {
           ...filterModification
         }
       }))
-
-    const needSort =
-      localFilters.length + relayRequests.length > 1 || relayRequests[0].urls.length > 1
 
     // do relay requests
     const network =
@@ -467,11 +470,13 @@ class ClientService extends EventTarget {
       localFilters.length === 0
         ? Promise.resolve([])
         : (async () => {
-            const events: NostrEvent[] = []
+            const events: NostrEvent[] = new Array(200)
+            let f = 0
             for (let i = 0; i < localFilters.length; i++) {
               const filter = localFilters[i]
               for await (const event of store.queryEvents(filter, 5_000)) {
-                events.push(event)
+                events[f] = event
+                f++
               }
             }
             return events
@@ -480,12 +485,14 @@ class ClientService extends EventTarget {
     return Promise.all([local, network]).then(([eventsL, eventsN]) => {
       if (eventsL.length > 0 && eventsN.length > 0) {
         eventsL.push(...eventsN)
-        if (needSort) eventsL.sort((a, b) => b.created_at - a.created_at)
+        eventsL.sort((a, b) => b.created_at - a.created_at)
         return eventsL
       } else if (eventsL.length) {
+        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
         return eventsL
       } else {
-        if (needSort) eventsN.sort((a, b) => b.created_at - a.created_at)
+        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+          eventsN.sort((a, b) => b.created_at - a.created_at)
         return eventsN
       }
     })
@@ -583,10 +590,9 @@ class ClientService extends EventTarget {
   }
 
   addEventToCache(event: NostrEvent) {
-    store.saveEvent({
-      ...event,
-      seen_on: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
-    } as NostrEvent)
+    store.saveEvent(event, {
+      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
+    })
   }
 
   async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {
