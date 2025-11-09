@@ -28,7 +28,7 @@ export default function ProfileFeed({
   fromGrouped?: boolean
   search?: string
 }) {
-  const { pubkey: myPubkey, pinList: myPinList } = useNostr()
+  const { pubkey: myPubkey, pinList: myPinList, isReady } = useNostr()
   const { showKinds } = useKindFilter()
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
@@ -103,6 +103,7 @@ export default function ProfileFeed({
   }, [pubkey])
 
   useEffect(() => {
+    if (!isReady) return
     ;(async () => {
       if (listMode === 'you') {
         if (!myPubkey) {
@@ -155,7 +156,7 @@ export default function ProfileFeed({
         ])
       }
     })()
-  }, [pubkey, listMode, search])
+  }, [pubkey, listMode, search, isReady])
 
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)

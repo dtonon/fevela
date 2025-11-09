@@ -47,7 +47,13 @@ import {
   loadPins
 } from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
-import { start, end, status, updateFollowedEventsIndex } from '@/services/outbox.service'
+import {
+  start,
+  end,
+  status,
+  applyDiffFollowedEventsIndex,
+  rebuildFollowedEventsIndex
+} from '@/services/outbox.service'
 
 type TNostrContext = {
   isInitialized: boolean
@@ -169,7 +175,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const globalSyncAbort = new AbortController()
 
-      // initialize current account
+    // initialize current account
     ;(async () => {
       setRelayList(null)
       setProfile(null)
@@ -207,10 +213,25 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
       // first fetch with no network
-      loadFollowsList(account.pubkey, [], false).then(({items: previous}) => {
-        // then fetch with network so we can check the difference
-        loadFollowsList(account.pubkey, [], true).then((list) => {
-            updateFollowedEventsIndex(account.pubkey, previous, list.items)
+      loadFollowsList(account.pubkey, [], false).then(({ items: previous }) => {
+        // then fetch with network and a force update
+        loadFollowsList(account.pubkey, [], true).then(async (list) => {
+          // if the lists changed under us we'll have to rebuild the followedBy index
+          let listsAreTheSame = previous.length === list.items.length
+          if (listsAreTheSame) {
+            previous.sort()
+            list.items.sort()
+            listsAreTheSame = previous.every((p, i) => p === list.items[i])
+          }
+
+          if (!listsAreTheSame) {
+            try {
+              await rebuildFollowedEventsIndex(account.pubkey, list.items)
+            } catch (err) {
+              console.error('failed to rebuild followed index:', err)
+              throw err
+            }
+          }
           setFollowList(list.items)
 
           // initialize outbox manager for this user
@@ -222,6 +243,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
           // stop the previous sync (if any) and start again on the new key
           start(account.pubkey, list.items, globalSyncAbort.signal)
+
+          // user index thing for @-mentions
+          client.initUserIndexFromFollowings(account.pubkey)
+
           setIsReady(true)
         })
       })
@@ -244,8 +269,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       )
       setNotificationsSeenAt(notificationsSeenAt)
       storage.setLastReadNotificationTime(account.pubkey, notificationsSeenAt)
-
-      client.initUserIndexFromFollowings(account.pubkey)
     })()
 
     return () => {
@@ -314,8 +337,11 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const login = async (signer: ISigner, act: TAccount, shouldWipeFollowedByIndexes: boolean) => {
+    setIsReady(false)
+
     if (shouldWipeFollowedByIndexes) {
-        await loadFollowsList(act.pubkey, [], null)
+      // this will force a followedBy index rebuild later
+      await loadFollowsList(act.pubkey, [], null)
     }
 
     const newAccounts = storage.addAccount(act)
@@ -413,12 +439,16 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(bunker)
     bunkerUrl.searchParams.delete('secret')
-    return login(bunkerSigner, {
-      pubkey,
-      signerType: 'bunker',
-      bunker: bunkerUrl.toString(),
-      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    }, true)
+    return login(
+      bunkerSigner,
+      {
+        pubkey,
+        signerType: 'bunker',
+        bunker: bunkerUrl.toString(),
+        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+      },
+      true
+    )
   }
 
   const nostrConnectionLogin = async (clientSecretKey: Uint8Array, connectionString: string) => {
@@ -429,12 +459,16 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(loginResult.bunkerString!)
     bunkerUrl.searchParams.delete('secret')
-    return login(bunkerSigner, {
-      pubkey: loginResult.pubkey,
-      signerType: 'bunker',
-      bunker: bunkerUrl.toString(),
-      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    }, true)
+    return login(
+      bunkerSigner,
+      {
+        pubkey: loginResult.pubkey,
+        signerType: 'bunker',
+        bunker: bunkerUrl.toString(),
+        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+      },
+      true
+    )
   }
 
   const loginWithAccountPointer = async (
@@ -626,7 +660,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const previous = followList
     const { items } = await loadFollowsList(followListEvent.pubkey, [], followListEvent)
     setFollowList(items)
-    updateFollowedEventsIndex(account!.pubkey, previous, items)
+    applyDiffFollowedEventsIndex(account!.pubkey, previous, items)
   }
 
   const updateMuteListEvent = async (muteListEvent: Event) => {
