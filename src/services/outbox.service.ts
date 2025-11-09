@@ -1,6 +1,5 @@
 import { BIG_RELAY_URLS, SUPPORTED_KINDS } from '@/constants'
 import { pool } from '@nostr/gadgets/global'
-import { loadFollowsList } from '@nostr/gadgets/lists'
 import { OutboxManager } from '@nostr/gadgets/outbox'
 import { IDBEventStore } from '@nostr/gadgets/store'
 import { NostrEvent } from '@nostr/tools/core'
@@ -60,7 +59,7 @@ export async function start(account: string, followings: string[], signal: Abort
     defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
     storeRelaysSeenOn: true,
     authorIsFollowedBy(author: string): string[] | undefined {
-      if (followings.includes(author)) return [account]
+      if (author !== account && followings.includes(author)) return [account]
     }
   })
 
@@ -81,7 +80,7 @@ export async function start(account: string, followings: string[], signal: Abort
   outbox.live(targets, { signal: undefined })
 }
 
-export function updateFollowedEventsIndex(account: string, previous: string[], next: string[]) {
+export function applyDiffFollowedEventsIndex(account: string, previous: string[], next: string[]) {
   // see what changed in our follows so we can update the store indexes
   for (let i = 0; i < next.length; i++) {
     const follow = next[i]
@@ -99,4 +98,10 @@ export function updateFollowedEventsIndex(account: string, previous: string[], n
 
   // what remained in previous list is what we unfollowed
   previous.forEach((target) => store.markUnfollow(account, target))
+}
+
+export async function rebuildFollowedEventsIndex(account: string, list: string[]) {
+  const follows = new Set(list)
+  await store.cleanFollowed(account, (event: NostrEvent) => !follows.has(event.pubkey))
+  Promise.all(list.map((target) => store.markFollow(account, target)))
 }
