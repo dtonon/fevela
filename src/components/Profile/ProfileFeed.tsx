@@ -103,10 +103,9 @@ export default function ProfileFeed({
   }, [pubkey])
 
   useEffect(() => {
-    if (!isReady) return
     ;(async () => {
       if (listMode === 'you') {
-        if (!myPubkey) {
+        if (!isReady || !myPubkey) {
           setSubRequests([])
           return
         }
@@ -130,6 +129,8 @@ export default function ProfileFeed({
         return
       }
 
+      if (myPubkey === pubkey && !isReady) return
+
       const relayList = await client.fetchRelayList(pubkey)
 
       if (search) {
@@ -145,10 +146,23 @@ export default function ProfileFeed({
             filter: { authors: [pubkey], search }
           }
         ])
-      } else {
+        return
+      }
+
+      if (isReady) {
         setSubRequests([
           {
             source: 'local',
+            filter: {
+              authors: [pubkey]
+            }
+          }
+        ])
+      } else {
+        setSubRequests([
+          {
+            source: 'relays',
+            urls: relayList.write,
             filter: {
               authors: [pubkey]
             }
