@@ -1,5 +1,5 @@
 import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
-import { compareEvents } from '@/lib/event'
+import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
 import { useNotification } from '@/providers/NotificationProvider'
@@ -44,15 +44,18 @@ const NotificationList = forwardRef((_, ref) => {
   const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
+  const [filteredNotifications, setFilteredNotifications] = useState<NostrEvent[]>([])
   const [visibleNotifications, setVisibleNotifications] = useState<NostrEvent[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+
   const filterKinds = useMemo(() => {
     switch (notificationType) {
       case 'mentions':
+      case 'conversations':
         return [
           kinds.ShortTextNote,
           ExtendedKind.COMMENT,
@@ -76,6 +79,63 @@ const NotificationList = forwardRef((_, ref) => {
         ]
     }
   }, [notificationType])
+
+  // Filter events for strict mentions tab
+  useEffect(() => {
+    if (notificationType !== 'mentions') {
+      setFilteredNotifications(notifications)
+      return
+    }
+
+    if (!pubkey) {
+      setFilteredNotifications([])
+      return
+    }
+
+    // Filter for strict mentions: only explicit mentions or direct replies
+    const filterMentions = async () => {
+      const filtered: NostrEvent[] = []
+
+      for (const event of notifications) {
+        // Check explicit mentions in content
+        const embeddedPubkeys = getEmbeddedPubkeys(event)
+        if (embeddedPubkeys.includes(pubkey)) {
+          filtered.push(event)
+          continue
+        }
+
+        // Check if this is a direct reply to user's note
+        const parentETag = getParentETag(event)
+        if (parentETag) {
+          // Try to get author from e-tag hint (5th element)
+          const parentAuthorFromTag = parentETag[4]
+
+          if (parentAuthorFromTag === pubkey) {
+            filtered.push(event)
+            continue
+          }
+
+          // If no hint or hint doesn't match, fetch the parent event
+          if (!parentAuthorFromTag) {
+            try {
+              const parentEventHexId = parentETag[1]
+              const parentEvent = await client.fetchEvent(parentEventHexId)
+              if (parentEvent && parentEvent.pubkey === pubkey) {
+                filtered.push(event)
+              }
+            } catch (e) {
+              console.debug('Could not fetch parent event for filtering:', e)
+            }
+          }
+        }
+      }
+
+      setFilteredNotifications(filtered)
+    }
+
+    filterMentions()
+  }, [notifications, notificationType, pubkey])
+
   useImperativeHandle(
     ref,
     () => ({
@@ -184,8 +244,8 @@ const NotificationList = forwardRef((_, ref) => {
   }, [pubkey, active, filterKinds, handleNewEvent])
 
   useEffect(() => {
-    setVisibleNotifications(notifications.slice(0, showCount))
-  }, [notifications, showCount])
+    setVisibleNotifications(filteredNotifications.slice(0, showCount))
+  }, [filteredNotifications, showCount])
 
   useEffect(() => {
     const options = {
@@ -195,10 +255,10 @@ const NotificationList = forwardRef((_, ref) => {
     }
 
     const loadMore = async () => {
-      if (showCount < notifications.length) {
+      if (showCount < filteredNotifications.length) {
         setShowCount((count) => count + SHOW_COUNT)
         // preload more
-        if (notifications.length - showCount > LIMIT / 2) {
+        if (filteredNotifications.length - showCount > LIMIT / 2) {
           return
         }
       }
@@ -239,7 +299,7 @@ const NotificationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, notifications])
+  }, [pubkey, timelineKey, until, loading, showCount, filteredNotifications])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -277,7 +337,8 @@ const NotificationList = forwardRef((_, ref) => {
           { value: 'all', label: 'All' },
           { value: 'mentions', label: 'Mentions' },
           { value: 'reactions', label: 'Reactions' },
-          { value: 'zaps', label: 'Zaps' }
+          { value: 'zaps', label: 'Zaps' },
+          { value: 'conversations', label: 'Conversations' }
         ]}
         onTabChange={(type) => {
           setShowCount(SHOW_COUNT)
