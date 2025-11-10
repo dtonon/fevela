@@ -40,19 +40,19 @@ export async function start(account: string, followings: string[], signal: Abort
     store,
     onsyncupdate(pubkey) {
       if (!current.pubkey || current?.pubkey === pubkey) {
-        console.log(':: synced updating', pubkey)
+        console.debug(':: synced updating', pubkey)
         current?.onsync?.()
       }
     },
     onbeforeupdate(pubkey) {
-      console.log(':: paginated', pubkey)
+      console.debug(':: paginated', pubkey)
       if (!current.pubkey || current?.pubkey === pubkey) {
         current?.onsync?.()
       }
     },
     onliveupdate(event) {
       if (!current.pubkey || current?.pubkey === event.pubkey) {
-        console.log(':: live', event)
+        console.debug(':: live', event)
         current.onnew?.(event)
       }
     },

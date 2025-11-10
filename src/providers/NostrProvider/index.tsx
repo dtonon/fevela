@@ -226,6 +226,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
           if (!listsAreTheSame) {
             try {
+              console.debug(':: rebuilding followedBy indexes for', account.pubkey, list.items)
               await rebuildFollowedEventsIndex(account.pubkey, list.items)
             } catch (err) {
               console.error('failed to rebuild followed index:', err)
