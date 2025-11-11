@@ -80,9 +80,9 @@ const NotificationList = forwardRef((_, ref) => {
     }
   }, [notificationType])
 
-  // Filter events for strict mentions tab
+  // Filter events for mentions and conversations tabs
   useEffect(() => {
-    if (notificationType !== 'mentions') {
+    if (notificationType !== 'mentions' && notificationType !== 'conversations') {
       setFilteredNotifications(notifications)
       return
     }
@@ -92,40 +92,53 @@ const NotificationList = forwardRef((_, ref) => {
       return
     }
 
-    // Filter for strict mentions: only explicit mentions or direct replies
-    const filterMentions = async () => {
+    // Check if an event is a mention (explicit mention or direct reply)
+    const isMention = async (event: NostrEvent): Promise<boolean> => {
+      // Check explicit mentions in content
+      const embeddedPubkeys = getEmbeddedPubkeys(event)
+      if (embeddedPubkeys.includes(pubkey)) {
+        return true
+      }
+
+      // Check if this is a direct reply to user's note
+      const parentETag = getParentETag(event)
+      if (parentETag) {
+        // Try to get author from e-tag hint (5th element)
+        const parentAuthorFromTag = parentETag[4]
+        if (parentAuthorFromTag === pubkey) {
+          return true
+        }
+
+        // If no hint or hint doesn't match, fetch the parent event
+        if (!parentAuthorFromTag) {
+          try {
+            const parentEventHexId = parentETag[1]
+            const parentEvent = await client.fetchEvent(parentEventHexId)
+            if (parentEvent && parentEvent.pubkey === pubkey) {
+              return true
+            }
+          } catch (e) {
+            console.debug('Could not fetch parent event for filtering:', e)
+          }
+        }
+      }
+
+      return false
+    }
+
+    const filterEvents = async () => {
       const filtered: NostrEvent[] = []
 
       for (const event of notifications) {
-        // Check explicit mentions in content
-        const embeddedPubkeys = getEmbeddedPubkeys(event)
-        if (embeddedPubkeys.includes(pubkey)) {
-          filtered.push(event)
-          continue
-        }
+        const eventIsMention = await isMention(event)
 
-        // Check if this is a direct reply to user's note
-        const parentETag = getParentETag(event)
-        if (parentETag) {
-          // Try to get author from e-tag hint (5th element)
-          const parentAuthorFromTag = parentETag[4]
-
-          if (parentAuthorFromTag === pubkey) {
+        if (notificationType === 'mentions') {
+          if (eventIsMention) {
             filtered.push(event)
-            continue
           }
-
-          // If no hint or hint doesn't match, fetch the parent event
-          if (!parentAuthorFromTag) {
-            try {
-              const parentEventHexId = parentETag[1]
-              const parentEvent = await client.fetchEvent(parentEventHexId)
-              if (parentEvent && parentEvent.pubkey === pubkey) {
-                filtered.push(event)
-              }
-            } catch (e) {
-              console.debug('Could not fetch parent event for filtering:', e)
-            }
+        } else if (notificationType === 'conversations') {
+          if (!eventIsMention) {
+            filtered.push(event)
           }
         }
       }
@@ -133,7 +146,7 @@ const NotificationList = forwardRef((_, ref) => {
       setFilteredNotifications(filtered)
     }
 
-    filterMentions()
+    filterEvents()
   }, [notifications, notificationType, pubkey])
 
   useImperativeHandle(
