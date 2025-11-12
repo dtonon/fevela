@@ -2,11 +2,9 @@ import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constan
 import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
-import { useNotification } from '@/providers/NotificationProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
-import { TNotificationType } from '@/types'
 import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { matchFilter } from '@nostr/tools/filter'
@@ -22,83 +20,48 @@ import {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
-import Tabs from '../Tabs'
-import { NotificationItem } from './NotificationItem'
-import { NotificationSkeleton } from './NotificationItem/Notification'
+import { NotificationItem } from '../NotificationList/NotificationItem'
+import { NotificationSkeleton } from '../NotificationList/NotificationItem/Notification'
 import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
 
-const NotificationList = forwardRef((_, ref) => {
+const ConversationList = forwardRef((_, ref) => {
   const { t } = useTranslation()
   const { current, display } = usePrimaryPage()
-  const active = useMemo(() => current === 'notifications' && display, [current, display])
+  const active = useMemo(() => current === 'conversations' && display, [current, display])
   const { pubkey } = useNostr()
-  const { getNotificationsSeenAt } = useNotification()
   const { notificationListStyle } = useUserPreferences()
-  const [notificationType, setNotificationType] = useState<TNotificationType>('all')
-  const [lastReadTime, setLastReadTime] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
   const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
-  const [filteredNotifications, setFilteredNotifications] = useState<NostrEvent[]>([])
-  const [visibleNotifications, setVisibleNotifications] = useState<NostrEvent[]>([])
+  const [conversations, setConversations] = useState<NostrEvent[]>([])
+  const [visibleConversations, setVisibleConversations] = useState<NostrEvent[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  const filterKinds = useMemo(() => {
-    switch (notificationType) {
-      case 'mentions':
-        return [
-          kinds.ShortTextNote,
-          ExtendedKind.COMMENT,
-          ExtendedKind.VOICE_COMMENT,
-          ExtendedKind.POLL
-        ]
-      case 'reactions':
-        return [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
-      case 'zaps':
-        return [kinds.Zap]
-      default:
-        return [
-          kinds.ShortTextNote,
-          kinds.Repost,
-          kinds.Reaction,
-          kinds.Zap,
-          ExtendedKind.COMMENT,
-          ExtendedKind.POLL_RESPONSE,
-          ExtendedKind.VOICE_COMMENT,
-          ExtendedKind.POLL
-        ]
-    }
-  }, [notificationType])
-
-  // Filter events for mentions and all tabs
-  useEffect(() => {
-    // Reactions and Zaps tabs don't need filtering
-    if (notificationType !== 'mentions' && notificationType !== 'all') {
-      setFilteredNotifications(notifications)
-      return
-    }
-
-    if (!pubkey) {
-      setFilteredNotifications([])
-      return
-    }
-
-    // Text-based kinds that need mention filtering
-    const textKinds = [
+  const filterKinds = useMemo(
+    () => [
       kinds.ShortTextNote,
       ExtendedKind.COMMENT,
       ExtendedKind.VOICE_COMMENT,
       ExtendedKind.POLL
-    ]
+    ],
+    []
+  )
+
+  // Filter events to show only conversations (not direct mentions)
+  useEffect(() => {
+    if (!pubkey) {
+      setConversations([])
+      return
+    }
 
     // Check if an event is a mention (explicit mention or direct reply)
     const isMention = async (event: NostrEvent): Promise<boolean> => {
@@ -138,25 +101,17 @@ const NotificationList = forwardRef((_, ref) => {
       const filtered: NostrEvent[] = []
 
       for (const event of notifications) {
-        // For text-based kinds, check if it's a mention
-        if (textKinds.includes(event.kind)) {
-          const eventIsMention = await isMention(event)
-          if (eventIsMention) {
-            filtered.push(event)
-          }
-        } else {
-          // For reactions, reposts, zaps - always include in All tab
-          if (notificationType === 'all') {
-            filtered.push(event)
-          }
+        const eventIsMention = await isMention(event)
+        if (!eventIsMention) {
+          filtered.push(event)
         }
       }
 
-      setFilteredNotifications(filtered)
+      setConversations(filtered)
     }
 
     filterEvents()
-  }, [notifications, notificationType, pubkey])
+  }, [notifications, pubkey])
 
   useImperativeHandle(
     ref,
@@ -189,7 +144,7 @@ const NotificationList = forwardRef((_, ref) => {
   )
 
   useEffect(() => {
-    if (current !== 'notifications') return
+    if (current !== 'conversations') return
 
     if (!pubkey) {
       setUntil(undefined)
@@ -200,7 +155,6 @@ const NotificationList = forwardRef((_, ref) => {
       setLoading(true)
       setNotifications([])
       setShowCount(SHOW_COUNT)
-      setLastReadTime(getNotificationsSeenAt())
       const relayList = await client.fetchRelayList(pubkey)
 
       const { closer, timelineKey } = await client.subscribeTimeline(
@@ -266,8 +220,8 @@ const NotificationList = forwardRef((_, ref) => {
   }, [pubkey, active, filterKinds, handleNewEvent])
 
   useEffect(() => {
-    setVisibleNotifications(filteredNotifications.slice(0, showCount))
-  }, [filteredNotifications, showCount])
+    setVisibleConversations(conversations.slice(0, showCount))
+  }, [conversations, showCount])
 
   useEffect(() => {
     const options = {
@@ -277,10 +231,10 @@ const NotificationList = forwardRef((_, ref) => {
     }
 
     const loadMore = async () => {
-      if (showCount < filteredNotifications.length) {
+      if (showCount < conversations.length) {
         setShowCount((count) => count + SHOW_COUNT)
         // preload more
-        if (filteredNotifications.length - showCount > LIMIT / 2) {
+        if (conversations.length - showCount > LIMIT / 2) {
           return
         }
       }
@@ -321,7 +275,7 @@ const NotificationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, filteredNotifications])
+  }, [pubkey, timelineKey, until, loading, showCount, conversations])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -332,12 +286,8 @@ const NotificationList = forwardRef((_, ref) => {
 
   const list = (
     <div className={notificationListStyle === NOTIFICATION_LIST_STYLE.COMPACT ? 'pt-2' : ''}>
-      {visibleNotifications.map((notification) => (
-        <NotificationItem
-          key={notification.id}
-          notification={notification}
-          isNew={notification.created_at > lastReadTime}
-        />
+      {visibleConversations.map((conversation) => (
+        <NotificationItem key={conversation.id} notification={conversation} isNew={false} />
       ))}
       <div className="text-center text-sm text-muted-foreground">
         {until || loading ? (
@@ -345,7 +295,7 @@ const NotificationList = forwardRef((_, ref) => {
             <NotificationSkeleton />
           </div>
         ) : (
-          t('no more notifications')
+          t('no more conversations')
         )}
       </div>
     </div>
@@ -353,20 +303,9 @@ const NotificationList = forwardRef((_, ref) => {
 
   return (
     <div>
-      <Tabs
-        value={notificationType}
-        tabs={[
-          { value: 'all', label: 'All' },
-          { value: 'mentions', label: 'Mentions' },
-          { value: 'reactions', label: 'Reactions' },
-          { value: 'zaps', label: 'Zaps' }
-        ]}
-        onTabChange={(type) => {
-          setShowCount(SHOW_COUNT)
-          setNotificationType(type as TNotificationType)
-        }}
-        options={!supportTouch ? <RefreshButton onClick={() => refresh()} /> : null}
-      />
+      <div className="flex items-center justify-end h-12 px-3 border-b">
+        {!supportTouch && <RefreshButton onClick={() => refresh()} />}
+      </div>
       <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
       {supportTouch ? (
         <PullToRefresh
@@ -384,5 +323,5 @@ const NotificationList = forwardRef((_, ref) => {
     </div>
   )
 })
-NotificationList.displayName = 'NotificationList'
-export default NotificationList
+ConversationList.displayName = 'ConversationList'
+export default ConversationList

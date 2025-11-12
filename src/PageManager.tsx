@@ -2,6 +2,7 @@ import Sidebar from '@/components/Sidebar'
 import { cn } from '@/lib/utils'
 import NoteListPage from '@/pages/primary/NoteListPage'
 import HomePage from '@/pages/secondary/HomePage'
+import ConversationListPage from '@/pages/primary/ConversationListPage'
 import { CurrentRelaysProvider } from '@/providers/CurrentRelaysProvider'
 import { TPageRef } from '@/types'
 import {
@@ -58,6 +59,7 @@ type TStackItem = {
 
 const PRIMARY_PAGE_REF_MAP = {
   home: createRef<TPageRef>(),
+  conversations: createRef<TPageRef>(),
   explore: createRef<TPageRef>(),
   notifications: createRef<TPageRef>(),
   me: createRef<TPageRef>(),
@@ -70,6 +72,7 @@ const PRIMARY_PAGE_REF_MAP = {
 
 const PRIMARY_PAGE_MAP = {
   home: <NoteListPage ref={PRIMARY_PAGE_REF_MAP.home} />,
+  conversations: <ConversationListPage ref={PRIMARY_PAGE_REF_MAP.conversations} />,
   explore: <ExplorePage ref={PRIMARY_PAGE_REF_MAP.explore} />,
   notifications: <NotificationListPage ref={PRIMARY_PAGE_REF_MAP.notifications} />,
   me: <MePage ref={PRIMARY_PAGE_REF_MAP.me} />,
