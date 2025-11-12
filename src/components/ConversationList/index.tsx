@@ -24,6 +24,8 @@ import { NotificationItem } from '../NotificationList/NotificationItem'
 import { NotificationSkeleton } from '../NotificationList/NotificationItem/Notification'
 import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
+import { Input } from '@/components/ui/input'
+import { userIdToPubkey } from '@/lib/pubkey'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -39,9 +41,12 @@ const ConversationList = forwardRef((_, ref) => {
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
   const [conversations, setConversations] = useState<NostrEvent[]>([])
+  const [filteredConversations, setFilteredConversations] = useState<NostrEvent[]>([])
   const [visibleConversations, setVisibleConversations] = useState<NostrEvent[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
+  const [userFilter, setUserFilter] = useState('')
+  const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
@@ -112,6 +117,61 @@ const ConversationList = forwardRef((_, ref) => {
 
     filterEvents()
   }, [notifications, pubkey])
+
+  // Search for matching pubkeys when user filter changes
+  useEffect(() => {
+    if (!userFilter.trim()) {
+      setMatchingPubkeys(null)
+      return
+    }
+
+    const searchProfiles = async () => {
+      try {
+        const npubs = await client.searchNpubsFromLocal(userFilter, 1000)
+        const pubkeys = npubs
+          .map((npub) => {
+            try {
+              return userIdToPubkey(npub)
+            } catch {
+              return null
+            }
+          })
+          .filter((pubkey): pubkey is string => pubkey !== null)
+        setMatchingPubkeys(new Set(pubkeys))
+      } catch (e) {
+        console.error('Error searching profiles:', e)
+        setMatchingPubkeys(new Set())
+      }
+    }
+
+    searchProfiles()
+  }, [userFilter])
+
+  // Apply user filter (by author name or content)
+  useEffect(() => {
+    if (!userFilter.trim()) {
+      setFilteredConversations(conversations)
+      return
+    }
+
+    const filterLower = userFilter.toLowerCase()
+
+    const filtered = conversations.filter((event) => {
+      // Check if author matches
+      if (matchingPubkeys && matchingPubkeys.has(event.pubkey)) {
+        return true
+      }
+
+      // Check if content matches
+      if (event.content && event.content.toLowerCase().includes(filterLower)) {
+        return true
+      }
+
+      return false
+    })
+
+    setFilteredConversations(filtered)
+  }, [conversations, userFilter, matchingPubkeys])
 
   useImperativeHandle(
     ref,
@@ -220,8 +280,8 @@ const ConversationList = forwardRef((_, ref) => {
   }, [pubkey, active, filterKinds, handleNewEvent])
 
   useEffect(() => {
-    setVisibleConversations(conversations.slice(0, showCount))
-  }, [conversations, showCount])
+    setVisibleConversations(filteredConversations.slice(0, showCount))
+  }, [filteredConversations, showCount])
 
   useEffect(() => {
     const options = {
@@ -231,10 +291,10 @@ const ConversationList = forwardRef((_, ref) => {
     }
 
     const loadMore = async () => {
-      if (showCount < conversations.length) {
+      if (showCount < filteredConversations.length) {
         setShowCount((count) => count + SHOW_COUNT)
         // preload more
-        if (conversations.length - showCount > LIMIT / 2) {
+        if (filteredConversations.length - showCount > LIMIT / 2) {
           return
         }
       }
@@ -275,7 +335,7 @@ const ConversationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, conversations])
+  }, [pubkey, timelineKey, until, loading, showCount, filteredConversations])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -303,7 +363,37 @@ const ConversationList = forwardRef((_, ref) => {
 
   return (
     <div>
-      <div className="flex items-center justify-end h-12 px-3 border-b">
+      <div className="sticky flex items-center justify-between top-12 bg-background z-30 px-4 py-2 w-full border-b gap-3">
+        <div
+          tabIndex={0}
+          className="relative flex w-full items-center rounded-md border border-input px-3 py-1 text-base transition-colors md:text-sm [&:has(:focus-visible)]:ring-ring [&:has(:focus-visible)]:ring-1 [&:has(:focus-visible)]:outline-none bg-surface-background shadow-inner h-full border-none"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="lucide lucide-search size-4 shrink-0 opacity-50"
+          >
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="m21 21-4.3-4.3"></path>
+          </svg>
+
+          <Input
+            type="text"
+            placeholder={t('Filter by author or content...')}
+            value={userFilter}
+            onChange={(e) => setUserFilter(e.target.value)}
+            showClearButton={true}
+            onClear={() => setUserFilter('')}
+            className="flex-1 h-9 size-full shadow-none border-none bg-transparent focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
+          />
+        </div>
         {!supportTouch && <RefreshButton onClick={() => refresh()} />}
       </div>
       <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
