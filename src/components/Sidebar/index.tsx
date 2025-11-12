@@ -42,11 +42,11 @@ export default function PrimaryPageSidebar() {
         )}
         <HomeButton collapse={sidebarCollapse} />
         <ConversationsButton collapse={sidebarCollapse} />
-        <RelaysButton collapse={sidebarCollapse} />
         <NotificationsButton collapse={sidebarCollapse} />
-        <SearchButton collapse={sidebarCollapse} />
-        <ProfileButton collapse={sidebarCollapse} />
         {pubkey && <BookmarkButton collapse={sidebarCollapse} />}
+        <SearchButton collapse={sidebarCollapse} />
+        <RelaysButton collapse={sidebarCollapse} />
+        <ProfileButton collapse={sidebarCollapse} />
         <SettingsButton collapse={sidebarCollapse} />
         <PostButton collapse={sidebarCollapse} />
       </div>

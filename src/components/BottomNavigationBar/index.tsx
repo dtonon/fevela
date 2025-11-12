@@ -18,8 +18,8 @@ export default function BottomNavigationBar() {
       <div className="w-full flex justify-around items-center [&_svg]:size-4 [&_svg]:shrink-0">
         <HomeButton />
         <ConversationsButton />
-        <ExploreButton />
         <NotificationsButton />
+        <ExploreButton />
         <AccountButton />
       </div>
     </div>
