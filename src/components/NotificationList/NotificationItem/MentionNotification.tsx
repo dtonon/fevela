@@ -28,6 +28,9 @@ export function MentionNotification({
     return mentions.includes(pubkey)
   }, [pubkey, notification])
   const parentEventId = useMemo(() => getParentBech32Id(notification), [notification])
+  const isPost = useMemo(() => {
+    return notification.pubkey == pubkey
+  }, [pubkey, notification])
 
   return (
     <Notification
@@ -37,6 +40,8 @@ export function MentionNotification({
           <AtSign size={24} className="text-pink-400" />
         ) : parentEventId ? (
           <MessageCircle size={24} className="text-blue-400" />
+        ) : isPost ? (
+          <MessageCircle size={24} className="text-pink-400" />
         ) : (
           <Quote size={24} className="text-green-400" />
         )

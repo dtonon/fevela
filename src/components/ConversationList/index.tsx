@@ -68,8 +68,12 @@ const ConversationList = forwardRef((_, ref) => {
       return
     }
 
-    // Check if an event is an explicit mention in content
+    // Check if an event is an explicit mention in content (but not user's own post)
     const isMention = (event: NostrEvent): boolean => {
+      // Include user's own posts regardless
+      if (event.pubkey === pubkey) {
+        return false
+      }
       // Only check for explicit mentions in content (e.g., nostr:npub... references)
       const embeddedPubkeys = getEmbeddedPubkeys(event)
       return embeddedPubkeys.includes(pubkey)
@@ -159,7 +163,6 @@ const ConversationList = forwardRef((_, ref) => {
 
   const handleNewEvent = useCallback(
     (event: NostrEvent) => {
-      if (event.pubkey === pubkey) return
       setNotifications((oldEvents) => {
         const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
         if (index !== -1 && oldEvents[index].id === event.id) {
@@ -199,12 +202,20 @@ const ConversationList = forwardRef((_, ref) => {
               kinds: filterKinds,
               limit: LIMIT
             }
+          },
+          {
+            urls: relayList.write.length > 0 ? relayList.write.slice(0, 5) : BIG_RELAY_URLS,
+            filter: {
+              authors: [pubkey],
+              kinds: filterKinds,
+              limit: LIMIT
+            }
           }
         ],
         {
           onEvents: (events, eosed) => {
             if (events.length > 0) {
-              setNotifications(events.filter((event) => event.pubkey !== pubkey))
+              setNotifications(events)
             }
             if (eosed) {
               setLoading(false)
@@ -238,6 +249,13 @@ const ConversationList = forwardRef((_, ref) => {
           {
             kinds: filterKinds,
             '#p': [pubkey]
+          },
+          evt
+        ) ||
+        matchFilter(
+          {
+            kinds: filterKinds,
+            authors: [pubkey]
           },
           evt
         )
@@ -282,10 +300,7 @@ const ConversationList = forwardRef((_, ref) => {
       }
 
       if (newNotifications.length > 0) {
-        setNotifications((oldNotifications) => [
-          ...oldNotifications,
-          ...newNotifications.filter((event) => event.pubkey !== pubkey)
-        ])
+        setNotifications((oldNotifications) => [...oldNotifications, ...newNotifications])
       }
 
       setUntil(newNotifications[newNotifications.length - 1].created_at - 1)
