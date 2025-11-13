@@ -1,5 +1,5 @@
 import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
-import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
+import { compareEvents, getEmbeddedPubkeys } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
@@ -61,52 +61,25 @@ const ConversationList = forwardRef((_, ref) => {
     []
   )
 
-  // Filter events to show only conversations (not direct mentions)
+  // Filter events to show only conversations (not explicit mentions)
   useEffect(() => {
     if (!pubkey) {
       setConversations([])
       return
     }
 
-    // Check if an event is a mention (explicit mention or direct reply)
-    const isMention = async (event: NostrEvent): Promise<boolean> => {
-      // Check explicit mentions in content
+    // Check if an event is an explicit mention in content
+    const isMention = (event: NostrEvent): boolean => {
+      // Only check for explicit mentions in content (e.g., nostr:npub... references)
       const embeddedPubkeys = getEmbeddedPubkeys(event)
-      if (embeddedPubkeys.includes(pubkey)) {
-        return true
-      }
-
-      // Check if this is a direct reply to user's note
-      const parentETag = getParentETag(event)
-      if (parentETag) {
-        // Try to get author from e-tag hint (5th element)
-        const parentAuthorFromTag = parentETag[4]
-        if (parentAuthorFromTag === pubkey) {
-          return true
-        }
-
-        // If no hint or hint doesn't match, fetch the parent event
-        if (!parentAuthorFromTag) {
-          try {
-            const parentEventHexId = parentETag[1]
-            const parentEvent = await client.fetchEvent(parentEventHexId)
-            if (parentEvent && parentEvent.pubkey === pubkey) {
-              return true
-            }
-          } catch (e) {
-            console.debug('Could not fetch parent event for filtering:', e)
-          }
-        }
-      }
-
-      return false
+      return embeddedPubkeys.includes(pubkey)
     }
 
-    const filterEvents = async () => {
+    const filterEvents = () => {
       const filtered: NostrEvent[] = []
 
       for (const event of notifications) {
-        const eventIsMention = await isMention(event)
+        const eventIsMention = isMention(event)
         if (!eventIsMention) {
           filtered.push(event)
         }
