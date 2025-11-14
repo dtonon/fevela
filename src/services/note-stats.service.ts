@@ -9,6 +9,7 @@ import dayjs from 'dayjs'
 import { Event } from '@nostr/tools/wasm'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
+import { pool } from '@nostr/gadgets/global'
 
 export type TNoteStats = {
   likeIdSet: Set<string>
@@ -128,13 +129,28 @@ class NoteStatsService {
         filter.since = since
       })
     }
-    const events: Event[] = []
-    await client.fetchEvents(relayList.read.concat(BIG_RELAY_URLS).slice(0, 5), filters, {
-      onevent: (evt) => {
-        this.updateNoteStatsByEvents([evt])
-        events.push(evt)
-      }
+
+    const reactions: Event[] = []
+    await new Promise<void>((resolve) => {
+      const subc = pool.subscribeMap(
+        relayList.read
+          .concat(BIG_RELAY_URLS)
+          .slice(0, 5)
+          .flatMap((url) => filters.map((filter) => ({ url, filter }))),
+        {
+          label: 'f-stats',
+          onevent(evt) {
+            reactions.push(evt)
+          },
+          oneose() {
+            resolve()
+            subc.close()
+          }
+        }
+      )
     })
+    this.updateNoteStatsByEvents(reactions)
+
     this.noteStatsMap.set(event.id, {
       ...(this.noteStatsMap.get(event.id) ?? {}),
       updatedAt: dayjs().unix()

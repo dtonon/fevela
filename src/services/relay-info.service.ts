@@ -132,7 +132,6 @@ class RelayInfoService {
 
   private async fetchRelayNip11(url: string) {
     try {
-      console.log('Fetching NIP-11 for', url)
       const res = await fetch(url.replace('ws://', 'http://').replace('wss://', 'https://'), {
         headers: { Accept: 'application/nostr+json' }
       })

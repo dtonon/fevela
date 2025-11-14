@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
+import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -6,10 +6,10 @@ import { useNotification } from '@/providers/NotificationProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
-import { TNotificationType } from '@/types'
+import { TFeedSubRequest, TNotificationType } from '@/types'
 import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
-import { matchFilter } from '@nostr/tools/filter'
+import { Filter, matchFilter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -41,32 +41,37 @@ const NotificationList = forwardRef((_, ref) => {
   const [notificationType, setNotificationType] = useState<TNotificationType>('all')
   const [lastReadTime, setLastReadTime] = useState(0)
   const [refreshCount, setRefreshCount] = useState(0)
-  const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<NostrEvent[]>([])
+  const [events, setEvents] = useState<NostrEvent[]>([])
   const [filteredNotifications, setFilteredNotifications] = useState<NostrEvent[]>([])
-  const [visibleNotifications, setVisibleNotifications] = useState<NostrEvent[]>([])
+  const [hasMore, setHasMore] = useState(false)
   const [showCount, setShowCount] = useState(SHOW_COUNT)
-  const [until, setUntil] = useState<number | undefined>(dayjs().unix())
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
-  const filterKinds = useMemo(() => {
+  const filter = useMemo<Omit<Filter, 'since' | 'until'> | undefined>(() => {
+    if (!pubkey) return
+
+    let filterKinds: number[] = []
     switch (notificationType) {
       case 'mentions':
-        return [
+        filterKinds = [
           kinds.ShortTextNote,
           ExtendedKind.COMMENT,
           ExtendedKind.VOICE_COMMENT,
           ExtendedKind.POLL
         ]
+        break
       case 'reactions':
-        return [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
+        filterKinds = [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
+        break
       case 'zaps':
-        return [kinds.Zap]
+        filterKinds = [kinds.Zap]
+        break
       default:
-        return [
+        filterKinds = [
           kinds.ShortTextNote,
           kinds.Repost,
           kinds.Reaction,
@@ -77,13 +82,18 @@ const NotificationList = forwardRef((_, ref) => {
           ExtendedKind.POLL
         ]
     }
-  }, [notificationType])
+
+    return {
+      '#p': [pubkey],
+      kinds: filterKinds
+    }
+  }, [pubkey, notificationType])
 
   // Filter events for mentions and all tabs
   useEffect(() => {
     // Reactions and Zaps tabs don't need filtering
     if (notificationType !== 'mentions' && notificationType !== 'all') {
-      setFilteredNotifications(notifications)
+      setFilteredNotifications(events)
       return
     }
 
@@ -137,11 +147,10 @@ const NotificationList = forwardRef((_, ref) => {
     const filterEvents = async () => {
       const filtered: NostrEvent[] = []
 
-      for (const event of notifications) {
+      for (const event of events) {
         // For text-based kinds, check if it's a mention
         if (textKinds.includes(event.kind)) {
-          const eventIsMention = await isMention(event)
-          if (eventIsMention) {
+          if (await isMention(event)) {
             filtered.push(event)
           }
         } else {
@@ -156,7 +165,23 @@ const NotificationList = forwardRef((_, ref) => {
     }
 
     filterEvents()
-  }, [notifications, notificationType, pubkey])
+  }, [events, notificationType, pubkey])
+
+  useEffect(() => {
+    ;(async () => {
+      if (!pubkey || !filter) return
+
+      const relays = await client.fetchRelayList(pubkey)
+
+      setSubRequests([
+        {
+          source: 'relays',
+          urls: relays.read,
+          filter
+        }
+      ])
+    })()
+  }, [pubkey, filter])
 
   useImperativeHandle(
     ref,
@@ -172,7 +197,7 @@ const NotificationList = forwardRef((_, ref) => {
   const handleNewEvent = useCallback(
     (event: NostrEvent) => {
       if (event.pubkey === pubkey) return
-      setNotifications((oldEvents) => {
+      setEvents((oldEvents) => {
         const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
         if (index !== -1 && oldEvents[index].id === event.id) {
           return oldEvents
@@ -189,72 +214,41 @@ const NotificationList = forwardRef((_, ref) => {
   )
 
   useEffect(() => {
+    if (!subRequests || !pubkey) return
     if (current !== 'notifications') return
 
-    if (!pubkey) {
-      setUntil(undefined)
-      return
-    }
+    setLoading(true)
+    setEvents([])
+    setShowCount(SHOW_COUNT)
+    setLastReadTime(getNotificationsSeenAt())
 
-    const init = async () => {
-      setLoading(true)
-      setNotifications([])
-      setShowCount(SHOW_COUNT)
-      setLastReadTime(getNotificationsSeenAt())
-      const relayList = await client.fetchRelayList(pubkey)
-
-      const { closer, timelineKey } = await client.subscribeTimeline(
-        [
-          {
-            urls: relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
-            filter: {
-              '#p': [pubkey],
-              kinds: filterKinds,
-              limit: LIMIT
-            }
+    const subc = client.subscribeTimeline(
+      subRequests,
+      { limit: LIMIT },
+      {
+        onEvents: (events) => {
+          if (events.length > 0) {
+            setEvents(events.filter((event) => event.pubkey !== pubkey))
+            setHasMore(true)
           }
-        ],
-        {
-          onEvents: (events, eosed) => {
-            if (events.length > 0) {
-              setNotifications(events.filter((event) => event.pubkey !== pubkey))
-            }
-            if (eosed) {
-              setLoading(false)
-              setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-              noteStatsService.updateNoteStatsByEvents(events)
-            }
-          },
-          onNew: (event) => {
-            handleNewEvent(event)
-          }
-        }
-      )
-      setTimelineKey(timelineKey)
-      return closer
-    }
 
-    const promise = init()
-    return () => {
-      promise.then((closer) => closer?.())
-    }
-  }, [pubkey, refreshCount, filterKinds, current])
+          setLoading(false)
+          noteStatsService.updateNoteStatsByEvents(events)
+        },
+        onNew: handleNewEvent
+      }
+    )
+
+    return () => subc.close()
+  }, [pubkey, refreshCount, current, subRequests])
 
   useEffect(() => {
-    if (!active || !pubkey) return
+    if (!active || !pubkey || !filter) return
 
-    const handler = (data: Event) => {
+    function handler(data: Event) {
       const customEvent = data as CustomEvent<NostrEvent>
       const evt = customEvent.detail
-      if (
-        matchFilter(
-          {
-            kinds: filterKinds,
-            '#p': [pubkey]
-          },
-          evt
-        )
-      ) {
+      if (matchFilter(filter!, evt)) {
         handleNewEvent(evt)
       }
     }
@@ -263,52 +257,23 @@ const NotificationList = forwardRef((_, ref) => {
     return () => {
       client.removeEventListener('newEvent', handler)
     }
-  }, [pubkey, active, filterKinds, handleNewEvent])
+  }, [pubkey, active, filter, handleNewEvent])
 
   useEffect(() => {
-    setVisibleNotifications(filteredNotifications.slice(0, showCount))
-  }, [filteredNotifications, showCount])
+    if (!pubkey || !subRequests.length || loading || !hasMore) return
 
-  useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: '10px',
-      threshold: 1
-    }
-
-    const loadMore = async () => {
-      if (showCount < filteredNotifications.length) {
-        setShowCount((count) => count + SHOW_COUNT)
-        // preload more
-        if (filteredNotifications.length - showCount > LIMIT / 2) {
-          return
+    const observerInstance = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting) {
+          loadMore()
         }
+      },
+      {
+        root: null,
+        rootMargin: '10px',
+        threshold: 1
       }
-
-      if (!pubkey || !timelineKey || !until || loading) return
-      setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(timelineKey, until, LIMIT)
-      setLoading(false)
-      if (newNotifications.length === 0) {
-        setUntil(undefined)
-        return
-      }
-
-      if (newNotifications.length > 0) {
-        setNotifications((oldNotifications) => [
-          ...oldNotifications,
-          ...newNotifications.filter((event) => event.pubkey !== pubkey)
-        ])
-      }
-
-      setUntil(newNotifications[newNotifications.length - 1].created_at - 1)
-    }
-
-    const observerInstance = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting) {
-        loadMore()
-      }
-    }, options)
+    )
 
     const currentBottomRef = bottomRef.current
 
@@ -321,7 +286,33 @@ const NotificationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, filteredNotifications])
+
+    async function loadMore() {
+      if (showCount < events.length) {
+        setShowCount((count) => count + SHOW_COUNT)
+        // preload more?
+        if (filteredNotifications.length - showCount > LIMIT / 2) {
+          return
+        }
+      }
+
+      setLoading(true)
+      const olderEvents = await client.loadMoreTimeline(subRequests, {
+        until: events.length > 0 ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+        limit: LIMIT
+      })
+      setLoading(false)
+
+      if (olderEvents.length > 0) {
+        setEvents((currentEvents) => [
+          ...currentEvents,
+          ...olderEvents.filter((event) => event.pubkey !== pubkey)
+        ])
+      } else {
+        setHasMore(false)
+      }
+    }
+  }, [pubkey, subRequests, loading, showCount, filteredNotifications])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -332,7 +323,7 @@ const NotificationList = forwardRef((_, ref) => {
 
   const list = (
     <div className={notificationListStyle === NOTIFICATION_LIST_STYLE.COMPACT ? 'pt-2' : ''}>
-      {visibleNotifications.map((notification) => (
+      {filteredNotifications.slice(0, showCount).map((notification) => (
         <NotificationItem
           key={notification.id}
           notification={notification}
@@ -340,7 +331,7 @@ const NotificationList = forwardRef((_, ref) => {
         />
       ))}
       <div className="text-center text-sm text-muted-foreground">
-        {until || loading ? (
+        {hasMore || loading ? (
           <div ref={bottomRef}>
             <NotificationSkeleton />
           </div>
@@ -384,5 +375,7 @@ const NotificationList = forwardRef((_, ref) => {
     </div>
   )
 })
+
 NotificationList.displayName = 'NotificationList'
+
 export default NotificationList

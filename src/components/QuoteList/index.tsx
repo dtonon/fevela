@@ -9,6 +9,7 @@ import * as kinds from '@nostr/tools/kinds'
 import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
 const SHOW_COUNT = 10
@@ -17,7 +18,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   const { t } = useTranslation()
   const { startLogin } = useNostr()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
-  const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [events, setEvents] = useState<Event[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [hasMore, setHasMore] = useState<boolean>(true)
@@ -25,62 +26,60 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   const bottomRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    async function init() {
-      setLoading(true)
-      setEvents([])
-      setHasMore(true)
-
+    ;(async () => {
       const relayList = await client.fetchRelayList(event.pubkey)
       const relayUrls = relayList.read.concat(BIG_RELAY_URLS)
-      const seenOn = client.getSeenEventRelayUrls(event.id)
+      const seenOn = client.getSeenEventRelayUrls(event.id, event)
       relayUrls.unshift(...seenOn)
 
-      const { closer, timelineKey } = await client.subscribeTimeline(
-        [
-          {
-            urls: relayUrls,
-            filter: {
-              '#q': [
-                isReplaceableEvent(event.kind) ? getReplaceableCoordinateFromEvent(event) : event.id
-              ],
-              kinds: [
-                kinds.ShortTextNote,
-                kinds.Highlights,
-                kinds.LongFormArticle,
-                ExtendedKind.COMMENT,
-                ExtendedKind.POLL
-              ],
-              limit: LIMIT
-            }
-          }
-        ],
+      setSubRequests([
         {
-          onEvents: (events, eosed) => {
-            if (events.length > 0) {
-              setEvents(events)
-            }
-            if (eosed) {
-              setLoading(false)
-              setHasMore(events.length > 0)
-            }
-          },
-          onNew: (event) => {
-            setEvents((oldEvents) =>
-              [event, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
-            )
+          source: 'relays',
+          urls: relayUrls,
+          filter: {
+            '#q': [
+              isReplaceableEvent(event.kind) ? getReplaceableCoordinateFromEvent(event) : event.id
+            ],
+            kinds: [
+              kinds.ShortTextNote,
+              kinds.Highlights,
+              kinds.LongFormArticle,
+              ExtendedKind.COMMENT,
+              ExtendedKind.POLL
+            ]
+          }
+        }
+      ])
+    })()
+  }, [event])
+
+  useEffect(() => {
+    setLoading(true)
+    setEvents([])
+    setHasMore(true)
+
+    const subc = client.subscribeTimeline(
+      subRequests,
+      { limit: LIMIT },
+      {
+        onEvents: (events) => {
+          setLoading(false)
+          setHasMore(events.length > 0)
+
+          if (events.length > 0) {
+            setEvents(events)
           }
         },
-        { startLogin }
-      )
-      setTimelineKey(timelineKey)
-      return closer
-    }
-
-    const promise = init()
-    return () => {
-      promise.then((closer) => closer())
-    }
-  }, [event])
+        onNew: (event) => {
+          setEvents((oldEvents) =>
+            [event, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
+          )
+        }
+      },
+      { startLogin }
+    )
+    return () => subc.close()
+  }, [subRequests])
 
   useEffect(() => {
     const options = {
@@ -89,7 +88,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
       threshold: 0.1
     }
 
-    const loadMore = async () => {
+    async function loadMore() {
       if (showCount < events.length) {
         setShowCount((prev) => prev + SHOW_COUNT)
         // preload more
@@ -98,13 +97,12 @@ export default function QuoteList({ event, className }: { event: Event; classNam
         }
       }
 
-      if (!timelineKey || loading || !hasMore) return
+      if (loading || !hasMore) return
       setLoading(true)
-      const newEvents = await client.loadMoreTimeline(
-        timelineKey,
-        events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-        LIMIT
-      )
+      const newEvents = await client.loadMoreTimeline(subRequests, {
+        until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+        limit: LIMIT
+      })
       setLoading(false)
       if (newEvents.length === 0) {
         setHasMore(false)
@@ -130,7 +128,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [timelineKey, loading, hasMore, events, showCount])
+  }, [loading, hasMore, events, showCount])
 
   return (
     <div className={className}>

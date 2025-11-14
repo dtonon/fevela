@@ -19,7 +19,9 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
   if (searchParams.type === 'notes') {
     return (
       <NormalFeed
-        subRequests={[{ urls: SEARCHABLE_RELAY_URLS, filter: { search: searchParams.search } }]}
+        subRequests={[
+          { source: 'relays', urls: SEARCHABLE_RELAY_URLS, filter: { search: searchParams.search } }
+        ]}
         showRelayCloseReason
       />
     )
@@ -27,7 +29,9 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
   if (searchParams.type === 'hashtag') {
     return (
       <NormalFeed
-        subRequests={[{ urls: BIG_RELAY_URLS, filter: { '#t': [searchParams.search] } }]}
+        subRequests={[
+          { source: 'relays', urls: BIG_RELAY_URLS, filter: { '#t': [searchParams.search] } }
+        ]}
         showRelayCloseReason
       />
     )

@@ -39,11 +39,25 @@ import { NostrConnectionSigner } from './nostrConnection.signer'
 import { NpubSigner } from './npub.signer'
 import { NsecSigner } from './nsec.signer'
 import { NostrUser } from '@nostr/gadgets/metadata'
-import { loadFavoriteRelays, loadFollowsList } from '@nostr/gadgets/lists'
+import {
+  loadBookmarks,
+  loadEmojis,
+  loadFavoriteRelays,
+  loadFollowsList,
+  loadPins
+} from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
+import {
+  start,
+  end,
+  status,
+  applyDiffFollowedEventsIndex,
+  rebuildFollowedEventsIndex
+} from '@/services/outbox.service'
 
 type TNostrContext = {
   isInitialized: boolean
+  isReady: boolean
   pubkey: string | null
   profile: NostrUser | null
   relayList: TRelayList | null
@@ -120,6 +134,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [pinList, setPinList] = useState<string[]>([])
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(-1)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isReady, setIsReady] = useState(false)
 
   useEffect(() => {
     const init = async () => {
@@ -128,11 +143,18 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       }
 
       const accounts = storage.getAccounts()
-      const act = storage.getCurrentAccount() ?? accounts[0] // auto login the first account
-      if (!act) return
-
-      await loginWithAccountPointer(act)
+      const act = storage.getCurrentAccount()
+      if (act) {
+        await loginWithAccountPointer(act, true)
+        return
+      }
+      if (accounts[0]) {
+        // auto login the first account
+        await loginWithAccountPointer(accounts[0], false)
+        return
+      }
     }
+
     init().then(() => {
       setIsInitialized(true)
     })
@@ -151,11 +173,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    const globalSyncAbort = new AbortController()
+
+    // initialize current account
     ;(async () => {
       setRelayList(null)
       setProfile(null)
       setNsec(null)
       setNotificationsSeenAt(-1)
+
       if (!account) {
         return
       }
@@ -175,24 +201,63 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
       const storedNotificationsSeenAt = storage.getLastReadNotificationTime(account.pubkey)
 
+      // current account replaceables
       const relayList = await client.fetchRelayList(account.pubkey)
       setRelayList(relayList)
 
       client.fetchProfile(account.pubkey).then(setProfile)
-      client.loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
-      client.loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
-      client.loadPins(account.pubkey).then(({ items }) => setPinList(items))
+      loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
+      loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
+      loadPins(account.pubkey).then(({ items }) => setPinList(items))
       client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
-      loadFollowsList(account.pubkey).then(({ items }) => setFollowList(items))
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
-      const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), [
-        {
-          kinds: [kinds.Application],
-          authors: [account.pubkey],
-          '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
-        }
-      ])
+      // first fetch with no network
+      loadFollowsList(account.pubkey, [], false).then(({ items: previous }) => {
+        // then fetch with network and a force update
+        loadFollowsList(account.pubkey, [], true).then(async (list) => {
+          // if the lists changed under us we'll have to rebuild the followedBy index
+          let listsAreTheSame = previous.length === list.items.length
+          if (listsAreTheSame) {
+            previous.sort()
+            list.items.sort()
+            listsAreTheSame = previous.every((p, i) => p === list.items[i])
+          }
+
+          if (!listsAreTheSame) {
+            try {
+              console.debug(':: rebuilding followedBy indexes for', account.pubkey, list.items)
+              await rebuildFollowedEventsIndex(account.pubkey, list.items)
+            } catch (err) {
+              console.error('failed to rebuild followed index:', err)
+              throw err
+            }
+          }
+          setFollowList(list.items)
+
+          // initialize outbox manager for this user
+          if (status.syncing && status.pubkey === account.pubkey) {
+            // we're already logged with this same pubkey, so don't stop it only to start again
+            // (react shouldn't have called this twice)
+            return
+          }
+
+          // stop the previous sync (if any) and start again on the new key
+          start(account.pubkey, list.items, globalSyncAbort.signal)
+
+          // user index thing for @-mentions
+          client.initUserIndexFromFollowings(account.pubkey)
+
+          setIsReady(true)
+        })
+      })
+
+      // load application settings
+      const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), {
+        kinds: [kinds.Application],
+        authors: [account.pubkey],
+        '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
+      })
       const sortedEvents = events.sort((a, b) => b.created_at - a.created_at)
       const notificationsSeenAtEvent = sortedEvents.find(
         (e) =>
@@ -205,32 +270,33 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       )
       setNotificationsSeenAt(notificationsSeenAt)
       storage.setLastReadNotificationTime(account.pubkey, notificationsSeenAt)
-
-      client.initUserIndexFromFollowings(account.pubkey)
     })()
+
+    return () => {
+      end()
+      globalSyncAbort.abort('<account-changed>')
+    }
   }, [account])
 
   useEffect(() => {
+    // fetch our latest reactions and process them
     if (!account) return
-
-    const initInteractions = async () => {
+    ;(async () => {
       const pubkey = account.pubkey
       const relayList = await client.fetchRelayList(pubkey)
-      const events = await client.fetchEvents(relayList.write.slice(0, 4), [
-        {
-          authors: [pubkey],
-          kinds: [kinds.Reaction, kinds.Repost],
-          limit: 100
-        },
-        {
-          '#P': [pubkey],
-          kinds: [kinds.Zap],
-          limit: 100
-        }
-      ])
+      const events = await client.fetchEvents(relayList.write.slice(0, 4), {
+        authors: [pubkey],
+        kinds: [kinds.Reaction, kinds.Repost],
+        limit: 100
+      })
+      const zaps = await client.fetchEvents(relayList.write.slice(0, 4), {
+        '#P': [pubkey],
+        kinds: [kinds.Zap],
+        limit: 100
+      })
+      events.push(...zaps)
       noteStatsService.updateNoteStatsByEvents(events)
-    }
-    initInteractions()
+    })()
   }, [account])
 
   useEffect(() => {
@@ -248,6 +314,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       client.pubkey = undefined
     }
   }, [account])
+
+  useEffect(() => {
+    client.followings = new Set(followList)
+  }, [followList])
 
   useEffect(() => {
     customEmojiService.init(userEmojiList)
@@ -271,10 +341,18 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = (signer: ISigner, act: TAccount) => {
+  const login = async (signer: ISigner, act: TAccount, shouldWipeFollowedByIndexes: boolean) => {
+    setIsReady(false)
+
+    if (shouldWipeFollowedByIndexes) {
+      // this will force a followedBy index rebuild later
+      await loadFollowsList(act.pubkey, [], null)
+    }
+
     const newAccounts = storage.addAccount(act)
     setAccounts(newAccounts)
     storage.switchAccount(act)
+
     setAccount({ pubkey: act.pubkey, signerType: act.signerType })
     setSigner(signer)
     return act.pubkey
@@ -296,7 +374,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setSigner(null)
       return
     }
-    await loginWithAccountPointer(act)
+    await loginWithAccountPointer(act, false)
   }
 
   const nsecLogin = async (nsecOrHex: string, password?: string, needSetup?: boolean) => {
@@ -316,9 +394,9 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const pubkey = nsecSigner.login(privkey)!
     if (password) {
       const ncryptsec = nip49.encrypt(privkey, password)
-      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
+      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
     } else {
-      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) })
+      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) }, true)
     }
     if (needSetup) {
       setupNewUser(nsecSigner)
@@ -334,13 +412,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const privkey = nip49.decrypt(ncryptsec, password)
     const browserNsecSigner = new NsecSigner()
     const pubkey = browserNsecSigner.login(privkey)!
-    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
+    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
   }
 
   const npubLogin = async (npub: string) => {
     const npubSigner = new NpubSigner()
     const pubkey = npubSigner.login(npub)
-    return login(npubSigner, { pubkey, signerType: 'npub', npub })
+    return login(npubSigner, { pubkey, signerType: 'npub', npub }, true)
   }
 
   const nip07Login = async () => {
@@ -351,7 +429,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       if (!pubkey) {
         throw new Error('You did not allow to access your pubkey')
       }
-      return login(nip07Signer, { pubkey, signerType: 'nip-07' })
+      return login(nip07Signer, { pubkey, signerType: 'nip-07' }, true)
     } catch (err) {
       toast.error(t('Login failed') + ': ' + (err as Error).message)
       throw err
@@ -366,12 +444,16 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(bunker)
     bunkerUrl.searchParams.delete('secret')
-    return login(bunkerSigner, {
-      pubkey,
-      signerType: 'bunker',
-      bunker: bunkerUrl.toString(),
-      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    })
+    return login(
+      bunkerSigner,
+      {
+        pubkey,
+        signerType: 'bunker',
+        bunker: bunkerUrl.toString(),
+        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+      },
+      true
+    )
   }
 
   const nostrConnectionLogin = async (clientSecretKey: Uint8Array, connectionString: string) => {
@@ -382,15 +464,22 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(loginResult.bunkerString!)
     bunkerUrl.searchParams.delete('secret')
-    return login(bunkerSigner, {
-      pubkey: loginResult.pubkey,
-      signerType: 'bunker',
-      bunker: bunkerUrl.toString(),
-      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-    })
+    return login(
+      bunkerSigner,
+      {
+        pubkey: loginResult.pubkey,
+        signerType: 'bunker',
+        bunker: bunkerUrl.toString(),
+        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+      },
+      true
+    )
   }
 
-  const loginWithAccountPointer = async (act: TAccountPointer): Promise<string | null> => {
+  const loginWithAccountPointer = async (
+    act: TAccountPointer,
+    wasCurrent: boolean // when this is true that means we don't have to wipe the followedBy indexes
+  ): Promise<string | null> => {
     let account = storage.findAccount(act)
     if (!account) {
       return null
@@ -405,7 +494,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, signerType: 'nsec' }
           storage.addAccount(account)
         }
-        return login(browserNsecSigner, account)
+        return login(browserNsecSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'ncryptsec') {
       if (account.ncryptsec) {
@@ -416,12 +505,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         const privkey = nip49.decrypt(account.ncryptsec, password)
         const browserNsecSigner = new NsecSigner()
         browserNsecSigner.login(privkey)
-        return login(browserNsecSigner, account)
+        return login(browserNsecSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'nip-07') {
       const nip07Signer = new Nip07Signer()
       await nip07Signer.init()
-      return login(nip07Signer, account)
+      return login(nip07Signer, account, !wasCurrent)
     } else if (account.signerType === 'bunker') {
       if (account.bunker && account.bunkerClientSecretKey) {
         const bunkerSigner = new BunkerSigner(account.bunkerClientSecretKey)
@@ -435,7 +524,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, pubkey }
           storage.addAccount(account)
         }
-        return login(bunkerSigner, account)
+        return login(bunkerSigner, account, !wasCurrent)
       }
     } else if (account.signerType === 'npub' && account.npub) {
       const npubSigner = new NpubSigner()
@@ -449,7 +538,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         account = { ...account, pubkey }
         storage.addAccount(account)
       }
-      return login(npubSigner, account)
+      return login(npubSigner, account, !wasCurrent)
     }
     storage.removeAccount(account)
     return null
@@ -522,7 +611,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
     const deletionRequest = await signEvent(createDeletionRequestDraftEvent(targetEvent))
 
-    const seenOn = client.getSeenEventRelayUrls(targetEvent.id)
+    const seenOn = client.getSeenEventRelayUrls(targetEvent.id, targetEvent)
     const relays = await client.determineTargetRelays(targetEvent, {
       specifiedRelayUrls: isProtectedEvent(targetEvent) ? seenOn : undefined,
       additionalRelayUrls: seenOn
@@ -573,8 +662,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateFollowListEvent = async (followListEvent: Event) => {
+    const previous = followList
     const { items } = await loadFollowsList(followListEvent.pubkey, [], followListEvent)
     setFollowList(items)
+    applyDiffFollowedEventsIndex(account!.pubkey, previous, items)
   }
 
   const updateMuteListEvent = async (muteListEvent: Event) => {
@@ -583,7 +674,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateBookmarkListEvent = async (bookmarkListEvent: Event) => {
-    const { items } = await client.loadBookmarks(bookmarkListEvent.pubkey, [], bookmarkListEvent)
+    const { items } = await loadBookmarks(bookmarkListEvent.pubkey, [], bookmarkListEvent)
     setBookmarkList(items)
   }
 
@@ -593,7 +684,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updatePinListEvent = async (pinListEvent: Event) => {
-    const { items } = await client.loadPins(pinListEvent.pubkey, [], pinListEvent)
+    const { items } = await loadPins(pinListEvent.pubkey, [], pinListEvent)
     setPinList(items.slice(0, MAX_PINNED_NOTES))
   }
 
@@ -623,6 +714,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     <NostrContext.Provider
       value={{
         isInitialized,
+        isReady,
         pubkey: account?.pubkey ?? null,
         profile,
         relayList,

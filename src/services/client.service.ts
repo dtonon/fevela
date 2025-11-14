@@ -1,33 +1,12 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
-import {
-  compareEvents,
-  getReplaceableCoordinate,
-  getReplaceableCoordinateFromEvent,
-  isReplaceableEvent
-} from '@/lib/event'
 import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
-import { tagNameEquals, getEmojiInfosFromEmojiTags } from '@/lib/tag'
-import { isLocalNetworkUrl, normalizeHttpUrl, normalizeUrl } from '@/lib/url'
-import { isSafari } from '@/lib/utils'
-import {
-  ISigner,
-  TPublishOptions,
-  TRelayList,
-  TSubRequestFilter,
-  TEmoji,
-  TMutedList
-} from '@/types'
-import { sha256 } from '@noble/hashes/sha2'
-import DataLoader from 'dataloader'
+import { tagNameEquals } from '@/lib/tag'
+import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
+import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
-import {
-  EventTemplate,
-  Event as NEvent,
-  NostrEvent,
-  validateEvent,
-  VerifiedEvent
-} from '@nostr/tools/wasm'
+import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
+import debounce from 'debounce'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
@@ -42,47 +21,28 @@ import {
 } from '@nostr/gadgets/metadata'
 import {
   loadRelayList,
-  makeListFetcher,
-  itemsFromTags,
   loadFollowsList,
   loadMuteList,
   loadFavoriteRelays
 } from '@nostr/gadgets/lists'
-import { loadRelaySets, makeSetFetcher } from '@nostr/gadgets/sets'
+import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
-import { AddressPointer } from '@nostr/tools/nip19'
 import { verifyEvent } from '@nostr/tools/wasm'
-
-type TTimelineRef = [string, number]
+import { current, outbox, ready, store } from './outbox.service'
+import { SubCloser } from '@nostr/tools/abstract-pool'
+import { binarySearch } from '@nostr/tools/utils'
+import { seenOn } from '@nostr/gadgets/store'
+import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 
 class ClientService extends EventTarget {
   static instance: ClientService
 
   signer?: ISigner
   pubkey?: string
+  followings?: Set<string>
 
-  private timelines: Record<
-    string,
-    | {
-        refs: TTimelineRef[]
-        filter: TSubRequestFilter
-        urls: string[]
-      }
-    | string[]
-    | undefined
-  > = {}
-  private replaceableEventCacheMap = new Map<string, NEvent>()
-  private eventCacheMap = new Map<string, Promise<NEvent | undefined>>()
-  private eventDataLoader = new DataLoader<string, NEvent | undefined>(
-    (ids) => Promise.all(ids.map((id) => this._fetchEvent(id))),
-    { cacheMap: this.eventCacheMap }
-  )
-  private fetchEventFromBigRelaysDataloader = new DataLoader<string, NEvent | undefined>(
-    this.fetchEventsFromBigRelays.bind(this),
-    { cache: false, batchScheduleFn: (callback) => setTimeout(callback, 50) }
-  )
-  private trendingNotesCache: NEvent[] | null = null
+  private trendingNotesCache: NostrEvent[] | null = null
 
   private userIndex = new FlexSearch.Index({
     tokenize: 'forward'
@@ -111,7 +71,7 @@ class ClientService extends EventTarget {
   }
 
   async determineTargetRelays(
-    event: NEvent,
+    event: NostrEvent,
     { specifiedRelayUrls, additionalRelayUrls }: TPublishOptions = {}
   ) {
     if (event.kind === kinds.Report) {
@@ -174,7 +134,7 @@ class ClientService extends EventTarget {
     return relays
   }
 
-  async publishEvent(relayUrls: string[], event: NEvent) {
+  async publishEvent(relayUrls: string[], event: NostrEvent) {
     const uniqueRelayUrls = Array.from(new Set(relayUrls))
     await new Promise<void>((resolve, reject) => {
       let successCount = 0
@@ -230,7 +190,7 @@ class ClientService extends EventTarget {
     })
   }
 
-  emitNewEvent(event: NEvent) {
+  emitNewEvent(event: NostrEvent) {
     this.dispatchEvent(new CustomEvent('newEvent', { detail: event }))
   }
 
@@ -252,453 +212,339 @@ class ClientService extends EventTarget {
 
   /** =========== Timeline =========== */
 
-  private generateTimelineKey(urls: string[], filter: Filter) {
-    const stableFilter: any = {}
-    Object.entries(filter)
-      .sort()
-      .forEach(([key, value]) => {
-        if (Array.isArray(value)) {
-          stableFilter[key] = [...value].sort()
-        }
-        stableFilter[key] = value
-      })
-    const paramsStr = JSON.stringify({
-      urls: [...urls].sort(),
-      filter: stableFilter
-    })
-    const encoder = new TextEncoder()
-    const data = encoder.encode(paramsStr)
-    const hashBuffer = sha256(data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  }
-
-  private generateMultipleTimelinesKey(subRequests: { urls: string[]; filter: Filter }[]) {
-    const keys = subRequests.map(({ urls, filter }) => this.generateTimelineKey(urls, filter))
-    const encoder = new TextEncoder()
-    const data = encoder.encode(JSON.stringify(keys.sort()))
-    const hashBuffer = sha256(data)
-    const hashArray = Array.from(new Uint8Array(hashBuffer))
-    return hashArray.map((b) => b.toString(16).padStart(2, '0')).join('')
-  }
-
-  async subscribeTimeline(
-    subRequests: { urls: string[]; filter: TSubRequestFilter }[],
+  subscribeTimeline(
+    subRequests: TFeedSubRequest[],
+    filterModification: Filter,
     {
-      onEvents,
-      onNew,
+      onEvents, // called only once
+      onNew, // any events that come after the initial onEvents batch
       onClose
     }: {
-      onEvents: (events: NEvent[], eosed: boolean) => void
-      onNew: (evt: NEvent) => void
+      onEvents: (events: NostrEvent[]) => void
+      onNew: (evt: NostrEvent) => void
       onClose?: (url: string, reason: string) => void
     },
     {
-      startLogin,
-      needSort = true
+      startLogin
     }: {
       startLogin?: () => void
-      needSort?: boolean
     } = {}
-  ) {
-    const newEventIdSet = new Set<string>()
-    const requestCount = subRequests.length
-    const threshold = Math.floor(requestCount / 2)
-    let eventIdSet = new Set<string>()
-    let events: NEvent[] = []
-    let eosedCount = 0
+  ): SubCloser {
+    let subc: SubCloser
+    const abort = new AbortController()
 
-    const subs = await Promise.all(
-      subRequests.map(({ urls, filter }) => {
-        return this._subscribeTimeline(
-          urls,
-          filter,
-          {
-            onEvents: (_events, _eosed) => {
-              if (_eosed) {
-                eosedCount++
-              }
+    const localFilters = subRequests
+      .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
+      .map(({ filter }) => ({
+        ...filter,
+        ...filterModification
+      }))
 
-              _events.forEach((evt) => {
-                if (eventIdSet.has(evt.id)) return
-                eventIdSet.add(evt.id)
-                events.push(evt)
-              })
-              events = events.sort((a, b) => b.created_at - a.created_at).slice(0, filter.limit)
-              eventIdSet = new Set(events.map((evt) => evt.id))
-
-              if (eosedCount >= threshold) {
-                onEvents(events, eosedCount >= requestCount)
-              }
-            },
-            onNew: (evt) => {
-              if (newEventIdSet.has(evt.id)) return
-              newEventIdSet.add(evt.id)
-              onNew(evt)
-            },
-            onClose
-          },
-          { startLogin, needSort }
-        )
-      })
-    )
-
-    const key = this.generateMultipleTimelinesKey(subRequests)
-    this.timelines[key] = subs.map((sub) => sub.timelineKey)
-
-    return {
-      closer: () => {
-        onEvents = () => {}
-        onNew = () => {}
-        subs.forEach((sub) => {
-          sub.closer()
-        })
-      },
-      timelineKey: key
-    }
-  }
-
-  async loadMoreTimeline(key: string, until: number, limit: number) {
-    const timeline = this.timelines[key]
-    if (!timeline) return []
-
-    if (!Array.isArray(timeline)) {
-      return this._loadMoreTimeline(key, until, limit)
-    }
-    const timelines = await Promise.all(
-      timeline.map((key) => this._loadMoreTimeline(key, until, limit))
-    )
-
-    const eventIdSet = new Set<string>()
-    const events: NEvent[] = []
-    timelines.forEach((timeline) => {
-      timeline.forEach((evt) => {
-        if (eventIdSet.has(evt.id)) return
-        eventIdSet.add(evt.id)
-        events.push(evt)
-      })
-    })
-    return events.sort((a, b) => b.created_at - a.created_at)
-  }
-
-  subscribe(
-    urls: string[],
-    filter: Filter | Filter[],
-    {
-      onevent,
-      oneose,
-      onclose,
-      startLogin,
-      onAllClose
-    }: {
-      onevent?: (evt: NEvent) => void
-      oneose?: (eosed: boolean) => void
-      onclose?: (url: string, reason: string) => void
-      startLogin?: () => void
-      onAllClose?: (reasons: string[]) => void
-    }
-  ) {
-    const relays = Array.from(new Set(urls))
-    const filters = Array.isArray(filter) ? filter : [filter]
-
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const that = this
-    const _knownIds = new Set<string>()
-    let startedCount = 0
-    let eosedCount = 0
-    let eosed = false
-    let closedCount = 0
-    const closeReasons: string[] = []
-    const subPromises: Promise<{ close: () => void }>[] = []
-    relays.forEach((url) => {
-      let hasAuthed = false
-
-      subPromises.push(startSub())
-
-      async function startSub() {
-        startedCount++
-        const relay = await pool.ensureRelay(url, { connectionTimeout: 5000 }).catch((err) => {
-          console.warn(
-            `⚠️ [Relay Connection Failed] ${url}`,
-            err?.message || err || 'Unknown error'
-          )
-          return undefined
-        })
-        // cannot connect to relay
-        if (!relay) {
-          if (!eosed) {
-            eosedCount++
-            eosed = eosedCount >= startedCount
-            oneose?.(eosed)
-          }
-          return {
-            close: () => {}
-          }
+    const relayRequests = subRequests
+      .filter(
+        (req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays'
+      )
+      .map(({ urls, filter }) => ({
+        urls,
+        filter: {
+          ...filter,
+          ...filterModification
         }
+      }))
 
-        return relay.subscribe(filters, {
-          receivedEvent: (relay, id) => {
-            that.trackEventSeenOn(id, relay)
-          },
-          alreadyHaveEvent: (id: string) => {
-            const have = _knownIds.has(id)
-            if (have) {
-              return true
+    // do local db requests
+    const local =
+      localFilters.length === 0
+        ? Promise.resolve([])
+        : (async () => {
+            let newestEvent: NostrEvent | undefined
+
+            // query from local db
+            const events: NostrEvent[] = new Array(200)
+            let f = 0
+            for (let i = 0; i < localFilters.length; i++) {
+              const iter = store.queryEvents(localFilters[i], 5_000)
+              const first = await iter.next()
+
+              if (first.value) {
+                events[f] = first.value
+                f++
+
+                if (!newestEvent || newestEvent.created_at < first.value.created_at) {
+                  newestEvent = first.value
+                }
+
+                if (!first.done) {
+                  for await (const event of iter) {
+                    events[f] = event
+                    f++
+                  }
+                }
+              }
             }
-            _knownIds.add(id)
-            return false
-          },
-          onevent: (evt: NEvent) => {
-            onevent?.(evt)
-          },
-          oneose: () => {
-            // make sure eosed is not called multiple times
-            if (eosed) return
+            if (f) events.length = f
 
-            eosedCount++
-            eosed = eosedCount >= startedCount
-            oneose?.(eosed)
-          },
-          onclose: (reason: string) => {
-            // auth-required
-            if (reason.startsWith('auth-required') && !hasAuthed) {
-              // already logged in
-              if (that.signer) {
-                relay
-                  .auth(async (authEvt: EventTemplate) => {
-                    const evt = await that.signer!.signEvent(authEvt)
+            // we'll use this for the live query
+            const allAuthors = (
+              await Promise.all(
+                localFilters.map(async (f) => {
+                  if (f.authors) return f.authors
+                  if (f.followedBy) return (await loadFollowsList(f.followedBy)).items
+                  return []
+                })
+              )
+            ).flat()
+
+            // now if our last event is too old or we just turned this thing on and we have no events
+            // do a temporary fallback relay query here while the sync completes
+            if (
+              relayRequests.length === 0 &&
+              (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7)
+            ) {
+              let done: () => void
+              const pre = new Promise<void>((resolve) => {
+                done = resolve
+              })
+              const preliminarySub = pool.subscribeMap(
+                await outboxFilterRelayBatch(allAuthors, { limit: 10, ...localFilters[0] }),
+                {
+                  label: `f-preliminary`,
+                  async onevent(event) {
+                    events[f] = event
+                    f++
+                    outbox.store.saveEvent(event)
+                  },
+                  oneose() {
+                    preliminarySub.close('preliminary req closed automatically on eose')
+                    done()
+                  }
+                }
+              )
+              await pre
+              events.length = f
+            }
+
+            // listen for live updates to local db
+            ready().then(() => {
+              outbox.live(allAuthors, {
+                signal: abort.signal
+              })
+
+              current.onnew = (event: NostrEvent) => {
+                if (matchFilters(localFilters, event)) onNew(event)
+              }
+              current.onsync = debounce(async () => {
+                for (let i = 0; i < localFilters.length; i++) {
+                  const filter = localFilters[i]
+                  for await (const event of store.queryEvents(filter, 5_000)) {
+                    // check if this isn't already in the sorted array of events
+                    const [_, exists] = binarySearch(events, (b) => {
+                      if (event.id === b.id) return 0
+                      if (event.created_at === b.created_at) return -1
+                      return b.created_at - event.created_at
+                    })
+                    if (!exists) {
+                      onNew(event)
+                    }
+                  }
+                }
+              }, 2200)
+            })
+
+            return events
+          })()
+
+    // do relay requests
+    const network =
+      relayRequests.length === 0
+        ? Promise.resolve([])
+        : new Promise<NostrEvent[]>((resolve) => {
+            let eosed = false
+
+            // keep track of this just so we can refer to them for onClose
+            const urls: string[] = []
+
+            let events: NostrEvent[] = []
+            subc = pool.subscribeMap(
+              relayRequests.flatMap(({ urls, filter }) =>
+                urls.flatMap((url) => {
+                  if (!urls.includes(url)) urls.push(url)
+                  return { url, filter }
+                })
+              ),
+              {
+                label: 'f-timeline',
+                onevent(evt) {
+                  if (!eosed) {
+                    events.push(evt)
+                  } else {
+                    onNew(evt)
+                  }
+                },
+                oneose() {
+                  eosed = true
+                  resolve(events)
+                  events = []
+                },
+                onauth: async (authEvt) => {
+                  // already logged in
+                  if (this.signer) {
+                    const evt = await this.signer!.signEvent(authEvt)
                     if (!evt) {
                       throw new Error('sign event failed')
                     }
                     return evt as VerifiedEvent
-                  })
-                  .then(() => {
-                    hasAuthed = true
-                    if (!eosed) {
-                      subPromises.push(startSub())
+                  }
+
+                  // open login dialog
+                  if (startLogin) {
+                    startLogin()
+                  }
+
+                  throw new Error(
+                    "<not logged in, can't auth to relay during this.subscribeTimeline>"
+                  )
+                },
+                onclose(reasons) {
+                  if (onClose) {
+                    for (let i = 0; i < reasons.length; i++) {
+                      const reason = reasons[i]
+                      onClose(urls[i], reason)
                     }
-                  })
-                  .catch(() => {
-                    // ignore
-                  })
-                return
+                  }
+                  resolve(events)
+                }
               }
+            )
+          })
 
-              // open login dialog
-              if (startLogin) {
-                startLogin()
-                return
-              }
-            }
-
-            // close the subscription
-            closedCount++
-            closeReasons.push(reason)
-            onclose?.(url, reason)
-            if (closedCount >= startedCount) {
-              onAllClose?.(closeReasons)
-            }
-            return
-          },
-          eoseTimeout: 10_000 // 10s
-        })
+    Promise.all([local, network]).then(([eventsL, eventsN]) => {
+      if (eventsL.length > 0 && eventsN.length > 0) {
+        eventsL.push(...eventsN)
+        eventsL.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsL)
+      } else if (eventsL.length) {
+        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsL)
+      } else {
+        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+          eventsN.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsN)
       }
     })
 
-    const handleNewEventFromInternal = (data: Event) => {
-      const customEvent = data as CustomEvent<NEvent>
-      const evt = customEvent.detail
-      if (!matchFilters(filters, evt)) return
-
-      const id = evt.id
-      const have = _knownIds.has(id)
-      if (have) return
-
-      _knownIds.add(id)
-      onevent?.(evt)
-    }
-
-    this.addEventListener('newEvent', handleNewEventFromInternal)
-
     return {
-      close: () => {
-        this.removeEventListener('newEvent', handleNewEventFromInternal)
-        subPromises.forEach((subPromise) => {
-          subPromise
-            .then((sub) => {
-              sub.close()
-            })
-            .catch((err) => {
-              console.error(err)
-            })
-        })
+      close() {
+        onClose = undefined
+        abort.abort('<subc>')
+        subc?.close?.()
       }
     }
   }
 
-  private async _subscribeTimeline(
-    urls: string[],
-    filter: TSubRequestFilter, // filter with limit,
+  async loadMoreTimeline(
+    subRequests: TFeedSubRequest[],
+    filterModification: Filter,
     {
-      onEvents,
-      onNew,
-      onClose
-    }: {
-      onEvents: (events: NEvent[], eosed: boolean) => void
-      onNew: (evt: NEvent) => void
-      onClose?: (url: string, reason: string) => void
-    },
-    {
-      startLogin,
-      needSort = true
+      startLogin
     }: {
       startLogin?: () => void
-      needSort?: boolean
     } = {}
-  ) {
-    const relays = Array.from(new Set(urls))
-    const key = this.generateTimelineKey(relays, filter)
-    const timeline = this.timelines[key]
-    let cachedEvents: NEvent[] = []
-    let since: number | undefined
-    if (timeline && !Array.isArray(timeline) && timeline.refs.length && needSort) {
-      cachedEvents = (
-        await this.eventDataLoader.loadMany(timeline.refs.slice(0, filter.limit).map(([id]) => id))
-      ).filter((evt) => !!evt && !(evt instanceof Error)) as NEvent[]
-      if (cachedEvents.length) {
-        onEvents([...cachedEvents], false)
-        since = cachedEvents[0].created_at + 1
-      }
-    }
+  ): Promise<NostrEvent[]> {
+    const localFilters = subRequests
+      .filter((req): req is Extract<TFeedSubRequest, { source: 'local' }> => req.source === 'local')
+      .map(({ filter }) => ({
+        ...filter,
+        ...filterModification
+      }))
 
-    // eslint-disable-next-line @typescript-eslint/no-this-alias
-    const that = this
-    let events: NEvent[] = []
-    let eosedAt: number | null = null
-    const subCloser = this.subscribe(relays, since ? { ...filter, since } : filter, {
-      startLogin,
-      onevent: (evt: NEvent) => {
-        that.addEventToCache(evt)
-        // not eosed yet, push to events
-        if (!eosedAt) {
-          return events.push(evt)
+    const relayRequests = subRequests
+      .filter(
+        (req): req is Extract<TFeedSubRequest, { source: 'relays' }> => req.source === 'relays'
+      )
+      .map(({ urls, filter }) => ({
+        urls,
+        filter: {
+          ...filter,
+          ...filterModification
         }
-        // new event
-        if (evt.created_at > eosedAt) {
-          onNew(evt)
-        }
+      }))
 
-        const timeline = that.timelines[key]
-        if (!timeline || Array.isArray(timeline) || !timeline.refs.length) {
-          return
-        }
+    // do relay requests
+    const network =
+      relayRequests.length === 0
+        ? Promise.resolve([])
+        : await new Promise<NostrEvent[]>((resolve) => {
+            const events: NostrEvent[] = []
+            const subc = pool.subscribeMap(
+              relayRequests.flatMap(({ urls, filter }) => urls.flatMap((url) => ({ url, filter }))),
+              {
+                label: 'f-more',
+                onevent(evt) {
+                  events.push(evt)
+                },
+                oneose() {
+                  subc.close()
+                  resolve(events)
+                },
+                onclose() {
+                  resolve(events)
+                },
+                onauth: async (authEvt) => {
+                  // already logged in
+                  if (this.signer) {
+                    const evt = await this.signer!.signEvent(authEvt)
+                    if (!evt) {
+                      throw new Error('sign event failed')
+                    }
+                    return evt as VerifiedEvent
+                  }
 
-        // find the right position to insert
-        let idx = 0
-        for (const ref of timeline.refs) {
-          if (evt.created_at > ref[1] || (evt.created_at === ref[1] && evt.id < ref[0])) {
-            break
-          }
-          // the event is already in the cache
-          if (evt.created_at === ref[1] && evt.id === ref[0]) {
-            return
-          }
-          idx++
-        }
-        // the event is too old, ignore it
-        if (idx >= timeline.refs.length) return
+                  // open login dialog
+                  if (startLogin) {
+                    startLogin()
+                    return
+                  }
 
-        // insert the event to the right position
-        timeline.refs.splice(idx, 0, [evt.id, evt.created_at])
-      },
-      oneose: (eosed) => {
-        if (eosed && !eosedAt) {
-          eosedAt = dayjs().unix()
-        }
-        // (algo feeds) no need to sort and cache
-        if (!needSort) {
-          return onEvents([...events], !!eosedAt)
-        }
-        if (!eosed) {
-          events = events.sort((a, b) => b.created_at - a.created_at).slice(0, filter.limit)
-          return onEvents([...events.concat(cachedEvents).slice(0, filter.limit)], false)
-        }
-
-        events = events.sort((a, b) => b.created_at - a.created_at).slice(0, filter.limit)
-        const timeline = that.timelines[key]
-        // no cache yet
-        if (!timeline || Array.isArray(timeline) || !timeline.refs.length) {
-          that.timelines[key] = {
-            refs: events.map((evt) => [evt.id, evt.created_at]),
-            filter,
-            urls
-          }
-          return onEvents([...events], true)
-        }
-
-        // Prevent concurrent requests from duplicating the same event
-        const firstRefCreatedAt = timeline.refs[0][1]
-        const newRefs = events
-          .filter((evt) => evt.created_at > firstRefCreatedAt)
-          .map((evt) => [evt.id, evt.created_at] as TTimelineRef)
-
-        if (events.length >= filter.limit) {
-          // if new refs are more than limit, means old refs are too old, replace them
-          timeline.refs = newRefs
-          onEvents([...events], true)
-        } else {
-          // merge new refs with old refs
-          timeline.refs = newRefs.concat(timeline.refs)
-          onEvents([...events.concat(cachedEvents).slice(0, filter.limit)], true)
-        }
-      },
-      onclose: onClose
-    })
-
-    return {
-      timelineKey: key,
-      closer: () => {
-        onEvents = () => {}
-        onNew = () => {}
-        subCloser.close()
-      }
-    }
-  }
-
-  private async _loadMoreTimeline(key: string, until: number, limit: number) {
-    const timeline = this.timelines[key]
-    if (!timeline || Array.isArray(timeline)) return []
-
-    const { filter, urls, refs } = timeline
-    const startIdx = refs.findIndex(([, createdAt]) => createdAt <= until)
-    const cachedEvents =
-      startIdx >= 0
-        ? ((
-            await this.eventDataLoader.loadMany(
-              refs.slice(startIdx, startIdx + limit).map(([id]) => id)
+                  throw new Error(
+                    "<not logged in, can't auth to relay during this.loadMoreTimeline>"
+                  )
+                }
+              }
             )
-          ).filter((evt) => !!evt && !(evt instanceof Error)) as NEvent[])
-        : []
-    if (cachedEvents.length >= limit) {
-      return cachedEvents
-    }
+          })
 
-    until = cachedEvents.length ? cachedEvents[cachedEvents.length - 1].created_at - 1 : until
-    limit = limit - cachedEvents.length
-    let events = await this.query(urls, { ...filter, until, limit })
-    events.forEach((evt) => {
-      this.addEventToCache(evt)
+    // do local requests
+    const local =
+      localFilters.length === 0
+        ? Promise.resolve([])
+        : (async () => {
+            const events: NostrEvent[] = new Array(200)
+            let f = 0
+            for (let i = 0; i < localFilters.length; i++) {
+              const filter = localFilters[i]
+              for await (const event of store.queryEvents(filter, 5_000)) {
+                events[f] = event
+                f++
+              }
+            }
+            return events
+          })()
+
+    return Promise.all([local, network]).then(([eventsL, eventsN]) => {
+      if (eventsL.length > 0 && eventsN.length > 0) {
+        eventsL.push(...eventsN)
+        eventsL.sort((a, b) => b.created_at - a.created_at)
+        return eventsL
+      } else if (eventsL.length) {
+        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
+        return eventsL
+      } else {
+        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+          eventsN.sort((a, b) => b.created_at - a.created_at)
+        return eventsN
+      }
     })
-    events = events.sort((a, b) => b.created_at - a.created_at).slice(0, limit)
-
-    // Prevent concurrent requests from duplicating the same event
-    const lastRefCreatedAt = refs.length > 0 ? refs[refs.length - 1][1] : dayjs().unix()
-    timeline.refs.push(
-      ...events
-        .filter((evt) => evt.created_at < lastRefCreatedAt)
-        .map((evt) => [evt.id, evt.created_at] as TTimelineRef)
-    )
-    return [...cachedEvents, ...events]
   }
 
   /** =========== Event =========== */
@@ -707,16 +553,22 @@ class ClientService extends EventTarget {
     return Array.from(pool.seenOn.get(eventId)?.values() || [])
   }
 
-  getSeenEventRelayUrls(eventId: string) {
-    return this.getSeenEventRelays(eventId).map((relay) => relay.url)
+  getSeenEventRelayUrls(eventId: string, event?: NostrEvent) {
+    const poolUrls = this.getSeenEventRelays(eventId).map((relay) => relay.url)
+
+    // events loaded from the store may have a special list of "seenOn" relays attached
+    const relays = event ? seenOn(event) : []
+    const combined = new Set([...poolUrls, ...relays])
+
+    return Array.from(combined)
   }
 
-  getEventHints(eventId: string) {
-    return this.getSeenEventRelayUrls(eventId).filter((url) => !isLocalNetworkUrl(url))
+  getEventHints(eventId: string, event?: NostrEvent) {
+    return this.getSeenEventRelayUrls(eventId, event).filter((url) => !isLocalNetworkUrl(url))
   }
 
-  getEventHint(eventId: string) {
-    return this.getSeenEventRelayUrls(eventId).find((url) => !isLocalNetworkUrl(url)) ?? ''
+  getEventHint(eventId: string, event?: NostrEvent) {
+    return this.getSeenEventRelayUrls(eventId, event).find((url) => !isLocalNetworkUrl(url)) ?? ''
   }
 
   trackEventSeenOn(eventId: string, relay: AbstractRelay) {
@@ -728,77 +580,27 @@ class ClientService extends EventTarget {
     set.add(relay)
   }
 
-  private async query(urls: string[], filter: Filter | Filter[], onevent?: (evt: NEvent) => void) {
-    return await new Promise<NEvent[]>((resolve) => {
-      const events: NEvent[] = []
-      const sub = this.subscribe(urls, filter, {
-        onevent(evt) {
-          onevent?.(evt)
-          events.push(evt)
-        },
-        oneose: (eosed) => {
-          if (eosed) {
-            sub.close()
-            resolve(events)
-          }
-        },
-        onclose: () => {
-          resolve(events)
-        }
-      })
-    })
-  }
-
   async fetchEvents(
     urls: string[],
-    filter: Filter | Filter[],
+    filter: Filter,
     {
-      onevent,
       cache = false
     }: {
-      onevent?: (evt: NEvent) => void
+      onevent?: (evt: NostrEvent) => void
       cache?: boolean
     } = {}
   ) {
     const relays = Array.from(new Set(urls))
-    const events = await this.query(relays.length > 0 ? relays : BIG_RELAY_URLS, filter, onevent)
+    const events = await pool.querySync(relays.length > 0 ? relays : BIG_RELAY_URLS, filter, {
+      label: 'f-fetch-events',
+      maxWait: 10_000
+    })
     if (cache) {
       events.forEach((evt) => {
         this.addEventToCache(evt)
       })
     }
     return events
-  }
-
-  async fetchEvent(id: string): Promise<NEvent | undefined> {
-    if (!/^[0-9a-f]{64}$/.test(id)) {
-      let eventId: string | undefined
-      let coordinate: string | undefined
-      const { type, data } = nip19.decode(id)
-      switch (type) {
-        case 'note':
-          eventId = data
-          break
-        case 'nevent':
-          eventId = data.id
-          break
-        case 'naddr':
-          coordinate = getReplaceableCoordinate(data.kind, data.pubkey, data.identifier)
-          break
-      }
-      if (coordinate) {
-        const cache = this.replaceableEventCacheMap.get(coordinate)
-        if (cache) {
-          return cache
-        }
-      } else if (eventId) {
-        const cache = this.eventCacheMap.get(eventId)
-        if (cache) {
-          return cache
-        }
-      }
-    }
-    return this.eventDataLoader.load(id)
   }
 
   async fetchTrendingNotes() {
@@ -809,7 +611,7 @@ class ClientService extends EventTarget {
     try {
       const response = await fetch('https://api.nostr.band/v0/trending/notes')
       const data = await response.json()
-      const events: NEvent[] = []
+      const events: NostrEvent[] = []
       for (const note of data.notes ?? []) {
         if (validateEvent(note.event)) {
           events.push(note.event)
@@ -836,42 +638,29 @@ class ClientService extends EventTarget {
     }
   }
 
-  addEventToCache(event: NEvent) {
-    this.eventDataLoader.prime(event.id, Promise.resolve(event))
-    if (isReplaceableEvent(event.kind)) {
-      const coordinate = getReplaceableCoordinateFromEvent(event)
-      const cachedEvent = this.replaceableEventCacheMap.get(coordinate)
-      if (!cachedEvent || compareEvents(event, cachedEvent) > 0) {
-        this.replaceableEventCacheMap.set(coordinate, event)
-      }
-    }
+  addEventToCache(event: NostrEvent) {
+    store.saveEvent(event, {
+      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
+      followedBy: this.pubkey && this.followings?.has(event.pubkey) ? [this.pubkey] : undefined
+    })
   }
 
-  private async fetchEventById(relayUrls: string[], id: string): Promise<NEvent | undefined> {
-    const event = await this.fetchEventFromBigRelaysDataloader.load(id)
-    if (event) {
-      return event
-    }
-
-    return this.tryHarderToFetchEvent(relayUrls, { ids: [id], limit: 1 }, true)
-  }
-
-  private async _fetchEvent(id: string): Promise<NEvent | undefined> {
+  async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {
     let filter: Filter | undefined
-    let relays: string[] = []
-    let author: string | undefined
-    if (/^[0-9a-f]{64}$/.test(id)) {
-      filter = { ids: [id] }
+    let relayHints: string[] = []
+    let authorHint: string | undefined
+    if (isHex32(idOrCode)) {
+      filter = { ids: [idOrCode] }
     } else {
-      const { type, data } = nip19.decode(id)
+      const { type, data } = nip19.decode(idOrCode)
       switch (type) {
         case 'note':
           filter = { ids: [data] }
           break
         case 'nevent':
           filter = { ids: [data.id] }
-          if (data.relays) relays = data.relays
-          if (data.author) author = data.author
+          if (data.relays) relayHints = data.relays
+          if (data.author) authorHint = data.author
           break
         case 'naddr':
           filter = {
@@ -879,64 +668,64 @@ class ClientService extends EventTarget {
             kinds: [data.kind],
             limit: 1
           }
-          author = data.pubkey
+          authorHint = data.pubkey
           if (data.identifier) {
             filter['#d'] = [data.identifier]
           }
-          if (data.relays) relays = data.relays
+          if (data.relays) relayHints = data.relays
       }
     }
+
     if (!filter) {
-      throw new Error('Invalid id')
+      throw new Error(`can't fetch ${idOrCode}`)
     }
 
-    let event: NEvent | undefined
-    if (filter.ids?.length) {
-      event = await this.fetchEventById(relays, filter.ids[0])
+    // before we try any network fetch try to load this from our local database
+    for await (const event of store.queryEvents(filter, 1)) {
+      // if we get anything we just return it
+      return event
     }
 
-    if (!event && author) {
-      const relayList = await this.fetchRelayList(author)
-      event = await this.tryHarderToFetchEvent(relayList.write.slice(0, 5), filter)
+    // start fetching this here so it's finished later when we need it
+    const authorRelays = authorHint && loadRelayList(authorHint)
+
+    // try the relay hints first
+    if (relayHints.length) {
+      relayHints = relayHints.map(normalizeUrl)
+      const event = await pool.get(relayHints, filter, { label: 'f-specific-event-1' })
+      if (event) {
+        this.addEventToCache(event)
+        return event
+      }
     }
 
-    if (event && event.id !== id) {
-      this.addEventToCache(event)
+    // at this point we may already have our author hints so let's try those
+    let authorRelaysUrls: string[] = []
+    if (authorRelays) {
+      authorRelaysUrls = (await authorRelays).items
+        .filter((r) => r.write && !relayHints.includes(r.url))
+        .map((r) => r.url)
+      if (authorRelaysUrls.length) {
+        const event = await pool.get(authorRelaysUrls, filter, { label: 'f-specific-event-2' })
+        if (event) {
+          this.addEventToCache(event)
+          return event
+        }
+      }
     }
 
-    return event
-  }
-
-  private async tryHarderToFetchEvent(
-    relayUrls: string[],
-    filter: Filter,
-    alreadyFetchedFromBigRelays = false
-  ) {
-    if (!relayUrls.length && filter.authors?.length) {
-      const relayList = await this.fetchRelayList(filter.authors[0])
-      relayUrls = alreadyFetchedFromBigRelays
-        ? relayList.write.filter((url) => !BIG_RELAY_URLS.includes(url)).slice(0, 4)
-        : relayList.write.slice(0, 4)
-    } else if (!relayUrls.length && !alreadyFetchedFromBigRelays) {
-      relayUrls = BIG_RELAY_URLS
+    // if we got nothing or there were no hints, try the big relays (except the ones we've already tried)
+    const bigRelayHints = BIG_RELAY_URLS.filter(
+      (br) => !(relayHints.includes(br) || authorRelaysUrls.includes(br))
+    )
+    bigRelayHints.push('wss://cache2.primal.net/v1')
+    if (bigRelayHints.length) {
+      const event = await pool.get(bigRelayHints, filter, { label: 'f-specific-event-3' })
+      if (event) {
+        this.addEventToCache(event)
+        return event
+      }
     }
-    if (!relayUrls.length) return
-
-    const events = await this.query(relayUrls, filter)
-    return events.sort((a, b) => b.created_at - a.created_at)[0]
-  }
-
-  private async fetchEventsFromBigRelays(ids: readonly string[]) {
-    const events = await this.query(BIG_RELAY_URLS, {
-      ids: Array.from(new Set(ids)),
-      limit: ids.length
-    })
-    const eventsMap = new Map<string, NEvent>()
-    for (const event of events) {
-      eventsMap.set(event.id, event)
-    }
-
-    return ids.map((id) => eventsMap.get(id))
   }
 
   /** =========== Followings =========== */
@@ -948,10 +737,14 @@ class ClientService extends EventTarget {
   /** =========== Profile =========== */
 
   async searchProfiles(relayUrls: string[], filter: Filter): Promise<NostrUser[]> {
-    const events = await this.query(relayUrls, {
-      ...filter,
-      kinds: [kinds.Metadata]
-    })
+    const events = await pool.querySync(
+      relayUrls,
+      {
+        ...filter,
+        kinds: [kinds.Metadata]
+      },
+      { label: 'f-search-profiles', maxWait: 10_000 }
+    )
 
     const profiles = events.map(nostrUserFromEvent)
     await Promise.allSettled(profiles.map((profile) => this.addUsernameToIndex(profile)))
@@ -1028,7 +821,10 @@ class ClientService extends EventTarget {
         return {
           write: r.items.filter((r) => r.write).map((r) => r.url),
           read: r.items.filter((r) => r.read).map((r) => r.url),
-          originalRelays: []
+          originalRelays: r.items.map(({ url, read, write }) => ({
+            url,
+            scope: read && write ? 'both' : read ? 'read' : 'write'
+          }))
         }
       }
     })
@@ -1068,64 +864,6 @@ class ClientService extends EventTarget {
 
     return muteList
   }
-
-  loadBookmarks = makeListFetcher<string>(
-    kinds.BookmarkList,
-    [],
-    itemsFromTags<string>((tag: string[]): string | undefined => {
-      if (tag.length >= 2 && (tag[0] === 'e' || tag[0] === 'a') && tag[1]) {
-        return tag[1]
-      }
-    }),
-    (_) => []
-  )
-
-  loadBlossomServers = makeListFetcher<string>(
-    ExtendedKind.BLOSSOM_SERVER_LIST,
-    [],
-    (event) =>
-      event
-        ? event.tags
-            .filter(tagNameEquals('server'))
-            .map(([, url]) => (url ? normalizeHttpUrl(url) : ''))
-            .filter(Boolean)
-        : [],
-    (_) => []
-  )
-
-  loadEmojis = makeListFetcher<TEmoji | AddressPointer>(
-    kinds.UserEmojiList,
-    [],
-    itemsFromTags<TEmoji | AddressPointer>((tag: string[]): TEmoji | AddressPointer | undefined => {
-      if (tag.length < 2) return
-      if (tag[0] === 'a') {
-        const spl = tag[1].split(':')
-        if (!isHex32(spl[1]) || spl[0] !== '30030') return undefined
-        return {
-          identifier: spl.slice(2).join(':'),
-          pubkey: spl[1],
-          kind: parseInt(spl[0]),
-          relays: tag[2] ? [tag[2]] : []
-        }
-      }
-      if (tag.length < 3 || tag[0] !== 'emoji') return undefined
-      return { shortcode: tag[1], url: tag[2] }
-    }),
-    (_) => []
-  )
-
-  loadPins = makeListFetcher<string>(
-    kinds.Pinlist,
-    [],
-    itemsFromTags<string>((tag: string[]): string | undefined => {
-      if (tag.length >= 2 && tag[0] === 'e' && tag[1]) {
-        return tag[1]
-      }
-    }),
-    (_) => []
-  )
-
-  loadEmojiSets = makeSetFetcher(kinds.Emojisets, (event) => getEmojiInfosFromEmojiTags(event.tags))
 
   /** =========== Following favorite relays =========== */
 
@@ -1173,55 +911,6 @@ class ClientService extends EventTarget {
     return Array.from(urls.entries()).sort(
       ([_urlA, usersA], [_urlB, usersB]) => usersB.size - usersA.size
     )
-  }
-
-  // ================= Utils =================
-
-  async generateSubRequestsForPubkeys(pubkeys: string[], myPubkey?: string | null) {
-    // If many websocket connections are initiated simultaneously, it will be
-    // very slow on Safari (for unknown reason)
-    if (isSafari()) {
-      let urls = BIG_RELAY_URLS
-      if (myPubkey) {
-        const relayList = await this.fetchRelayList(myPubkey)
-        urls = relayList.read.concat(BIG_RELAY_URLS).slice(0, 5)
-      }
-      return [{ urls, filter: { authors: pubkeys } }]
-    }
-
-    const relayLists = await this.fetchRelayLists(pubkeys)
-    const group: Record<string, Set<string>> = {}
-    relayLists.forEach((relayList, index) => {
-      relayList.write.slice(0, 4).forEach((url) => {
-        if (!group[url]) {
-          group[url] = new Set()
-        }
-        group[url].add(pubkeys[index])
-      })
-    })
-
-    const relayCount = Object.keys(group).length
-    const coveredCount = new Map<string, number>()
-    Object.entries(group)
-      .sort(([, a], [, b]) => b.size - a.size)
-      .forEach(([url, pubkeys]) => {
-        if (
-          relayCount > 10 &&
-          pubkeys.size < 10 &&
-          Array.from(pubkeys).every((pubkey) => (coveredCount.get(pubkey) ?? 0) >= 3)
-        ) {
-          delete group[url]
-        } else {
-          pubkeys.forEach((pubkey) => {
-            coveredCount.set(pubkey, (coveredCount.get(pubkey) ?? 0) + 1)
-          })
-        }
-      })
-
-    return Object.entries(group).map(([url, authors]) => ({
-      urls: [url],
-      filter: { authors: Array.from(authors) }
-    }))
   }
 }
 

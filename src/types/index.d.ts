@@ -7,12 +7,16 @@ import {
   POLL_TYPE
 } from '../constants'
 
-export type TSubRequestFilter = Omit<Filter, 'since' | 'until'> & { limit: number }
-
-export type TFeedSubRequest = {
-  urls: string[]
-  filter: Omit<Filter, 'since' | 'until'>
-}
+export type TFeedSubRequest =
+  | {
+      source: 'local'
+      filter: Omit<Filter, 'since' | 'until'> & { followedBy?: string }
+    }
+  | {
+      source: 'relays'
+      urls: string[]
+      filter: Omit<Filter, 'since' | 'until'>
+    }
 
 export type TMailboxRelayScope = 'read' | 'write' | 'both'
 export type TMailboxRelay = {

@@ -31,6 +31,7 @@ export default function RepostNoteCard({
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const [targetEvent, setTargetEvent] = useState<Event | null>(null)
+
   const shouldHide = useMemo(() => {
     if (!targetEvent) return true
     if (filterMutedNotes && mutePubkeySet.has(targetEvent.pubkey)) {
@@ -50,7 +51,6 @@ export default function RepostNoteCard({
           if (eventFromContent.kind === kinds.Repost) {
             return
           }
-          client.addEventToCache(eventFromContent)
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
           if (targetSeenOn.length === 0) {
             const seenOn = client.getSeenEventRelays(event.id)
@@ -60,6 +60,7 @@ export default function RepostNoteCard({
           }
           setTargetEvent(eventFromContent)
           onTargetEventLoaded?.(eventFromContent)
+          client.addEventToCache(eventFromContent)
           return
         }
 

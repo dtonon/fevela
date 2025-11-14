@@ -26,7 +26,8 @@ export const useUserTrust = () => {
 const wotSet = new Set<string>()
 
 export function UserTrustProvider({ children }: { children: React.ReactNode }) {
-  const { pubkey: currentPubkey } = useNostr()
+  const { pubkey: currentPubkey, isReady } = useNostr()
+
   const [hideUntrustedInteractions, setHideUntrustedInteractions] = useState(() =>
     storage.getHideUntrustedInteractions()
   )
@@ -38,9 +39,10 @@ export function UserTrustProvider({ children }: { children: React.ReactNode }) {
   )
 
   useEffect(() => {
-    if (!currentPubkey) return
-
-    const initWoT = async () => {
+    if (!currentPubkey || !isReady)
+      return //
+      // initialize wot
+    ;(async () => {
       const followings = (await loadFollowsList(currentPubkey)).items
       followings.forEach((pubkey) => wotSet.add(pubkey))
 
@@ -56,8 +58,7 @@ export function UserTrustProvider({ children }: { children: React.ReactNode }) {
         )
         await new Promise((resolve) => setTimeout(resolve, 200))
       }
-    }
-    initWoT()
+    })()
   }, [currentPubkey])
 
   const isUserTrusted = useCallback(

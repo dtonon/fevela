@@ -214,7 +214,7 @@ function RelayBasedGroupChatSelector({
       }
     }
     if (!relay) {
-      relay = clientService.getEventHint(event.id)
+      relay = clientService.getEventHint(event.id, event)
     }
 
     return { relay, id: getReplaceableEventIdentifier(event) }

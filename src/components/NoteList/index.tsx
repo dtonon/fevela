@@ -41,7 +41,6 @@ import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 import PinnedNoteCard from '../PinnedNoteCard'
 
 const LIMIT = 200
-const ALGO_LIMIT = 500
 const SHOW_COUNT = 10
 
 const NoteList = forwardRef(
@@ -53,7 +52,6 @@ const NoteList = forwardRef(
       hideReplies = false,
       showOnlyReplies = false,
       hideUntrustedNotes = false,
-      areAlgoRelays = false,
       showRelayCloseReason = false,
       groupedMode = false,
       sinceTimestamp,
@@ -68,7 +66,6 @@ const NoteList = forwardRef(
       hideReplies?: boolean
       showOnlyReplies?: boolean
       hideUntrustedNotes?: boolean
-      areAlgoRelays?: boolean
       showRelayCloseReason?: boolean
       groupedMode?: boolean
       sinceTimestamp?: number
@@ -95,9 +92,8 @@ const NoteList = forwardRef(
       useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
-    const [hasMore, setHasMore] = useState<boolean>(true)
+    const [hasMore, setHasMore] = useState<boolean>(false)
     const [loading, setLoading] = useState(true)
-    const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
@@ -206,7 +202,7 @@ const NoteList = forwardRef(
       searchProfiles()
     }, [groupedMode, userFilter])
 
-    // Apply user filter for grouped mode
+    // apply user filter for grouped mode
     const userFilteredEvents = useMemo(() => {
       if (!groupedMode || !userFilter.trim() || matchingPubkeys === null) {
         return filteredEvents
@@ -262,184 +258,140 @@ const NoteList = forwardRef(
     useEffect(() => {
       if (!subRequests.length) return
 
-      async function init() {
-        setLoading(true)
-        setEvents([])
-        setNewEvents([])
-        setHasMore(true)
+      setLoading(true)
+      setEvents([])
+      setNewEvents([])
+      setHasMore(true)
 
-        if (showKinds.length === 0) {
-          setLoading(false)
-          setHasMore(false)
-          return () => {}
-        }
+      if (showKinds.length === 0) {
+        setLoading(false)
+        setHasMore(false)
+        return () => {}
+      }
 
-        // For grouped mode, use standard timeline subscription then load back in time
-        let timeframeSince: number | undefined
-        if (groupedMode && groupedNotesSettings.enabled) {
-          const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
-          timeframeSince = Math.floor((Date.now() - timeframeMs) / 1000)
-        }
+      // standard timeline subscription
+      const limit = groupedMode ? 500 : LIMIT
 
-        // Standard timeline subscription
-        const limit = areAlgoRelays ? ALGO_LIMIT : groupedMode ? 500 : LIMIT
+      // for grouped mode, use standard timeline subscription then load back in time
+      let groupedNotesSince: number | undefined
+      if (groupedMode && groupedNotesSettings.enabled) {
+        const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
+        groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
+      }
 
-        const { closer, timelineKey } = await client.subscribeTimeline(
-          subRequests.map(({ urls, filter }) => ({
-            urls,
-            filter: {
-              kinds: showKinds,
-              ...filter,
-              ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {}),
-              limit
-            }
-          })),
-          {
-            onEvents: async (events, eosed) => {
-              if (events.length > 0) {
-                setEvents(events)
-              }
-              if (areAlgoRelays) {
-                setHasMore(false)
-              }
-              if (eosed) {
-                setLoading(false)
-                setHasMore(events.length > 0)
+      const subc = client.subscribeTimeline(
+        subRequests,
+        {
+          kinds: showKinds,
+          limit,
+          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+        },
+        {
+          async onEvents(events) {
+            setLoading(false)
+            setHasMore(events.length > 0)
 
-                // For grouped mode, automatically load more until we reach timeframe boundary
-                if (groupedMode && timeframeSince && events.length > 0) {
-                  const oldestEvent = events[events.length - 1]
-                  if (oldestEvent.created_at > timeframeSince) {
-                    // Start loading more data back in time
-                    loadMoreGroupedData(timelineKey, oldestEvent.created_at - 1, timeframeSince)
-                  } else {
-                    // We've reached the time boundary, no more loading needed
-                    setHasMore(false)
-                  }
+            if (events.length > 0) {
+              setEvents(events)
+
+              // for grouped mode, automatically load more until we reach timeframe boundary
+              if (groupedNotesSince && events.length > 0) {
+                const oldestEvent = events[events.length - 1]
+                if (oldestEvent.created_at > groupedNotesSince) {
+                  // start loading more data back in time
+                  loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
+                } else {
+                  // we've reached the time boundary, no more loading needed
+                  setHasMore(false)
                 }
               }
-            },
-            onNew: (event) => {
-              if (pubkey && event.pubkey === pubkey) {
-                // If the new event is from the current user, insert it directly into the feed
-                setEvents((oldEvents) =>
-                  oldEvents.some((e) => e.id === event.id) ? oldEvents : [event, ...oldEvents]
-                )
-              } else {
-                // Otherwise, buffer it and show the New Notes button
-                setNewEvents((oldEvents) =>
-                  [event, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
-                )
-              }
-            },
-            onClose: (url, reason) => {
-              if (!showRelayCloseReason) return
-              // ignore reasons from @nostr/tools
-              if (
-                [
-                  'closed by caller',
-                  'relay connection errored',
-                  'relay connection closed',
-                  'pingpong timed out',
-                  'relay connection closed by us'
-                ].includes(reason)
-              ) {
-                return
-              }
-
-              toast.error(`${url}: ${reason}`)
             }
           },
-          {
-            startLogin,
-            needSort: !areAlgoRelays
-          }
-        )
-        setTimelineKey(timelineKey)
-
-        // Function to load more data for grouped mode
-        const loadMoreGroupedData = async (key: string, until: number, timeframeSince: number) => {
-          setGroupedLoadingMore(true)
-          try {
-            const moreEvents = await client.loadMoreTimeline(key, until, limit)
-            if (moreEvents.length === 0) {
-              setHasMore(false)
-              setGroupedLoadingMore(false)
+          onNew(event) {
+            if (pubkey && event.pubkey === pubkey) {
+              // if the new event is from the current user, insert it directly into the feed
+              setEvents((oldEvents) =>
+                oldEvents.some((e) => e.id === event.id) ? oldEvents : [event, ...oldEvents]
+              )
+            } else {
+              // otherwise, buffer it and show the New Notes button
+              setNewEvents((oldEvents) => [event, ...oldEvents])
+            }
+          },
+          onClose(url, reason) {
+            if (!showRelayCloseReason) return
+            // ignore reasons from @nostr/tools
+            if (
+              [
+                'closed by caller',
+                'relay connection errored',
+                'relay connection closed',
+                'pingpong timed out',
+                'relay connection closed by us'
+              ].includes(reason)
+            ) {
               return
             }
 
-            setEvents((prevEvents) => [...prevEvents, ...moreEvents])
+            toast.error(`${url}: ${reason}`)
+          }
+        },
+        {
+          startLogin
+        }
+      )
 
-            // Check if we need to load even more
-            const oldestNewEvent = moreEvents[moreEvents.length - 1]
-            if (oldestNewEvent.created_at > timeframeSince) {
-              // Recursively load more until we reach the time boundary
-              await loadMoreGroupedData(key, oldestNewEvent.created_at - 1, timeframeSince)
-            } else {
-              setHasMore(false)
-              setGroupedLoadingMore(false)
-            }
-          } catch (error) {
-            console.error('Error loading more grouped data:', error)
+      // function to load more data for grouped mode
+      async function loadMoreGroupedData(until: number, timeframeSince: number) {
+        setGroupedLoadingMore(true)
+        try {
+          const moreEvents = await client.loadMoreTimeline(subRequests, {
+            until,
+            limit,
+            ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+          })
+          if (moreEvents.length === 0) {
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+            return
+          }
+
+          setEvents((prevEvents) => [...prevEvents, ...moreEvents])
+
+          // check if we need to load even more
+          const oldestNewEvent = moreEvents[moreEvents.length - 1]
+          if (oldestNewEvent.created_at > timeframeSince) {
+            // recursively load more until we reach the time boundary
+            await loadMoreGroupedData(oldestNewEvent.created_at - 1, timeframeSince)
+          } else {
             setHasMore(false)
             setGroupedLoadingMore(false)
           }
+        } catch (error) {
+          console.error('Error loading more grouped data:', error)
+          setHasMore(false)
+          setGroupedLoadingMore(false)
         }
-
-        return closer
       }
 
-      const promise = init()
-      return () => {
-        promise.then((closer) => closer())
-      }
-    }, [
-      JSON.stringify(subRequests),
-      refreshCount,
-      showKinds,
-      groupedMode,
-      JSON.stringify(groupedNotesSettings)
-    ])
+      return () => subc.close()
+    }, [subRequests, refreshCount, showKinds, groupedMode, groupedNotesSettings])
 
     useEffect(() => {
-      const options = {
-        root: null,
-        rootMargin: '10px',
-        threshold: 0.1
-      }
+      if (!hasMore || loading || isFilteredView) return
 
-      const loadMore = async () => {
-        // Don't auto-load if we're in filtered view mode
-        if (isFilteredView) return
-
-        if (showCount < events.length) {
-          setShowCount((prev) => prev + SHOW_COUNT)
-          // preload more
-          if (events.length - showCount > LIMIT / 2) {
-            return
+      const observerInstance = new IntersectionObserver(
+        (entries) => {
+          if (entries[0].isIntersecting && hasMore) {
+            loadMore()
           }
+        },
+        {
+          root: null,
+          rootMargin: '10px',
+          threshold: 0.1
         }
-
-        if (!timelineKey || loading || !hasMore) return
-        setLoading(true)
-        const newEvents = await client.loadMoreTimeline(
-          timelineKey,
-          events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-          LIMIT
-        )
-        setLoading(false)
-        if (newEvents.length === 0) {
-          setHasMore(false)
-          return
-        }
-        setEvents((oldEvents) => [...oldEvents, ...newEvents])
-      }
-
-      const observerInstance = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore()
-        }
-      }, options)
+      )
 
       const currentBottomRef = bottomRef.current
 
@@ -452,9 +404,35 @@ const NoteList = forwardRef(
           observerInstance.unobserve(currentBottomRef)
         }
       }
-    }, [loading, hasMore, events, showCount, timelineKey, isFilteredView])
 
-    const showNewEvents = () => {
+      async function loadMore() {
+        if (showCount < events.length) {
+          setShowCount((prev) => prev + SHOW_COUNT)
+          // preload more
+          if (events.length - showCount > LIMIT / 2) {
+            return
+          }
+        }
+
+        setLoading(true)
+
+        const moreEvents = await client.loadMoreTimeline(subRequests, {
+          until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+          limit: LIMIT,
+          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+        })
+
+        if (moreEvents.length === 0) {
+          setHasMore(false)
+          return
+        }
+
+        setEvents((events) => [...events, ...moreEvents])
+        setLoading(false)
+      }
+    }, [hasMore, loading, isFilteredView, showCount])
+
+    function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
       setNewEvents([])
       setTimeout(() => {
@@ -462,9 +440,7 @@ const NoteList = forwardRef(
       }, 0)
     }
 
-    // Removed unused groupedSettingsOpen state - settings are managed in GroupedNotesFilter
-
-    // In grouped mode, check for no results
+    // in grouped mode, check for no results
     if (groupedMode && groupedHasNoResults) {
       return (
         <div>
@@ -606,7 +582,7 @@ const NoteList = forwardRef(
         )}
         <div className="h-40" />
         {filteredNewEvents.length > 0 && (
-          <NewNotesButton newEvents={filteredNewEvents} onClick={showNewEvents} />
+          <NewNotesButton newEvents={filteredNewEvents} onClick={mergeNewEvents} />
         )}
       </div>
     )

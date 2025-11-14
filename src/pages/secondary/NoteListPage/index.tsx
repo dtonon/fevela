@@ -7,7 +7,6 @@ import { toProfileList } from '@/lib/link'
 import { fetchPubkeysFromDomain, getWellKnownNip05Url } from '@/lib/nip05'
 import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
-import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import { UserRound } from 'lucide-react'
 import React, { forwardRef, useEffect, useState } from 'react'
@@ -16,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
-  const { relayList, pubkey } = useNostr()
+  const { relayList } = useNostr()
   const [title, setTitle] = useState<React.ReactNode>(null)
   const [controls, setControls] = useState<React.ReactNode>(null)
   const [data, setData] = useState<
@@ -46,6 +45,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
         setTitle(`# ${hashtag}`)
         setSubRequests([
           {
+            source: 'relays',
             filter: { '#t': [hashtag], ...(kinds.length > 0 ? { kinds } : {}) },
             urls: BIG_RELAY_URLS
           }
@@ -58,6 +58,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
         setTitle(`${t('Search')}: ${search}`)
         setSubRequests([
           {
+            source: 'relays',
             filter: { search, ...(kinds.length > 0 ? { kinds } : {}) },
             urls: SEARCHABLE_RELAY_URLS
           }
@@ -70,6 +71,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
         setTitle(externalContentId)
         setSubRequests([
           {
+            source: 'relays',
             filter: { '#I': [externalContentId], ...(kinds.length > 0 ? { kinds } : {}) },
             urls: BIG_RELAY_URLS.concat(relayList?.write || [])
           }
@@ -90,7 +92,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
           domain
         })
         if (pubkeys.length) {
-          setSubRequests(await client.generateSubRequestsForPubkeys(pubkeys, pubkey))
+          setSubRequests([{ source: 'local', filter: { authors: pubkeys } }])
           setControls(
             <Button
               variant="ghost"

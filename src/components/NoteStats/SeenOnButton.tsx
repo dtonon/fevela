@@ -18,6 +18,8 @@ import { Event } from '@nostr/tools/wasm'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelayIcon from '../RelayIcon'
+import { Save } from 'lucide-react'
+import { isLocal } from '@nostr/gadgets/store'
 
 export default function SeenOnButton({ event }: { event: Event }) {
   const { t } = useTranslation()
@@ -27,7 +29,7 @@ export default function SeenOnButton({ event }: { event: Event }) {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   useEffect(() => {
-    const seenOn = client.getSeenEventRelayUrls(event.id)
+    const seenOn = client.getSeenEventRelayUrls(event.id, event)
     setRelays(seenOn)
   }, [])
 
@@ -55,6 +57,11 @@ export default function SeenOnButton({ event }: { event: Event }) {
           <DrawerOverlay onClick={() => setIsDrawerOpen(false)} />
           <DrawerContent hideOverlay>
             <div className="py-2">
+              {isLocal(event) && (
+                <span className="bg-slate-100 p-6">
+                  <Save /> local database
+                </span>
+              )}
               {relays.map((relay) => (
                 <Button
                   className="w-full p-6 justify-start text-lg gap-4"
@@ -82,6 +89,11 @@ export default function SeenOnButton({ event }: { event: Event }) {
       <DropdownMenuContent>
         <DropdownMenuLabel>{t('Seen on')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
+        {isLocal(event) && (
+          <DropdownMenuItem className="min-w-52 bg-slate-100">
+            <Save /> local database
+          </DropdownMenuItem>
+        )}
         {relays.map((relay) => (
           <DropdownMenuItem key={relay} onClick={() => push(toRelay(relay))} className="min-w-52">
             <RelayIcon url={relay} />

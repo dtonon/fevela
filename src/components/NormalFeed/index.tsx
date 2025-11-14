@@ -15,12 +15,10 @@ import { RefreshButton } from '../RefreshButton'
 
 export default function NormalFeed({
   subRequests,
-  areAlgoRelays = false,
   isMainFeed = false,
   showRelayCloseReason = false
 }: {
   subRequests: TFeedSubRequest[]
-  areAlgoRelays?: boolean
   isMainFeed?: boolean
   showRelayCloseReason?: boolean
 }) {
@@ -126,7 +124,6 @@ export default function NormalFeed({
           !(groupedNotesSettings.enabled && groupedNotesSettings.includeReplies)
         }
         hideUntrustedNotes={hideUntrustedNotes}
-        areAlgoRelays={areAlgoRelays}
         showRelayCloseReason={showRelayCloseReason}
         groupedMode={groupedNotesSettings.enabled}
         userFilter={userFilter}

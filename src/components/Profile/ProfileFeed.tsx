@@ -1,7 +1,7 @@
 import KindFilter from '@/components/KindFilter'
 import NoteList, { TNoteListRef } from '@/components/NoteList'
 import Tabs from '@/components/Tabs'
-import { BIG_RELAY_URLS, SEARCHABLE_RELAY_URLS } from '@/constants'
+import { SEARCHABLE_RELAY_URLS } from '@/constants'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
@@ -12,6 +12,8 @@ import relayInfoService from '@/services/relay-info.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
+import { current, outbox, ready } from '@/services/outbox.service'
+import { loadPins } from '@nostr/gadgets/lists'
 
 export default function ProfileFeed({
   pubkey,
@@ -26,7 +28,7 @@ export default function ProfileFeed({
   fromGrouped?: boolean
   search?: string
 }) {
-  const { pubkey: myPubkey, pinList: myPinList } = useNostr()
+  const { pubkey: myPubkey, pinList: myPinList, isReady } = useNostr()
   const { showKinds } = useKindFilter()
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
@@ -63,6 +65,7 @@ export default function ProfileFeed({
 
     return _tabs
   }, [myPubkey, pubkey, fromGrouped, groupedNotesSettings.includeReplies, shouldShowTabs])
+
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const noteListRef = useRef<TNoteListRef>(null)
 
@@ -72,35 +75,51 @@ export default function ProfileFeed({
       if (pubkey === myPubkey) {
         pinList = myPinList
       } else {
-        pinList = (await client.loadPins(pubkey)).items
+        pinList = (await loadPins(pubkey)).items
       }
       setPinnedEventIds(pinList)
     })()
   }, [pubkey, myPubkey, myPinList])
 
   useEffect(() => {
-    const init = async () => {
+    const abort = new AbortController()
+
+    ready()
+      .then(() =>
+        outbox.sync([pubkey], {
+          signal: abort.signal
+        })
+      )
+      .catch((err) => {
+        console.warn(`bailing on single-profile sync: ${err}`)
+      })
+
+    current.pubkey = pubkey
+
+    return () => {
+      abort.abort('<cancelled>')
+      current.pubkey = null
+    }
+  }, [pubkey])
+
+  useEffect(() => {
+    ;(async () => {
       if (listMode === 'you') {
-        if (!myPubkey) {
+        if (!isReady || !myPubkey) {
           setSubRequests([])
           return
         }
 
-        const [relayList, myRelayList] = await Promise.all([
-          client.fetchRelayList(pubkey),
-          client.fetchRelayList(myPubkey)
-        ])
-
         setSubRequests([
           {
-            urls: myRelayList.write.concat(BIG_RELAY_URLS).slice(0, 5),
+            source: 'local',
             filter: {
               authors: [myPubkey],
               '#p': [pubkey]
             }
           },
           {
-            urls: relayList.write.concat(BIG_RELAY_URLS).slice(0, 5),
+            source: 'local',
             filter: {
               authors: [pubkey],
               '#p': [myPubkey]
@@ -109,6 +128,8 @@ export default function ProfileFeed({
         ])
         return
       }
+
+      if (myPubkey === pubkey && !isReady) return
 
       const relayList = await client.fetchRelayList(pubkey)
 
@@ -120,23 +141,36 @@ export default function ProfileFeed({
         )
         setSubRequests([
           {
+            source: 'relays',
             urls: searchableRelays.concat(SEARCHABLE_RELAY_URLS).slice(0, 8),
             filter: { authors: [pubkey], search }
+          }
+        ])
+        return
+      }
+
+      if (isReady) {
+        setSubRequests([
+          {
+            source: 'local',
+            filter: {
+              authors: [pubkey]
+            }
           }
         ])
       } else {
         setSubRequests([
           {
-            urls: relayList.write.concat(BIG_RELAY_URLS).slice(0, 8),
+            source: 'relays',
+            urls: relayList.write,
             filter: {
               authors: [pubkey]
             }
           }
         ])
       }
-    }
-    init()
-  }, [pubkey, listMode, search])
+    })()
+  }, [pubkey, listMode, search, isReady])
 
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)
