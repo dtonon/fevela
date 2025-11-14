@@ -4,6 +4,7 @@ import { BlossomClient } from 'blossom-client-sdk'
 import { z } from 'zod'
 import client from './client.service'
 import storage from './local-storage.service'
+import { loadBlossomServers } from '@nostr/gadgets/lists'
 
 type UploadOptions = {
   onProgress?: (progressPercent: number) => void
@@ -84,7 +85,7 @@ class MediaUploadService {
     }
     startPseudoProgress()
 
-    const { items: servers } = await client.loadBlossomServers(pubkey)
+    const { items: servers } = await loadBlossomServers(pubkey)
     if (servers.length === 0) {
       throw new Error('No Blossom services available')
     }

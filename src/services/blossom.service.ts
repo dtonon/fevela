@@ -1,4 +1,4 @@
-import client from '@/services/client.service'
+import { loadBlossomServers } from '@nostr/gadgets/lists'
 import { getHashFromURL } from 'blossom-client-sdk'
 
 class BlossomService {
@@ -63,7 +63,7 @@ class BlossomService {
 
     const ext = oldImageUrl.pathname.match(/\.\w+$/i)
 
-    const blossomServerList = await client.loadBlossomServers(pubkey)
+    const blossomServerList = await loadBlossomServers(pubkey)
     const urls = blossomServerList.items
       .map((server) => {
         try {
