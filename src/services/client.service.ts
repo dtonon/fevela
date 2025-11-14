@@ -282,7 +282,7 @@ class ClientService extends EventTarget {
                 }
               }
             }
-            if (f) events.length = f
+            events.length = f
 
             // we'll use this for the live query
             const allAuthors = (
