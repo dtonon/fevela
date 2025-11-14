@@ -1,6 +1,5 @@
 import { buildATag, buildETag, createBookmarkDraftEvent } from '@/lib/draft-event'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
-import client from '@/services/client.service'
 import { Event } from '@nostr/tools/wasm'
 import { createContext, useContext } from 'react'
 import { useNostr } from './NostrProvider'

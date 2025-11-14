@@ -797,7 +797,7 @@ class ClientService extends EventTarget {
     }
 
     if (forceUpdate) {
-      req!.forceUpdate = true
+      req!.refreshStyle = true
     }
     const profile = await loadNostrUser(req!)
     // Emit event for profile updates

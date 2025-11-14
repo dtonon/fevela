@@ -1,12 +1,12 @@
 import { MAX_PINNED_NOTES } from '@/constants'
 import { buildETag, createPinListDraftEvent } from '@/lib/draft-event'
-import client from '@/services/client.service'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { createContext, useContext } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useNostr } from './NostrProvider'
+import { loadPins } from '@nostr/gadgets/lists'
 
 type TPinListContext = {
   pinList: string[]
@@ -34,7 +34,7 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
     if (event.kind !== kinds.ShortTextNote || event.pubkey !== accountPubkey) return
 
     const _pin = async () => {
-      const pins = await client.loadPins(accountPubkey)
+      const pins = await loadPins(accountPubkey)
       const currentTags = pins.event?.tags || []
 
       if (currentTags.some((tag) => tag[0] === 'e' && tag[1] === event.id)) {
@@ -74,7 +74,7 @@ export function PinListProvider({ children }: { children: React.ReactNode }) {
     if (event.kind !== kinds.ShortTextNote || event.pubkey !== accountPubkey) return
 
     const _unpin = async () => {
-      const pins = await client.loadPins(accountPubkey)
+      const pins = await loadPins(accountPubkey)
       if (!pins.event) return
 
       const newTags = pins.event.tags.filter((tag) => tag[0] !== 'e' || tag[1] !== event.id)

@@ -26,6 +26,7 @@ import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
 import { Input } from '@/components/ui/input'
 import { userIdToPubkey } from '@/lib/pubkey'
+import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -37,12 +38,12 @@ const ConversationList = forwardRef((_, ref) => {
   const { pubkey } = useNostr()
   const { notificationListStyle } = useUserPreferences()
   const [refreshCount, setRefreshCount] = useState(0)
-  const [timelineKey, setTimelineKey] = useState<string | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [notifications, setNotifications] = useState<NostrEvent[]>([])
   const [conversations, setConversations] = useState<NostrEvent[]>([])
   const [filteredConversations, setFilteredConversations] = useState<NostrEvent[]>([])
   const [visibleConversations, setVisibleConversations] = useState<NostrEvent[]>([])
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
   const [userFilter, setUserFilter] = useState('')
@@ -193,43 +194,47 @@ const ConversationList = forwardRef((_, ref) => {
       setShowCount(SHOW_COUNT)
       const relayList = await client.fetchRelayList(pubkey)
 
-      const { closer, timelineKey } = await client.subscribeTimeline(
-        [
-          {
-            urls: relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
-            filter: {
-              '#p': [pubkey],
-              kinds: filterKinds,
-              limit: LIMIT
-            }
-          },
-          {
-            urls: relayList.write.length > 0 ? relayList.write.slice(0, 5) : BIG_RELAY_URLS,
-            filter: {
-              authors: [pubkey],
-              kinds: filterKinds,
-              limit: LIMIT
-            }
-          }
-        ],
+      const subRequests: TFeedSubRequest[] = [
         {
-          onEvents: (events, eosed) => {
+          source: 'relays',
+          urls: relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
+          filter: {
+            '#p': [pubkey],
+            kinds: filterKinds
+          }
+        },
+        {
+          source: 'relays',
+          urls: relayList.write.length > 0 ? relayList.write.slice(0, 5) : BIG_RELAY_URLS,
+          filter: {
+            authors: [pubkey],
+            kinds: filterKinds
+          }
+        }
+      ]
+
+      setSubRequests(subRequests)
+
+      const subc = client.subscribeTimeline(
+        subRequests,
+        { limit: LIMIT },
+        {
+          onEvents: (events) => {
             if (events.length > 0) {
               setNotifications(events)
             }
-            if (eosed) {
-              setLoading(false)
-              setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-              noteStatsService.updateNoteStatsByEvents(events)
-            }
+
+            setLoading(false)
+            setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+            noteStatsService.updateNoteStatsByEvents(events)
           },
           onNew: (event) => {
             handleNewEvent(event)
           }
         }
       )
-      setTimelineKey(timelineKey)
-      return closer
+
+      return () => subc.close()
     }
 
     const promise = init()
@@ -290,9 +295,10 @@ const ConversationList = forwardRef((_, ref) => {
         }
       }
 
-      if (!pubkey || !timelineKey || !until || loading) return
+      if (!pubkey || subRequests.length === 0 || !until || loading) return
+
       setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(timelineKey, until, LIMIT)
+      const newNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
       setLoading(false)
       if (newNotifications.length === 0) {
         setUntil(undefined)
@@ -323,7 +329,7 @@ const ConversationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, timelineKey, until, loading, showCount, filteredConversations])
+  }, [pubkey, subRequests, until, loading, showCount, filteredConversations])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
