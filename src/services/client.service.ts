@@ -386,7 +386,7 @@ class ClientService extends EventTarget {
                   resolve(events)
                   events = []
                 },
-                onauth: async (authEvt) => {
+                onauth: (async (authEvt) => {
                   // already logged in
                   if (this.signer) {
                     const evt = await this.signer!.signEvent(authEvt)
@@ -404,7 +404,7 @@ class ClientService extends EventTarget {
                   throw new Error(
                     "<not logged in, can't auth to relay during this.subscribeTimeline>"
                   )
-                },
+                }) as (event: EventTemplate) => Promise<VerifiedEvent>,
                 onclose(reasons) {
                   if (onClose) {
                     for (let i = 0; i < reasons.length; i++) {
@@ -490,7 +490,7 @@ class ClientService extends EventTarget {
                 onclose() {
                   resolve(events)
                 },
-                onauth: async (authEvt) => {
+                onauth: (async (authEvt) => {
                   // already logged in
                   if (this.signer) {
                     const evt = await this.signer!.signEvent(authEvt)
@@ -509,7 +509,7 @@ class ClientService extends EventTarget {
                   throw new Error(
                     "<not logged in, can't auth to relay during this.loadMoreTimeline>"
                   )
-                }
+                }) as (event: EventTemplate) => Promise<VerifiedEvent>
               }
             )
           })
