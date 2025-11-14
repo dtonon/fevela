@@ -316,6 +316,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [account])
 
   useEffect(() => {
+    client.followings = new Set(followList)
+  }, [followList])
+
+  useEffect(() => {
     customEmojiService.init(userEmojiList)
   }, [userEmojiList])
 

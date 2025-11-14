@@ -40,6 +40,7 @@ class ClientService extends EventTarget {
 
   signer?: ISigner
   pubkey?: string
+  followings?: Set<string>
 
   private trendingNotesCache: NostrEvent[] | null = null
 
@@ -639,7 +640,8 @@ class ClientService extends EventTarget {
 
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
-      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
+      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
+      followedBy: this.pubkey && this.followings?.has(event.pubkey) ? [this.pubkey] : undefined
     })
   }
 
