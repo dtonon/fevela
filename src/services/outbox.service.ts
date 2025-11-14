@@ -67,6 +67,14 @@ export async function start(account: string, followings: string[], signal: Abort
   ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
 
   const targets = [account, ...followings]
+
+  if (!(await store.queryEvents({}, 1).next()).value) {
+    // this means the database has no events.
+    // let's wait some time to do our first sync, as the user right now is likely to
+    // be doing the preliminary fallback query and we don't want to interfere with it
+    await new Promise((resolve) => setTimeout(resolve, 15000))
+  }
+
   const hasNew = await outbox.sync(targets, {
     signal
   })
