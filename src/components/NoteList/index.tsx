@@ -287,22 +287,26 @@ const NoteList = forwardRef(
           ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
         },
         {
-          async onEvents(events) {
-            setLoading(false)
-            setHasMore(events.length > 0)
+          async onEvents(events, isFinal) {
+            if (isFinal) {
+              setLoading(false)
+              setHasMore(events.length > 0)
+            }
 
             if (events.length > 0) {
               setEvents(events)
 
-              // for grouped mode, automatically load more until we reach timeframe boundary
-              if (groupedNotesSince && events.length > 0) {
-                const oldestEvent = events[events.length - 1]
-                if (oldestEvent.created_at > groupedNotesSince) {
-                  // start loading more data back in time
-                  loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
-                } else {
-                  // we've reached the time boundary, no more loading needed
-                  setHasMore(false)
+              if (isFinal) {
+                // for grouped mode, automatically load more until we reach timeframe boundary
+                if (groupedNotesSince && events.length > 0) {
+                  const oldestEvent = events[events.length - 1]
+                  if (oldestEvent.created_at > groupedNotesSince) {
+                    // start loading more data back in time
+                    loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
+                  } else {
+                    // we've reached the time boundary, no more loading needed
+                    setHasMore(false)
+                  }
                 }
               }
             }

@@ -178,6 +178,10 @@ const NotificationList = forwardRef((_, ref) => {
           source: 'relays',
           urls: relays.read,
           filter
+        },
+        {
+          source: 'local',
+          filter
         }
       ])
     })()
@@ -226,14 +230,16 @@ const NotificationList = forwardRef((_, ref) => {
       subRequests,
       { limit: LIMIT },
       {
-        onEvents: (events) => {
+        onEvents: (events, isFinal) => {
           if (events.length > 0) {
             setEvents(events.filter((event) => event.pubkey !== pubkey))
-            setHasMore(true)
           }
 
-          setLoading(false)
-          noteStatsService.updateNoteStatsByEvents(events)
+          if (isFinal) {
+            setHasMore(events.length > 0)
+            setLoading(false)
+            noteStatsService.updateNoteStatsByEvents(events)
+          }
         },
         onNew: handleNewEvent
       }
