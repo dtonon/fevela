@@ -63,11 +63,12 @@ export default function QuoteList({ event, className }: { event: Event; classNam
       { limit: LIMIT },
       {
         onEvents: (events) => {
+          setLoading(false)
+          setHasMore(events.length > 0)
+
           if (events.length > 0) {
             setEvents(events)
           }
-          setLoading(false)
-          setHasMore(events.length > 0)
         },
         onNew: (event) => {
           setEvents((oldEvents) =>

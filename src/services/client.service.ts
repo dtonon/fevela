@@ -33,6 +33,7 @@ import { current, outbox, ready, store } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch } from '@nostr/tools/utils'
 import { seenOn } from '@nostr/gadgets/store'
+import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -255,17 +256,34 @@ class ClientService extends EventTarget {
       localFilters.length === 0
         ? Promise.resolve([])
         : (async () => {
+            let newestEvent: NostrEvent | undefined
+
+            // query from local db
             const events: NostrEvent[] = new Array(200)
             let f = 0
             for (let i = 0; i < localFilters.length; i++) {
-              const filter = localFilters[i]
-              for await (const event of store.queryEvents(filter, 5_000)) {
-                events[f] = event
+              const iter = store.queryEvents(localFilters[i], 5_000)
+              const first = await iter.next()
+
+              if (first.value) {
+                events[f] = first.value
                 f++
+
+                if (!newestEvent || newestEvent.created_at < first.value.created_at) {
+                  newestEvent = first.value
+                }
+
+                if (!first.done) {
+                  for await (const event of iter) {
+                    events[f] = event
+                    f++
+                  }
+                }
               }
             }
+            if (f) events.length = f
 
-            // listen for updates to local db
+            // we'll use this for the live query
             const allAuthors = (
               await Promise.all(
                 localFilters.map(async (f) => {
@@ -276,6 +294,36 @@ class ClientService extends EventTarget {
               )
             ).flat()
 
+            // now if our last event is too old or we just turned this thing on and we have no events
+            // do a temporary fallback relay query here while the sync completes
+            if (
+              relayRequests.length === 0 &&
+              (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7)
+            ) {
+              let done: () => void
+              const pre = new Promise<void>((resolve) => {
+                done = resolve
+              })
+              const preliminarySub = pool.subscribeMap(
+                await outboxFilterRelayBatch(allAuthors, { limit: 10, ...localFilters[0] }),
+                {
+                  label: `f-preliminary`,
+                  async onevent(event) {
+                    events[f] = event
+                    f++
+                    outbox.store.saveEvent(event)
+                  },
+                  oneose() {
+                    preliminarySub.close('preliminary req closed automatically on eose')
+                    done()
+                  }
+                }
+              )
+              await pre
+              events.length = f
+            }
+
+            // listen for live updates to local db
             ready().then(() => {
               outbox.live(allAuthors, {
                 signal: abort.signal

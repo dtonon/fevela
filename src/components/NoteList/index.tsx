@@ -288,22 +288,22 @@ const NoteList = forwardRef(
         },
         {
           async onEvents(events) {
-            if (events.length > 0) {
-              setEvents(events)
-            }
-
             setLoading(false)
             setHasMore(events.length > 0)
 
-            // for grouped mode, automatically load more until we reach timeframe boundary
-            if (groupedNotesSince && events.length > 0) {
-              const oldestEvent = events[events.length - 1]
-              if (oldestEvent.created_at > groupedNotesSince) {
-                // start loading more data back in time
-                loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
-              } else {
-                // we've reached the time boundary, no more loading needed
-                setHasMore(false)
+            if (events.length > 0) {
+              setEvents(events)
+
+              // for grouped mode, automatically load more until we reach timeframe boundary
+              if (groupedNotesSince && events.length > 0) {
+                const oldestEvent = events[events.length - 1]
+                if (oldestEvent.created_at > groupedNotesSince) {
+                  // start loading more data back in time
+                  loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
+                } else {
+                  // we've reached the time boundary, no more loading needed
+                  setHasMore(false)
+                }
               }
             }
           },
