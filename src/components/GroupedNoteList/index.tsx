@@ -1,18 +1,11 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import {
-  getReplaceableCoordinateFromEvent,
-  isMentioningMutedUsers,
-  isReplaceableEvent,
-  isReplyNoteEvent,
-  isFirstLevelReply
-} from '@/lib/event'
+import { isMentioningMutedUsers, isReplyNoteEvent, isFirstLevelReply } from '@/lib/event'
 import { isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
-import { useUserTrust } from '@/providers/UserTrustProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
@@ -37,9 +30,6 @@ import { toast } from 'sonner'
 import NoteCard from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
-import PinnedNoteCard from '../PinnedNoteCard'
-
-const LIMIT = 500
 
 const GroupedNoteList = forwardRef(
   (
@@ -47,27 +37,21 @@ const GroupedNoteList = forwardRef(
       subRequests,
       showKinds,
       filterMutedNotes = true,
-      hideUntrustedNotes = false,
       showRelayCloseReason = false,
-      sinceTimestamp,
       onNotesLoaded,
-      pinnedEventIds = [],
       userFilter = '',
       filterFn
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
       filterMutedNotes?: boolean
-      hideUntrustedNotes?: boolean
       showRelayCloseReason?: boolean
-      sinceTimestamp?: number
       onNotesLoaded?: (
         hasNotes: boolean,
         hasReplies: boolean,
         notesCount: number,
         repliesCount: number
       ) => void
-      pinnedEventIds?: string[]
       userFilter?: string
       filterFn?: (event: Event) => boolean
     },
@@ -75,7 +59,6 @@ const GroupedNoteList = forwardRef(
   ) => {
     const { t } = useTranslation()
     const { startLogin, pubkey } = useNostr()
-    const { isUserTrusted } = useUserTrust()
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
@@ -84,17 +67,13 @@ const GroupedNoteList = forwardRef(
       useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
-    const [hasMore, setHasMore] = useState<boolean>(false)
     const [loading, setLoading] = useState(true)
     const [refreshCount, setRefreshCount] = useState(0)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
-    const [groupedLoadingMore, setGroupedLoadingMore] = useState(false)
-    const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
     const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const topRef = useRef<HTMLDivElement | null>(null)
 
-    // Process grouped notes
     const {
       processedEvents: groupedEvents,
       groupedNotesData,
@@ -103,7 +82,6 @@ const GroupedNoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
-        if (pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
         // Filter nested replies when showOnlyFirstLevelReplies is enabled
         if (
@@ -114,7 +92,6 @@ const GroupedNoteList = forwardRef(
         ) {
           return true
         }
-        if (hideUntrustedNotes && !isUserTrusted(evt.pubkey)) return true
         if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
         if (
           filterMutedNotes &&
@@ -129,32 +106,10 @@ const GroupedNoteList = forwardRef(
 
         return false
       },
-      [
-        hideUntrustedNotes,
-        mutePubkeySet,
-        pinnedEventIds,
-        isEventDeleted,
-        groupedNotesSettings,
-        filterFn
-      ]
+      [mutePubkeySet, isEventDeleted, groupedNotesSettings, filterFn]
     )
 
-    const filteredEvents = useMemo(() => {
-      const idSet = new Set<string>()
-
-      return groupedEvents.filter((evt) => {
-        if (shouldHideEvent(evt)) return false
-
-        const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
-        if (idSet.has(id)) {
-          return false
-        }
-        idSet.add(id)
-        return true
-      })
-    }, [groupedEvents, shouldHideEvent])
-
-    // Update matching pubkeys when user filter changes
+    // update matching pubkeys when user filter changes
     useEffect(() => {
       if (!userFilter.trim()) {
         setMatchingPubkeys(null)
@@ -186,30 +141,13 @@ const GroupedNoteList = forwardRef(
     // apply user filter
     const userFilteredEvents = useMemo(() => {
       if (!userFilter.trim() || matchingPubkeys === null) {
-        return filteredEvents
+        return groupedEvents
       }
 
-      return filteredEvents.filter((evt) => matchingPubkeys.has(evt.pubkey))
-    }, [filteredEvents, userFilter, matchingPubkeys])
+      return groupedEvents.filter((evt) => matchingPubkeys.has(evt.pubkey))
+    }, [groupedEvents, userFilter, matchingPubkeys])
 
-    const filteredNewEvents = useMemo(() => {
-      const idSet = new Set<string>()
-
-      return newEvents.filter((event: Event) => {
-        if (shouldHideEvent(event)) return false
-
-        const id = isReplaceableEvent(event.kind)
-          ? getReplaceableCoordinateFromEvent(event)
-          : event.id
-        if (idSet.has(id)) {
-          return false
-        }
-        idSet.add(id)
-        return true
-      })
-    }, [newEvents, shouldHideEvent])
-
-    // Notify parent about notes composition (notes vs replies)
+    // notify parent about notes composition (notes vs replies)
     useEffect(() => {
       if (!onNotesLoaded || loading || events.length === 0) return
 
@@ -242,11 +180,9 @@ const GroupedNoteList = forwardRef(
       setLoading(true)
       setEvents([])
       setNewEvents([])
-      setHasMore(true)
 
       if (showKinds.length === 0) {
         setLoading(false)
-        setHasMore(false)
         return () => {}
       }
 
@@ -257,35 +193,23 @@ const GroupedNoteList = forwardRef(
         subRequests,
         {
           kinds: showKinds,
-          limit: LIMIT,
-          ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+          since: groupedNotesSince
         },
         {
           async onEvents(events, isFinal) {
+            events = events.filter((evt) => !shouldHideEvent(evt))
+
             if (isFinal) {
               setLoading(false)
-              setHasMore(events.length > 0)
             }
 
             if (events.length > 0) {
               setEvents(events)
-
-              if (isFinal) {
-                // automatically load more until we reach timeframe boundary
-                if (events.length > 0) {
-                  const oldestEvent = events[events.length - 1]
-                  if (oldestEvent.created_at > groupedNotesSince) {
-                    // start loading more data back in time
-                    loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
-                  } else {
-                    // we've reached the time boundary, no more loading needed
-                    setHasMore(false)
-                  }
-                }
-              }
             }
           },
           onNew(event) {
+            if (shouldHideEvent(event)) return
+
             if (pubkey && event.pubkey === pubkey) {
               // if the new event is from the current user, insert it directly into the feed
               setEvents((oldEvents) =>
@@ -319,39 +243,6 @@ const GroupedNoteList = forwardRef(
         }
       )
 
-      // function to load more data for grouped mode
-      async function loadMoreGroupedData(until: number, timeframeSince: number) {
-        setGroupedLoadingMore(true)
-        try {
-          const moreEvents = await client.loadMoreTimeline(subRequests, {
-            until,
-            limit: LIMIT,
-            ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
-          })
-          if (moreEvents.length === 0) {
-            setHasMore(false)
-            setGroupedLoadingMore(false)
-            return
-          }
-
-          setEvents((prevEvents) => [...prevEvents, ...moreEvents])
-
-          // check if we need to load even more
-          const oldestNewEvent = moreEvents[moreEvents.length - 1]
-          if (oldestNewEvent.created_at > timeframeSince) {
-            // recursively load more until we reach the time boundary
-            await loadMoreGroupedData(oldestNewEvent.created_at - 1, timeframeSince)
-          } else {
-            setHasMore(false)
-            setGroupedLoadingMore(false)
-          }
-        } catch (error) {
-          console.error('Error loading more grouped data:', error)
-          setHasMore(false)
-          setGroupedLoadingMore(false)
-        }
-      }
-
       return () => subc.close()
     }, [subRequests, refreshCount, showKinds, groupedNotesSettings])
 
@@ -380,9 +271,6 @@ const GroupedNoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen">
-        {pinnedEventIds.map((id) => (
-          <PinnedNoteCard key={id} eventId={id} className="w-full" />
-        ))}
         {userFilteredEvents.map((event) => {
           const groupedData = groupedNotesData.get(event.id)
           const totalNotesCount = groupedData?.totalNotesInTimeframe
@@ -422,7 +310,9 @@ const GroupedNoteList = forwardRef(
           }
 
           // Use regular NoteCard
-          const unreadCount = totalNotesCount ? getUnreadCount(event.pubkey, allNoteTimestamps) : totalNotesCount
+          const unreadCount = totalNotesCount
+            ? getUnreadCount(event.pubkey, allNoteTimestamps)
+            : totalNotesCount
           const readStatus = totalNotesCount
             ? getReadStatus(event.pubkey, event.created_at)
             : { isLastNoteRead: false, areAllNotesRead: false }
@@ -442,25 +332,7 @@ const GroupedNoteList = forwardRef(
             />
           )
         })}
-        {/* Loading states */}
-        {groupedLoadingMore ? (
-          <div className="flex justify-center items-center gap-2 mt-4 p-4">
-            <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
-            <div className="text-sm text-muted-foreground">{t('Loading more notes...')}</div>
-          </div>
-        ) : isFilteredView && events.length > 0 ? (
-          <div className="flex justify-center items-center mt-4 p-4">
-            <Button
-              size="lg"
-              onClick={async () => {
-                setIsFilteredView(false)
-                setHasMore(true)
-              }}
-            >
-              {t('Load more notes')}
-            </Button>
-          </div>
-        ) : events.length && !hasMore ? (
+        {events.length ? (
           <div className="text-center text-sm text-muted-foreground mt-2">
             {t('end of grouped results')}
           </div>
@@ -491,9 +363,7 @@ const GroupedNoteList = forwardRef(
           list
         )}
         <div className="h-40" />
-        {filteredNewEvents.length > 0 && (
-          <NewNotesButton newEvents={filteredNewEvents} onClick={mergeNewEvents} />
-        )}
+        {newEvents.length > 0 && <NewNotesButton newEvents={newEvents} onClick={mergeNewEvents} />}
       </div>
     )
   }

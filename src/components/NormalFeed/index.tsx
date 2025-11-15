@@ -121,7 +121,6 @@ export default function NormalFeed({
           ref={noteListRef as React.Ref<TGroupedNoteListRef>}
           showKinds={temporaryShowKinds}
           subRequests={subRequests}
-          hideUntrustedNotes={hideUntrustedNotes}
           showRelayCloseReason={showRelayCloseReason}
           userFilter={userFilter}
         />

@@ -1,11 +1,6 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import {
-  getReplaceableCoordinateFromEvent,
-  isMentioningMutedUsers,
-  isReplaceableEvent,
-  isReplyNoteEvent
-} from '@/lib/event'
+import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
 import { isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -46,7 +41,7 @@ const NoteList = forwardRef(
       showRelayCloseReason = false,
       sinceTimestamp,
       onNotesLoaded,
-      pinnedEventIds = [],
+      pinnedEventIds,
       filterFn
     }: {
       subRequests: TFeedSubRequest[]
@@ -87,7 +82,7 @@ const NoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
-        if (pinnedEventIds.includes(evt.id)) return true
+        if (pinnedEventIds && pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
         if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
@@ -117,39 +112,7 @@ const NoteList = forwardRef(
       ]
     )
 
-    const filteredEvents = useMemo(() => {
-      const idSet = new Set<string>()
-
-      return events.slice(0, showCount).filter((evt) => {
-        if (shouldHideEvent(evt)) return false
-
-        const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
-        if (idSet.has(id)) {
-          return false
-        }
-        idSet.add(id)
-        return true
-      })
-    }, [events, showCount, shouldHideEvent])
-
-    const filteredNewEvents = useMemo(() => {
-      const idSet = new Set<string>()
-
-      return newEvents.filter((event: Event) => {
-        if (shouldHideEvent(event)) return false
-
-        const id = isReplaceableEvent(event.kind)
-          ? getReplaceableCoordinateFromEvent(event)
-          : event.id
-        if (idSet.has(id)) {
-          return false
-        }
-        idSet.add(id)
-        return true
-      })
-    }, [newEvents, shouldHideEvent])
-
-    // Notify parent about notes composition (notes vs replies)
+    // notify parent about notes composition (notes vs replies)
     useEffect(() => {
       if (!onNotesLoaded || loading || events.length === 0) return
 
@@ -190,6 +153,8 @@ const NoteList = forwardRef(
         return () => {}
       }
 
+      console.log('...')
+
       const subc = client.subscribeTimeline(
         subRequests,
         {
@@ -199,6 +164,8 @@ const NoteList = forwardRef(
         },
         {
           async onEvents(events, isFinal) {
+            events = events.filter((evt) => !shouldHideEvent(evt))
+
             if (isFinal) {
               setLoading(false)
               setHasMore(events.length > 0)
@@ -209,6 +176,8 @@ const NoteList = forwardRef(
             }
           },
           onNew(event) {
+            if (shouldHideEvent(event)) return
+
             if (pubkey && event.pubkey === pubkey) {
               // if the new event is from the current user, insert it directly into the feed
               setEvents((oldEvents) =>
@@ -243,7 +212,7 @@ const NoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds])
+    }, [subRequests, refreshCount, showKinds, shouldHideEvent])
 
     const loadMore = useCallback(async () => {
       if (showCount < events.length) {
@@ -256,7 +225,7 @@ const NoteList = forwardRef(
 
       setLoading(true)
 
-      const moreEvents = await client.loadMoreTimeline(subRequests, {
+      let moreEvents = await client.loadMoreTimeline(subRequests, {
         until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
         limit: LIMIT,
         ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
@@ -267,9 +236,11 @@ const NoteList = forwardRef(
         return
       }
 
+      moreEvents = moreEvents.filter((evt) => !shouldHideEvent(evt))
+
       setEvents((events) => [...events, ...moreEvents])
       setLoading(false)
-    }, [showCount, events, subRequests, sinceTimestamp, isFilteredView])
+    }, [showCount, events, subRequests, sinceTimestamp, isFilteredView, shouldHideEvent])
 
     useEffect(() => {
       if (!hasMore || loading || isFilteredView) return
@@ -310,10 +281,10 @@ const NoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen">
-        {pinnedEventIds.map((id) => (
+        {(pinnedEventIds || []).map((id) => (
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
-        {filteredEvents.map((event) => (
+        {events.map((event) => (
           <NoteCard
             key={event.id}
             className="w-full"
@@ -371,9 +342,7 @@ const NoteList = forwardRef(
           list
         )}
         <div className="h-40" />
-        {filteredNewEvents.length > 0 && (
-          <NewNotesButton newEvents={filteredNewEvents} onClick={mergeNewEvents} />
-        )}
+        {newEvents.length > 0 && <NewNotesButton newEvents={newEvents} onClick={mergeNewEvents} />}
       </div>
     )
   }
