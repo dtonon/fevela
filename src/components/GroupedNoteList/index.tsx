@@ -7,12 +7,11 @@ import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
-import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
-import { Event } from '@nostr/tools/wasm'
+import { Event, NostrEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { userIdToPubkey } from '@/lib/pubkey'
 import {
@@ -30,6 +29,15 @@ import { toast } from 'sonner'
 import NoteCard from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
+import { usePinBury } from '@/providers/PinBuryProvider'
+
+type TNoteGroup = {
+  topNote: NostrEvent
+  totalNotes: number
+  oldestTimestamp: number
+  newestTimestamp: number
+  allNoteTimestamps: number[]
+}
 
 const GroupedNoteList = forwardRef(
   (
@@ -62,7 +70,7 @@ const GroupedNoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
-    const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
+    const { resetSettings, settings } = useGroupedNotes()
     const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
@@ -73,20 +81,141 @@ const GroupedNoteList = forwardRef(
     const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const topRef = useRef<HTMLDivElement | null>(null)
+    const { getPinBuryState } = usePinBury()
 
-    const {
-      processedEvents: groupedEvents,
-      groupedNotesData,
-      hasNoResults: groupedHasNoResults
-    } = useGroupedNotesProcessing(events, showKinds)
+    const { noteGroups, hasNoResults } = useMemo(() => {
+      console.log('bliblibli')
+
+      let filteredEvents = events
+
+      if (!settings.includeReplies) {
+        filteredEvents = filteredEvents.filter((event) => !isReplyNoteEvent(event))
+      }
+
+      // filter by word filter (content and hashtags)
+      if (settings.wordFilter.trim()) {
+        const filterWords = settings.wordFilter
+          .split(',')
+          .map((word) => word.trim().toLowerCase())
+          .filter((word) => word.length > 0)
+
+        if (filterWords.length > 0) {
+          filteredEvents = filteredEvents.filter((event) => {
+            // get content in lowercase for case-insensitive matching
+            const content = (event.content || '').toLowerCase()
+
+            // get hashtags from tags
+            const hashtags = event.tags
+              .filter((tag) => tag[0] === 't' && tag[1])
+              .map((tag) => tag[1].toLowerCase())
+
+            // check if any filter word matches content or hashtags
+            const hasMatchInContent = filterWords.some((word) => content.includes(word))
+            const hasMatchInHashtags = filterWords.some((word) =>
+              hashtags.some((hashtag) => hashtag.includes(word))
+            )
+
+            // return true to KEEP the event (filter OUT filteredEvents that match)
+            return !hasMatchInContent && !hasMatchInHashtags
+          })
+        }
+      }
+
+      // filter out short notes (single words or less than 10 characters)
+      if (settings.hideShortNotes) {
+        filteredEvents = filteredEvents.filter((event) => {
+          const content = (event.content || '').trim()
+
+          // filter out if content is less than 10 characters
+          if (content.length < 10) {
+            return false
+          }
+
+          // filter out emoji-only notes
+          // remove emojis and check if there's any substantial text left
+          // using Unicode property escapes to match all emoji characters
+          const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+          const contentWithoutEmojis = content.replace(emojiRegex, '').replace(/\s+/g, '').trim()
+          if (contentWithoutEmojis.length < 2) {
+            return false
+          }
+
+          // filter out single words (no spaces or only one word)
+          const words = content.split(/\s+/).filter((word) => word.length > 0)
+          if (words.length === 1) {
+            return false
+          }
+
+          return true
+        })
+      }
+
+      // group events by author pubkey
+      let noteGroups: TNoteGroup[] = []
+      const authorIndexes = new Map<string, number>()
+
+      for (let i = 0; i < filteredEvents.length; i++) {
+        const event = filteredEvents[i]
+
+        const idx = authorIndexes.get(event.pubkey)
+        if (idx !== undefined) {
+          const group = noteGroups[idx]
+          group.allNoteTimestamps.push(event.created_at)
+          group.oldestTimestamp = event.created_at
+          group.totalNotes++
+        } else {
+          authorIndexes.set(event.pubkey, noteGroups.length)
+          noteGroups.push({
+            allNoteTimestamps: [event.created_at],
+            newestTimestamp: event.created_at,
+            oldestTimestamp: event.created_at,
+            topNote: event,
+            totalNotes: 1
+          })
+        }
+      }
+
+      // apply activity level filter
+      if (settings.maxNotesFilter > 0) {
+        for (let i = noteGroups.length - 1; i >= 0; i--) {
+          const group = noteGroups[i]
+          if (group.totalNotes > settings.maxNotesFilter) {
+            noteGroups.splice(i, 1)
+          }
+        }
+      }
+
+      // sort final notes by pin/bury state (everything is already sorted by created_at descending)
+      const pinned: TNoteGroup[] = []
+      const buried: TNoteGroup[] = []
+      for (let i = noteGroups.length - 1; i >= 0; i--) {
+        const group = noteGroups[i]
+        switch (getPinBuryState(group.topNote.pubkey)) {
+          case 'pinned':
+            pinned.push(group)
+            noteGroups.splice(i, 1)
+            break
+          case 'buried':
+            buried.push(group)
+            noteGroups.splice(i, 1)
+            break
+        }
+      }
+      noteGroups = [...pinned.reverse(), ...noteGroups, ...buried.reverse()]
+
+      return {
+        noteGroups,
+        hasNoResults: filteredEvents.length === 0 && events.length > 0
+      }
+    }, [events, settings])
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
         if (isEventDeleted(evt)) return true
         // Filter nested replies when showOnlyFirstLevelReplies is enabled
         if (
-          groupedNotesSettings.includeReplies &&
-          groupedNotesSettings.showOnlyFirstLevelReplies &&
+          settings.includeReplies &&
+          settings.showOnlyFirstLevelReplies &&
           isReplyNoteEvent(evt) &&
           !isFirstLevelReply(evt)
         ) {
@@ -106,7 +235,7 @@ const GroupedNoteList = forwardRef(
 
         return false
       },
-      [mutePubkeySet, isEventDeleted, groupedNotesSettings, filterFn]
+      [mutePubkeySet, isEventDeleted, settings, filterFn]
     )
 
     // update matching pubkeys when user filter changes
@@ -138,14 +267,14 @@ const GroupedNoteList = forwardRef(
       searchProfiles()
     }, [userFilter])
 
-    // apply user filter
-    const userFilteredEvents = useMemo(() => {
+    // apply author name filter
+    const nameFilteredGroups = useMemo(() => {
       if (!userFilter.trim() || matchingPubkeys === null) {
-        return groupedEvents
+        return noteGroups
       }
 
-      return groupedEvents.filter((evt) => matchingPubkeys.has(evt.pubkey))
-    }, [groupedEvents, userFilter, matchingPubkeys])
+      return noteGroups.filter((group) => matchingPubkeys.has(group.topNote.pubkey))
+    }, [noteGroups, userFilter, matchingPubkeys])
 
     // notify parent about notes composition (notes vs replies)
     useEffect(() => {
@@ -186,7 +315,7 @@ const GroupedNoteList = forwardRef(
         return () => {}
       }
 
-      const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
+      const timeframeMs = getTimeFrameInMs(settings.timeFrame)
       const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
 
       const subc = client.subscribeTimeline(
@@ -244,7 +373,7 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, groupedNotesSettings])
+    }, [subRequests, refreshCount, showKinds, settings])
 
     function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
@@ -254,8 +383,7 @@ const GroupedNoteList = forwardRef(
       }, 0)
     }
 
-    // check for no results
-    if (groupedHasNoResults) {
+    if (hasNoResults) {
       return (
         <div>
           <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
@@ -271,62 +399,59 @@ const GroupedNoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen">
-        {userFilteredEvents.map((event) => {
-          const groupedData = groupedNotesData.get(event.id)
-          const totalNotesCount = groupedData?.totalNotesInTimeframe
-          const oldestTimestamp = groupedData?.oldestTimestamp
-          const allNoteTimestamps = groupedData?.allNoteTimestamps || []
-
-          // Use CompactedNoteCard if compacted view is on
-          if (groupedNotesSettings.compactedView && totalNotesCount) {
-            const readStatus = getReadStatus(event.pubkey, event.created_at)
-            const unreadCount = getUnreadCount(event.pubkey, allNoteTimestamps)
+        {nameFilteredGroups.map(({ totalNotes, oldestTimestamp, allNoteTimestamps, topNote }) => {
+          // use CompactedNoteCard if compacted view is on
+          if (settings.compactedView) {
+            const readStatus = getReadStatus(topNote.pubkey, topNote.created_at)
+            const unreadCount = getUnreadCount(topNote.pubkey, allNoteTimestamps)
 
             return (
               <CompactedEventCard
-                key={event.id}
+                key={topNote.id}
                 className="w-full"
-                event={event}
-                variant={event.kind === kinds.Repost ? 'repost' : 'note'}
+                event={topNote}
+                variant={topNote.kind === kinds.Repost ? 'repost' : 'note'}
                 totalNotesInTimeframe={unreadCount}
                 oldestTimestamp={oldestTimestamp}
                 filterMutedNotes={filterMutedNotes}
-                isSelected={selectedNoteId === event.id}
-                onSelect={() => setSelectedNoteId(event.id)}
+                isSelected={selectedNoteId === topNote.id}
+                onSelect={() => setSelectedNoteId(topNote.id)}
                 onLastNoteRead={() => {
                   // If there's only one note, mark all as read instead of just last
-                  if (totalNotesCount === 1) {
-                    markAllNotesRead(event.pubkey, event.created_at, unreadCount)
+                  if (totalNotes === 1) {
+                    markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
                   } else {
-                    markLastNoteRead(event.pubkey, event.created_at, unreadCount)
+                    markLastNoteRead(topNote.pubkey, topNote.created_at, unreadCount)
                   }
                 }}
-                onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
-                onMarkAsUnread={() => markAsUnread(event.pubkey)}
+                onAllNotesRead={() =>
+                  markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
+                }
+                onMarkAsUnread={() => markAsUnread(topNote.pubkey)}
                 isLastNoteRead={readStatus.isLastNoteRead}
                 areAllNotesRead={readStatus.areAllNotesRead}
               />
             )
           }
 
-          // Use regular NoteCard
-          const unreadCount = totalNotesCount
-            ? getUnreadCount(event.pubkey, allNoteTimestamps)
-            : totalNotesCount
-          const readStatus = totalNotesCount
-            ? getReadStatus(event.pubkey, event.created_at)
+          // otherwise use regular NoteCard
+          const unreadCount = totalNotes
+            ? getUnreadCount(topNote.pubkey, allNoteTimestamps)
+            : totalNotes
+          const readStatus = totalNotes
+            ? getReadStatus(topNote.pubkey, topNote.created_at)
             : { isLastNoteRead: false, areAllNotesRead: false }
 
           return (
             <NoteCard
-              key={event.id}
+              key={topNote.id}
               className="w-full"
-              event={event}
+              event={topNote}
               filterMutedNotes={filterMutedNotes}
               groupedNotesTotalCount={unreadCount}
               groupedNotesOldestTimestamp={oldestTimestamp}
               onAllNotesRead={() =>
-                unreadCount && markAllNotesRead(event.pubkey, event.created_at, unreadCount)
+                unreadCount && markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
               }
               areAllNotesRead={readStatus.areAllNotesRead}
             />
