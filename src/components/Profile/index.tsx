@@ -28,17 +28,7 @@ import Relays from './Relays'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { SimpleUsername } from '../Username'
 
-export default function Profile({
-  id,
-  hideTopSection = false,
-  sinceTimestamp,
-  fromGrouped = false
-}: {
-  id?: string
-  hideTopSection?: boolean
-  sinceTimestamp?: number
-  fromGrouped?: boolean
-}) {
+export default function Profile({ id }: { id?: string }) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
   const { profile, isFetching } = useFetchProfile(id)
@@ -60,6 +50,9 @@ export default function Profile({
       setTopContainer(node)
     }
   }, [])
+
+  // when ?gs= that means we're in the grouped notes list for this profile, so displayTopSection will be false
+  const displayTopSection = !new URLSearchParams(window.location.search).get('gs')
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -100,7 +93,7 @@ export default function Profile({
   if (!profile && isFetching) {
     return (
       <>
-        {!hideTopSection && (
+        {displayTopSection && (
           <>
             <div>
               <div className="relative bg-cover bg-center mb-2">
@@ -126,7 +119,7 @@ export default function Profile({
 
   return (
     <>
-      {!hideTopSection && (
+      {displayTopSection && (
         <div ref={topContainerRef}>
           <div className="relative bg-cover bg-center mb-2">
             <ProfileBanner banner={banner} pubkey={pubkey} className="w-full aspect-[3/1]" />
@@ -222,10 +215,8 @@ export default function Profile({
       )}
       <ProfileFeed
         pubkey={pubkey}
-        topSpace={hideTopSection ? 0 : topContainerHeight + 100}
-        sinceTimestamp={sinceTimestamp}
-        fromGrouped={fromGrouped}
         search={debouncedInput}
+        topSpace={displayTopSection ? topContainerHeight + 100 : 0}
       />
     </>
   )

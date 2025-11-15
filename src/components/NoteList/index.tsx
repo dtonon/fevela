@@ -52,12 +52,7 @@ const NoteList = forwardRef(
       hideUntrustedNotes?: boolean
       showRelayCloseReason?: boolean
       sinceTimestamp?: number
-      onNotesLoaded?: (
-        hasNotes: boolean,
-        hasReplies: boolean,
-        notesCount: number,
-        repliesCount: number
-      ) => void
+      onNotesLoaded?: (count: number, hasPosts: boolean, hasReplies: boolean) => void
       pinnedEventIds?: string[]
       filterFn?: (event: Event) => boolean
     },
@@ -112,18 +107,6 @@ const NoteList = forwardRef(
       ]
     )
 
-    // notify parent about notes composition (notes vs replies)
-    useEffect(() => {
-      if (!onNotesLoaded || loading || events.length === 0) return
-
-      const notesCount = events.filter((evt) => !isReplyNoteEvent(evt)).length
-      const repliesCount = events.filter((evt) => isReplyNoteEvent(evt)).length
-      const hasNotes = notesCount > 0
-      const hasReplies = repliesCount > 0
-
-      onNotesLoaded(hasNotes, hasReplies, notesCount, repliesCount)
-    }, [events, loading, onNotesLoaded])
-
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
         topRef.current?.scrollIntoView({ behavior, block: 'start' })
@@ -162,11 +145,24 @@ const NoteList = forwardRef(
         },
         {
           async onEvents(events, isFinal) {
-            events = events.filter((evt) => !shouldHideEvent(evt))
-
             if (isFinal) {
               setLoading(false)
               setHasMore(events.length > 0)
+
+              if (onNotesLoaded) {
+                // notify parent about notes composition (notes vs replies)
+                let hasPosts = false
+                let hasReplies = false
+                for (let i = 0; i < events.length; i++) {
+                  if (isReplyNoteEvent(events[i])) {
+                    hasReplies = true
+                  } else {
+                    hasPosts = true
+                  }
+                  if (hasReplies && hasPosts) break
+                }
+                onNotesLoaded(events.length, hasPosts, hasReplies)
+              }
             }
 
             if (events.length > 0) {
@@ -174,8 +170,6 @@ const NoteList = forwardRef(
             }
           },
           onNew(event) {
-            if (shouldHideEvent(event)) return
-
             if (pubkey && event.pubkey === pubkey) {
               // if the new event is from the current user, insert it directly into the feed
               setEvents((oldEvents) =>
@@ -210,7 +204,7 @@ const NoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, shouldHideEvent])
+    }, [subRequests, refreshCount, showKinds])
 
     const loadMore = useCallback(async () => {
       if (showCount < events.length) {
@@ -223,7 +217,7 @@ const NoteList = forwardRef(
 
       setLoading(true)
 
-      let moreEvents = await client.loadMoreTimeline(subRequests, {
+      const moreEvents = await client.loadMoreTimeline(subRequests, {
         until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
         limit: LIMIT,
         ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
@@ -234,11 +228,9 @@ const NoteList = forwardRef(
         return
       }
 
-      moreEvents = moreEvents.filter((evt) => !shouldHideEvent(evt))
-
       setEvents((events) => [...events, ...moreEvents])
       setLoading(false)
-    }, [showCount, events, subRequests, sinceTimestamp, isFilteredView, shouldHideEvent])
+    }, [showCount, subRequests, sinceTimestamp, isFilteredView])
 
     useEffect(() => {
       if (!hasMore || loading || isFilteredView) return
@@ -282,14 +274,16 @@ const NoteList = forwardRef(
         {(pinnedEventIds || []).map((id) => (
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
-        {events.map((event) => (
-          <NoteCard
-            key={event.id}
-            className="w-full"
-            event={event}
-            filterMutedNotes={filterMutedNotes}
-          />
-        ))}
+        {events
+          .filter((evt) => !shouldHideEvent(evt))
+          .map((event) => (
+            <NoteCard
+              key={event.id}
+              className="w-full"
+              event={event}
+              filterMutedNotes={filterMutedNotes}
+            />
+          ))}
         {/* Loading states */}
         {loading && !events.length ? (
           <div ref={bottomRef}>

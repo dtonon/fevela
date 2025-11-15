@@ -1,6 +1,6 @@
 import NoteList, { TNoteListRef } from '@/components/NoteList'
 import GroupedNoteList, { TGroupedNoteListRef } from '@/components/GroupedNoteList'
-import Tabs from '@/components/Tabs'
+import Tabs, { TTabDefinition } from '@/components/Tabs'
 import { Input } from '@/components/ui/input'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
@@ -48,7 +48,7 @@ export default function NormalFeed({
 
   // In grouped mode, force 'posts' mode and disable replies tab
   const effectiveListMode = groupedNotesSettings.enabled ? 'posts' : listMode
-  const availableTabs = groupedNotesSettings.enabled
+  const availableTabs: TTabDefinition[] = groupedNotesSettings.enabled
     ? [{ value: 'posts', label: 'Notes' }]
     : [
         { value: 'posts', label: 'Notes' },
