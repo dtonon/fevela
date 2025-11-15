@@ -404,22 +404,34 @@ class ClientService extends EventTarget {
       })
     }
 
-    if (relayRequests.length === 0 && localFilters.some((f) => f.followedBy)) {
+    let preliminarySub: SubCloser | undefined
+    if (
+      relayRequests.length === 0 &&
+      localFilters.length === 1 &&
+      (localFilters[0].followedBy || localFilters[0].authors?.length === 1)
+    ) {
       // edge case: used mainly on the first time the app is used
-      // in case we're fetching a _following feed_ solely from the local db but we have nothing
+      // in case we're fetching a _following feed_ or _profile feed_ solely from the local db but we have nothing
       // (or only very old events) do a temporary fallback relay query here while the sync completes
       local.then(async ([_, newestEvent, allAuthors]) => {
         if (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7) {
           const events: NostrEvent[] = []
-          const preliminarySub = pool.subscribeMap(
-            await outboxFilterRelayBatch(allAuthors, { limit: 10, ...localFilters[0] }),
+          const temporaryFilter = { ...localFilters[0], limit: 10 }
+          if (temporaryFilter.followedBy) {
+            temporaryFilter.authors = (await loadFollowsList(temporaryFilter.followedBy)).items
+            if (!temporaryFilter.authors.includes(temporaryFilter.followedBy))
+              temporaryFilter.authors.push(temporaryFilter.followedBy)
+            delete temporaryFilter.followedBy
+          }
+          preliminarySub = pool.subscribeMap(
+            await outboxFilterRelayBatch(allAuthors, temporaryFilter),
             {
               label: `f-temporary`,
               onevent(event) {
                 events.push(event)
               },
               oneose() {
-                preliminarySub.close('preliminary req closed automatically on eose')
+                preliminarySub!.close('preliminary req closed automatically on eose')
                 events.sort((a, b) => b.created_at - a.created_at)
                 onEvents(events, false) // not final. it will be final when the sync completes
               }
@@ -467,6 +479,7 @@ class ClientService extends EventTarget {
         onClose = undefined
         abort.abort('<subc>')
         subc?.close?.()
+        preliminarySub?.close?.()
       }
     }
   }
