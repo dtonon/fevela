@@ -1,6 +1,6 @@
 import KindFilter from '@/components/KindFilter'
 import NoteList, { TNoteListRef } from '@/components/NoteList'
-import Tabs from '@/components/Tabs'
+import Tabs, { TTabDefinition } from '@/components/Tabs'
 import { SEARCHABLE_RELAY_URLS } from '@/constants'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
@@ -15,17 +15,15 @@ import { RefreshButton } from '../RefreshButton'
 import { current, outbox, ready } from '@/services/outbox.service'
 import { loadPins } from '@nostr/gadgets/lists'
 
+const TABS_THRESHOLD = 20
+
 export default function ProfileFeed({
   pubkey,
   topSpace = 0,
-  sinceTimestamp,
-  fromGrouped = false,
   search = ''
 }: {
   pubkey: string
   topSpace?: number
-  sinceTimestamp?: number
-  fromGrouped?: boolean
   search?: string
 }) {
   const { pubkey: myPubkey, pinList: myPinList, isReady } = useNostr()
@@ -33,38 +31,29 @@ export default function ProfileFeed({
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
+  const [hasForceSet, setHasForceSet] = useState<boolean>(false)
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
-  const [hasAutoSwitched, setHasAutoSwitched] = useState(false)
   const [pinnedEventIds, setPinnedEventIds] = useState<string[]>([])
-  const [totalItemsCount, setTotalItemsCount] = useState(0)
 
-  // Threshold for showing tabs - only show tabs if total items > 20
-  const TABS_THRESHOLD = 20
-  const shouldShowTabs = useMemo(() => {
-    // When coming from grouped notes, only show tabs if total items > threshold
-    if (fromGrouped) {
-      return totalItemsCount > TABS_THRESHOLD
-    }
-    // Always show tabs when not from grouped notes
-    return true
-  }, [fromGrouped, totalItemsCount])
+  // when coming from the grouped notes view this will be maximum timestamp threshold
+  const groupedSince = parseInt(new URLSearchParams(window.location.search).get('gs') || '0')
 
-  const tabs = useMemo(() => {
-    const _tabs = [{ value: 'posts', label: 'Notes' }]
+  // threshold for showing tabs - only show tabs in grouped notes view if total items > 20
+  const [displayTabs, setDisplayTabs] = useState(groupedSince > 0)
 
-    // Show Replies tab only if includeReplies is enabled when coming from grouped notes
-    // AND if we should show tabs at all
-    if (shouldShowTabs && (!fromGrouped || groupedNotesSettings.includeReplies)) {
-      _tabs.push({ value: 'postsAndReplies', label: 'Replies' })
-    }
+  const tabs: TTabDefinition[] = groupedSince
+    ? [
+        { value: 'posts', label: 'Notes' },
+        { value: 'replies', label: 'Replies' }
+      ]
+    : [
+        { value: 'posts', label: 'Notes' },
+        { value: 'postsAndReplies', label: 'Replies' }
+      ]
 
-    // Hide You tab when coming from grouped notes
-    if (myPubkey && myPubkey !== pubkey && !fromGrouped) {
-      _tabs.push({ value: 'you', label: 'YouTabName' })
-    }
-
-    return _tabs
-  }, [myPubkey, pubkey, fromGrouped, groupedNotesSettings.includeReplies, shouldShowTabs])
+  if (myPubkey && myPubkey !== pubkey) {
+    tabs.push({ value: 'you', label: 'YouTabName' })
+  }
 
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const noteListRef = useRef<TNoteListRef>(null)
@@ -130,7 +119,6 @@ export default function ProfileFeed({
       }
 
       if (myPubkey === pubkey && !isReady) return
-
       const relayList = await client.fetchRelayList(pubkey)
 
       if (search) {
@@ -148,6 +136,12 @@ export default function ProfileFeed({
         ])
         return
       }
+    })()
+  }, [pubkey, listMode, search, isReady])
+
+  useEffect(() => {
+    ;(async () => {
+      if (search || listMode === 'you') return // will be handled on the useEffect above
 
       if (isReady) {
         setSubRequests([
@@ -159,6 +153,7 @@ export default function ProfileFeed({
           }
         ])
       } else {
+        const relayList = await client.fetchRelayList(pubkey)
         setSubRequests([
           {
             source: 'relays',
@@ -170,7 +165,7 @@ export default function ProfileFeed({
         ])
       }
     })()
-  }, [pubkey, listMode, search, isReady])
+  }, [pubkey, isReady])
 
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)
@@ -182,33 +177,19 @@ export default function ProfileFeed({
     noteListRef.current?.scrollToTop('instant')
   }
 
-  const handleNotesLoaded = (
-    hasNotes: boolean,
-    hasReplies: boolean,
-    notesCount: number,
-    repliesCount: number
-  ) => {
-    // Update total count
-    const totalCount = notesCount + repliesCount
-    setTotalItemsCount(totalCount)
-
-    // If below threshold, force showing all items together (no tab separation)
-    if (fromGrouped && totalCount <= TABS_THRESHOLD) {
-      // Don't filter by hideReplies, show everything together
-      return
-    }
-
-    // Auto-switch to Replies tab if coming from grouped notes and there are only replies (no notes)
-    if (
-      fromGrouped &&
-      !hasAutoSwitched &&
-      !hasNotes &&
-      hasReplies &&
+  const handleNotesLoaded = (count: number, hasPosts: boolean, hasReplies: boolean) => {
+    const displayOnGrouped =
+      groupedSince &&
       groupedNotesSettings.includeReplies &&
-      totalCount > TABS_THRESHOLD
-    ) {
-      setListMode('postsAndReplies')
-      setHasAutoSwitched(true)
+      count > TABS_THRESHOLD &&
+      hasPosts &&
+      hasReplies
+
+    setDisplayTabs(displayOnGrouped || !groupedSince)
+
+    if (displayOnGrouped && !hasForceSet) {
+      setListMode('posts')
+      setHasForceSet(true)
     }
   }
 
@@ -221,7 +202,7 @@ export default function ProfileFeed({
           handleListModeChange(listMode as TNoteListMode)
         }}
         threshold={Math.max(800, topSpace)}
-        hideTabs={fromGrouped && !shouldShowTabs}
+        hideTabs={!displayTabs}
         options={
           <>
             {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
@@ -233,18 +214,12 @@ export default function ProfileFeed({
         ref={noteListRef}
         subRequests={subRequests}
         showKinds={temporaryShowKinds}
-        hideReplies={
-          fromGrouped && totalItemsCount <= TABS_THRESHOLD
-            ? false // Show everything together when below threshold
-            : listMode === 'posts'
-        }
-        showOnlyReplies={
-          fromGrouped && totalItemsCount > TABS_THRESHOLD && listMode === 'postsAndReplies'
-        }
+        hideReplies={listMode === 'posts'}
+        showOnlyReplies={listMode === 'replies'}
         filterMutedNotes={false}
-        sinceTimestamp={sinceTimestamp}
-        onNotesLoaded={fromGrouped ? handleNotesLoaded : undefined}
-        pinnedEventIds={listMode === 'you' || !!search || !!sinceTimestamp ? [] : pinnedEventIds}
+        sinceTimestamp={groupedSince}
+        onNotesLoaded={handleNotesLoaded}
+        pinnedEventIds={listMode === 'you' || !!search ? undefined : pinnedEventIds}
       />
     </>
   )

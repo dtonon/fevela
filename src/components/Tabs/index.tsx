@@ -4,8 +4,19 @@ import { ReactNode, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ScrollArea, ScrollBar } from '../ui/scroll-area'
 
-type TabDefinition = {
-  value: string
+export type TTabDefinition = {
+  value:
+    | 'posts'
+    | 'replies'
+    | 'postsAndReplies'
+    | 'explore'
+    | 'mentions'
+    | 'following'
+    | 'reviews'
+    | 'zaps'
+    | 'reactions'
+    | 'you'
+    | 'all'
   label: string
 }
 
@@ -17,7 +28,7 @@ export default function Tabs({
   options = null,
   hideTabs = false
 }: {
-  tabs: TabDefinition[]
+  tabs: TTabDefinition[]
   value: string
   onTabChange?: (tab: string) => void
   threshold?: number

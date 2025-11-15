@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
+import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents, getEmbeddedPubkeys } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -197,7 +197,7 @@ const ConversationList = forwardRef((_, ref) => {
       const subRequests: TFeedSubRequest[] = [
         {
           source: 'relays',
-          urls: relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
+          urls: relayList.read,
           filter: {
             '#p': [pubkey],
             kinds: filterKinds
@@ -205,7 +205,21 @@ const ConversationList = forwardRef((_, ref) => {
         },
         {
           source: 'relays',
-          urls: relayList.write.length > 0 ? relayList.write.slice(0, 5) : BIG_RELAY_URLS,
+          urls: relayList.write,
+          filter: {
+            authors: [pubkey],
+            kinds: filterKinds
+          }
+        },
+        {
+          source: 'local',
+          filter: {
+            '#p': [pubkey],
+            kinds: filterKinds
+          }
+        },
+        {
+          source: 'local',
           filter: {
             authors: [pubkey],
             kinds: filterKinds
@@ -219,14 +233,15 @@ const ConversationList = forwardRef((_, ref) => {
         subRequests,
         { limit: LIMIT },
         {
-          onEvents: (events) => {
+          onEvents: (events, isFinal) => {
             if (events.length > 0) {
               setNotifications(events)
             }
 
-            setLoading(false)
-            setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
-            noteStatsService.updateNoteStatsByEvents(events)
+            if (isFinal) {
+              setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+              noteStatsService.updateNoteStatsByEvents(events)
+            }
           },
           onNew: (event) => {
             handleNewEvent(event)

@@ -19,9 +19,7 @@ export default function FollowingFeed() {
 
       // no need to call outbox.sync() here since that will already happen on NostrProvider
       // for people that the current logged user follows
-
       setSubRequests([
-        { source: 'local', filter: { authors: [pubkey] } },
         {
           source: 'local',
           filter: {

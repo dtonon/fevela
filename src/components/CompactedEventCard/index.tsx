@@ -191,9 +191,7 @@ export default function CompactedEventCard({
   const showAllNotes = (e: React.MouseEvent) => {
     e.stopPropagation()
     onAllNotesRead?.()
-    push(
-      toProfile(event.pubkey, { hideTopSection: true, since: oldestTimestamp, fromGrouped: true })
-    )
+    push(toProfile(event.pubkey, { groupedSince: oldestTimestamp }))
   }
 
   const showLastNote = (e: React.MouseEvent) => {

@@ -1,5 +1,6 @@
 import NoteList, { TNoteListRef } from '@/components/NoteList'
-import Tabs from '@/components/Tabs'
+import GroupedNoteList, { TGroupedNoteListRef } from '@/components/GroupedNoteList'
+import Tabs, { TTabDefinition } from '@/components/Tabs'
 import { Input } from '@/components/ui/input'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
@@ -30,7 +31,7 @@ export default function NormalFeed({
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
   const [userFilter, setUserFilter] = useState('')
   const supportTouch = useMemo(() => isTouchDevice(), [])
-  const noteListRef = useRef<TNoteListRef>(null)
+  const noteListRef = useRef<TNoteListRef | TGroupedNoteListRef>(null)
 
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)
@@ -47,7 +48,7 @@ export default function NormalFeed({
 
   // In grouped mode, force 'posts' mode and disable replies tab
   const effectiveListMode = groupedNotesSettings.enabled ? 'posts' : listMode
-  const availableTabs = groupedNotesSettings.enabled
+  const availableTabs: TTabDefinition[] = groupedNotesSettings.enabled
     ? [{ value: 'posts', label: 'Notes' }]
     : [
         { value: 'posts', label: 'Notes' },
@@ -115,19 +116,24 @@ export default function NormalFeed({
           }
         />
       )}
-      <NoteList
-        ref={noteListRef}
-        showKinds={temporaryShowKinds}
-        subRequests={subRequests}
-        hideReplies={
-          effectiveListMode === 'posts' &&
-          !(groupedNotesSettings.enabled && groupedNotesSettings.includeReplies)
-        }
-        hideUntrustedNotes={hideUntrustedNotes}
-        showRelayCloseReason={showRelayCloseReason}
-        groupedMode={groupedNotesSettings.enabled}
-        userFilter={userFilter}
-      />
+      {groupedNotesSettings.enabled ? (
+        <GroupedNoteList
+          ref={noteListRef as React.Ref<TGroupedNoteListRef>}
+          showKinds={temporaryShowKinds}
+          subRequests={subRequests}
+          showRelayCloseReason={showRelayCloseReason}
+          userFilter={userFilter}
+        />
+      ) : (
+        <NoteList
+          ref={noteListRef as React.Ref<TNoteListRef>}
+          showKinds={temporaryShowKinds}
+          subRequests={subRequests}
+          hideReplies={effectiveListMode === 'posts'}
+          hideUntrustedNotes={hideUntrustedNotes}
+          showRelayCloseReason={showRelayCloseReason}
+        />
+      )}
     </>
   )
 }

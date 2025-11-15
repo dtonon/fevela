@@ -216,11 +216,11 @@ class ClientService extends EventTarget {
     subRequests: TFeedSubRequest[],
     filterModification: Filter,
     {
-      onEvents, // called only once
-      onNew, // any events that come after the initial onEvents batch
+      onEvents,
+      onNew,
       onClose
     }: {
-      onEvents: (events: NostrEvent[]) => void
+      onEvents: (events: NostrEvent[], isFinal: boolean) => void
       onNew: (evt: NostrEvent) => void
       onClose?: (url: string, reason: string) => void
     },
@@ -253,9 +253,9 @@ class ClientService extends EventTarget {
       }))
 
     // do local db requests
-    const local =
+    const local: Promise<[NostrEvent[], NostrEvent | undefined, string[]]> =
       localFilters.length === 0
-        ? Promise.resolve([])
+        ? Promise.resolve([[], undefined, []])
         : (async () => {
             let newestEvent: NostrEvent | undefined
 
@@ -282,7 +282,7 @@ class ClientService extends EventTarget {
                 }
               }
             }
-            if (f) events.length = f
+            events.length = f
 
             // we'll use this for the live query
             const allAuthors = (
@@ -294,35 +294,6 @@ class ClientService extends EventTarget {
                 })
               )
             ).flat()
-
-            // now if our last event is too old or we just turned this thing on and we have no events
-            // do a temporary fallback relay query here while the sync completes
-            if (
-              relayRequests.length === 0 &&
-              (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7)
-            ) {
-              let done: () => void
-              const pre = new Promise<void>((resolve) => {
-                done = resolve
-              })
-              const preliminarySub = pool.subscribeMap(
-                await outboxFilterRelayBatch(allAuthors, { limit: 10, ...localFilters[0] }),
-                {
-                  label: `f-preliminary`,
-                  async onevent(event) {
-                    events[f] = event
-                    f++
-                    outbox.store.saveEvent(event)
-                  },
-                  oneose() {
-                    preliminarySub.close('preliminary req closed automatically on eose')
-                    done()
-                  }
-                }
-              )
-              await pre
-              events.length = f
-            }
 
             // listen for live updates to local db
             ready().then(() => {
@@ -351,7 +322,7 @@ class ClientService extends EventTarget {
               }, 2200)
             })
 
-            return events
+            return [events, newestEvent, allAuthors]
           })()
 
     // do relay requests
@@ -374,11 +345,18 @@ class ClientService extends EventTarget {
               ),
               {
                 label: 'f-timeline',
-                onevent(evt) {
+                onevent: (evt) => {
                   if (!eosed) {
                     events.push(evt)
                   } else {
                     onNew(evt)
+                  }
+
+                  if (localFilters.length) {
+                    // if we're querying local filters simultaneously with external relays
+                    // that means we want to store the results from the external relays in the local filters
+                    // for consistency
+                    this.addEventToCache(evt)
                   }
                 },
                 oneose() {
@@ -418,18 +396,81 @@ class ClientService extends EventTarget {
             )
           })
 
-    Promise.all([local, network]).then(([eventsL, eventsN]) => {
+    if (localFilters.length > 0 && relayRequests.length > 0) {
+      // if both exist, assume localFilters will load much faster and handle they first
+      local.then(([eventsL]) => {
+        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
+        onEvents(eventsL, false) // not final: will be called again with all the events later
+      })
+    }
+
+    let preliminarySub: SubCloser | undefined
+    if (
+      relayRequests.length === 0 &&
+      localFilters.length === 1 &&
+      (localFilters[0].followedBy || localFilters[0].authors?.length === 1)
+    ) {
+      // edge case: used mainly on the first time the app is used
+      // in case we're fetching a _following feed_ or _profile feed_ solely from the local db but we have nothing
+      // (or only very old events) do a temporary fallback relay query here while the sync completes
+      local.then(async ([_, newestEvent, allAuthors]) => {
+        if (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7) {
+          const events: NostrEvent[] = []
+          const temporaryFilter = { ...localFilters[0], limit: 10 }
+          if (temporaryFilter.followedBy) {
+            temporaryFilter.authors = (await loadFollowsList(temporaryFilter.followedBy)).items
+            if (!temporaryFilter.authors.includes(temporaryFilter.followedBy))
+              temporaryFilter.authors.push(temporaryFilter.followedBy)
+            delete temporaryFilter.followedBy
+          }
+          preliminarySub = pool.subscribeMap(
+            await outboxFilterRelayBatch(allAuthors, temporaryFilter),
+            {
+              label: `f-temporary`,
+              onevent(event) {
+                events.push(event)
+              },
+              oneose() {
+                preliminarySub!.close('preliminary req closed automatically on eose')
+                events.sort((a, b) => b.created_at - a.created_at)
+                onEvents(events, false) // not final. it will be final when the sync completes
+              }
+            }
+          )
+
+          // now the sync is complete, do the query again
+          ready().then(async () => {
+            const events: NostrEvent[] = new Array(200)
+            let f = 0
+            for (let i = 0; i < localFilters.length; i++) {
+              for await (const event of store.queryEvents(localFilters[i], 5_000)) {
+                events[f] = event
+                f++
+              }
+            }
+            events.length = f
+            events.sort((a, b) => b.created_at - a.created_at)
+            onEvents(events, true)
+          })
+        }
+      })
+    }
+
+    Promise.all([local, network]).then(([[eventsL], eventsN]) => {
       if (eventsL.length > 0 && eventsN.length > 0) {
         eventsL.push(...eventsN)
         eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsL)
+        onEvents(
+          eventsL.filter((item, i) => i === 0 || item.id !== eventsL[i - 1].id),
+          true
+        )
       } else if (eventsL.length) {
         if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsL)
-      } else {
+        onEvents(eventsL, true)
+      } else if (eventsN.length) {
         if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
           eventsN.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsN)
+        onEvents(eventsN, true)
       }
     })
 
@@ -438,6 +479,7 @@ class ClientService extends EventTarget {
         onClose = undefined
         abort.abort('<subc>')
         subc?.close?.()
+        preliminarySub?.close?.()
       }
     }
   }
@@ -528,6 +570,7 @@ class ClientService extends EventTarget {
                 f++
               }
             }
+            events.length = f
             return events
           })()
 
@@ -539,10 +582,12 @@ class ClientService extends EventTarget {
       } else if (eventsL.length) {
         if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
         return eventsL
-      } else {
-        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+      } else if (eventsN.length) {
+        if (relayRequests.length > 1 || relayRequests[0]?.urls.length > 1)
           eventsN.sort((a, b) => b.created_at - a.created_at)
         return eventsN
+      } else {
+        return []
       }
     })
   }
@@ -641,7 +686,10 @@ class ClientService extends EventTarget {
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
       seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
-      followedBy: this.pubkey && this.followings?.has(event.pubkey) ? [this.pubkey] : undefined
+      followedBy:
+        this.pubkey && (this.pubkey === event.pubkey || this.followings?.has(event.pubkey))
+          ? [this.pubkey]
+          : undefined
     })
   }
 
@@ -915,4 +963,8 @@ class ClientService extends EventTarget {
 }
 
 const instance = ClientService.getInstance()
+
+;(window as any).fevela = (window as any).fevela || {}
+;(window as any).fevela.client = instance
+
 export default instance

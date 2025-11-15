@@ -62,9 +62,11 @@ export default function QuoteList({ event, className }: { event: Event; classNam
       subRequests,
       { limit: LIMIT },
       {
-        onEvents: (events) => {
-          setLoading(false)
-          setHasMore(events.length > 0)
+        onEvents: (events, isFinal) => {
+          if (!isFinal) {
+            setLoading(false)
+            setHasMore(events.length > 0)
+          }
 
           if (events.length > 0) {
             setEvents(events)

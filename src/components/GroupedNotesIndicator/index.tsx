@@ -43,9 +43,7 @@ export default function GroupedNotesIndicator({
           onAllNotesRead?.()
           push(
             toProfile(event.pubkey, {
-              hideTopSection: true,
-              since: oldestTimestamp,
-              fromGrouped: true
+              groupedSince: oldestTimestamp
             })
           )
         }}

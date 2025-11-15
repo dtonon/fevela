@@ -166,12 +166,16 @@ export default function ReplyNoteList({
           limit: LIMIT
         },
         {
-          onEvents: (evts) => {
-            setUntil(evts.length >= LIMIT ? evts[evts.length - 1].created_at - 1 : undefined)
-            setLoading(false)
+          onEvents: (events, isFinal) => {
+            if (isFinal) {
+              setUntil(
+                events.length >= LIMIT ? events[events.length - 1].created_at - 1 : undefined
+              )
+              setLoading(false)
+            }
 
-            if (evts.length > 0) {
-              addReplies(evts.filter(isReplyNoteEvent))
+            if (events.length > 0) {
+              addReplies(events.filter(isReplyNoteEvent))
             }
           },
           onNew: (evt) => {

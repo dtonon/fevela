@@ -41,14 +41,14 @@ export const PinBuryProvider: React.FC<{ children: ReactNode }> = ({ children })
   const setPinned = (pubkey: string) => {
     setPinBuryMap((prev) => ({
       ...prev,
-      [pubkey]: 'pinned',
+      [pubkey]: 'pinned'
     }))
   }
 
   const setBuried = (pubkey: string) => {
     setPinBuryMap((prev) => ({
       ...prev,
-      [pubkey]: 'buried',
+      [pubkey]: 'buried'
     }))
   }
 
@@ -66,7 +66,7 @@ export const PinBuryProvider: React.FC<{ children: ReactNode }> = ({ children })
         getPinBuryState,
         setPinned,
         setBuried,
-        clearState,
+        clearState
       }}
     >
       {children}
