@@ -421,6 +421,7 @@ class ClientService extends EventTarget {
               },
               oneose() {
                 preliminarySub.close('preliminary req closed automatically on eose')
+                events.sort((a, b) => b.created_at - a.created_at)
                 onEvents(events, false) // not final. it will be final when the sync completes
               }
             }

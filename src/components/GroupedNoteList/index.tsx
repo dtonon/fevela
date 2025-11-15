@@ -84,8 +84,6 @@ const GroupedNoteList = forwardRef(
     const { getPinBuryState } = usePinBury()
 
     const { noteGroups, hasNoResults } = useMemo(() => {
-      console.log('bliblibli')
-
       let filteredEvents = events
 
       if (!settings.includeReplies) {

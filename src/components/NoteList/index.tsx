@@ -153,8 +153,6 @@ const NoteList = forwardRef(
         return () => {}
       }
 
-      console.log('...')
-
       const subc = client.subscribeTimeline(
         subRequests,
         {
