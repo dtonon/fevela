@@ -415,9 +415,8 @@ class ClientService extends EventTarget {
             await outboxFilterRelayBatch(allAuthors, { limit: 10, ...localFilters[0] }),
             {
               label: `f-temporary`,
-              async onevent(event) {
+              onevent(event) {
                 events.push(event)
-                outbox.store.saveEvent(event)
               },
               oneose() {
                 preliminarySub.close('preliminary req closed automatically on eose')
