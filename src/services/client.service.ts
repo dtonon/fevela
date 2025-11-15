@@ -673,7 +673,10 @@ class ClientService extends EventTarget {
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
       seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
-      followedBy: this.pubkey && this.followings?.has(event.pubkey) ? [this.pubkey] : undefined
+      followedBy:
+        this.pubkey && (this.pubkey === event.pubkey || this.followings?.has(event.pubkey))
+          ? [this.pubkey]
+          : undefined
     })
   }
 

@@ -59,7 +59,7 @@ export async function start(account: string, followings: string[], signal: Abort
     defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
     storeRelaysSeenOn: true,
     authorIsFollowedBy(author: string): string[] | undefined {
-      if (author !== account && followings.includes(author)) return [account]
+      if (author === account || followings.includes(author)) return [account]
     }
   })
 
