@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
+import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents, getEmbeddedPubkeys } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'

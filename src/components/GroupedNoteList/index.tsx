@@ -4,7 +4,8 @@ import {
   getReplaceableCoordinateFromEvent,
   isMentioningMutedUsers,
   isReplaceableEvent,
-  isReplyNoteEvent
+  isReplyNoteEvent,
+  isFirstLevelReply
 } from '@/lib/event'
 import { isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
@@ -12,10 +13,15 @@ import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
+import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
+import { useGroupedNotesProcessing } from '@/hooks/useGroupedNotes'
+import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
+import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
-import dayjs from 'dayjs'
 import { Event } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
+import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,
   useCallback,
@@ -28,32 +34,30 @@ import {
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
-import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
+import NoteCard from '../NoteCard'
+import CompactedEventCard from '../CompactedEventCard'
+import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 import PinnedNoteCard from '../PinnedNoteCard'
 
-const LIMIT = 200
-const SHOW_COUNT = 10
+const LIMIT = 500
 
-const NoteList = forwardRef(
+const GroupedNoteList = forwardRef(
   (
     {
       subRequests,
       showKinds,
       filterMutedNotes = true,
-      hideReplies = false,
-      showOnlyReplies = false,
       hideUntrustedNotes = false,
       showRelayCloseReason = false,
       sinceTimestamp,
       onNotesLoaded,
       pinnedEventIds = [],
+      userFilter = '',
       filterFn
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
       filterMutedNotes?: boolean
-      hideReplies?: boolean
-      showOnlyReplies?: boolean
       hideUntrustedNotes?: boolean
       showRelayCloseReason?: boolean
       sinceTimestamp?: number
@@ -64,6 +68,7 @@ const NoteList = forwardRef(
         repliesCount: number
       ) => void
       pinnedEventIds?: string[]
+      userFilter?: string
       filterFn?: (event: Event) => boolean
     },
     ref
@@ -74,23 +79,41 @@ const NoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
+    const { resetSettings, settings: groupedNotesSettings } = useGroupedNotes()
+    const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
+      useGroupedNotesReadStatus()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(false)
     const [loading, setLoading] = useState(true)
     const [refreshCount, setRefreshCount] = useState(0)
-    const [showCount, setShowCount] = useState(SHOW_COUNT)
+    const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
+    const [groupedLoadingMore, setGroupedLoadingMore] = useState(false)
     const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
+    const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
     const supportTouch = useMemo(() => isTouchDevice(), [])
-    const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
+
+    // Process grouped notes
+    const {
+      processedEvents: groupedEvents,
+      groupedNotesData,
+      hasNoResults: groupedHasNoResults
+    } = useGroupedNotesProcessing(events, showKinds)
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
         if (pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
-        if (hideReplies && isReplyNoteEvent(evt)) return true
-        if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
+        // Filter nested replies when showOnlyFirstLevelReplies is enabled
+        if (
+          groupedNotesSettings.includeReplies &&
+          groupedNotesSettings.showOnlyFirstLevelReplies &&
+          isReplyNoteEvent(evt) &&
+          !isFirstLevelReply(evt)
+        ) {
+          return true
+        }
         if (hideUntrustedNotes && !isUserTrusted(evt.pubkey)) return true
         if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
         if (
@@ -107,12 +130,11 @@ const NoteList = forwardRef(
         return false
       },
       [
-        hideReplies,
-        showOnlyReplies,
         hideUntrustedNotes,
         mutePubkeySet,
         pinnedEventIds,
         isEventDeleted,
+        groupedNotesSettings,
         filterFn
       ]
     )
@@ -120,7 +142,7 @@ const NoteList = forwardRef(
     const filteredEvents = useMemo(() => {
       const idSet = new Set<string>()
 
-      return events.slice(0, showCount).filter((evt) => {
+      return groupedEvents.filter((evt) => {
         if (shouldHideEvent(evt)) return false
 
         const id = isReplaceableEvent(evt.kind) ? getReplaceableCoordinateFromEvent(evt) : evt.id
@@ -130,7 +152,45 @@ const NoteList = forwardRef(
         idSet.add(id)
         return true
       })
-    }, [events, showCount, shouldHideEvent])
+    }, [groupedEvents, shouldHideEvent])
+
+    // Update matching pubkeys when user filter changes
+    useEffect(() => {
+      if (!userFilter.trim()) {
+        setMatchingPubkeys(null)
+        return
+      }
+
+      const searchProfiles = async () => {
+        try {
+          const npubs = await client.searchNpubsFromLocal(userFilter, 1000)
+          const pubkeys = npubs
+            .map((npub) => {
+              try {
+                return userIdToPubkey(npub)
+              } catch {
+                return null
+              }
+            })
+            .filter((pubkey): pubkey is string => pubkey !== null)
+          setMatchingPubkeys(new Set(pubkeys))
+        } catch (error) {
+          console.error('Error searching profiles:', error)
+          setMatchingPubkeys(new Set())
+        }
+      }
+
+      searchProfiles()
+    }, [userFilter])
+
+    // apply user filter
+    const userFilteredEvents = useMemo(() => {
+      if (!userFilter.trim() || matchingPubkeys === null) {
+        return filteredEvents
+      }
+
+      return filteredEvents.filter((evt) => matchingPubkeys.has(evt.pubkey))
+    }, [filteredEvents, userFilter, matchingPubkeys])
 
     const filteredNewEvents = useMemo(() => {
       const idSet = new Set<string>()
@@ -190,6 +250,9 @@ const NoteList = forwardRef(
         return () => {}
       }
 
+      const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
+      const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
+
       const subc = client.subscribeTimeline(
         subRequests,
         {
@@ -206,6 +269,20 @@ const NoteList = forwardRef(
 
             if (events.length > 0) {
               setEvents(events)
+
+              if (isFinal) {
+                // automatically load more until we reach timeframe boundary
+                if (events.length > 0) {
+                  const oldestEvent = events[events.length - 1]
+                  if (oldestEvent.created_at > groupedNotesSince) {
+                    // start loading more data back in time
+                    loadMoreGroupedData(oldestEvent.created_at - 1, groupedNotesSince)
+                  } else {
+                    // we've reached the time boundary, no more loading needed
+                    setHasMore(false)
+                  }
+                }
+              }
             }
           },
           onNew(event) {
@@ -242,63 +319,41 @@ const NoteList = forwardRef(
         }
       )
 
-      return () => subc.close()
-    }, [subRequests, refreshCount, showKinds])
-
-    const loadMore = useCallback(async () => {
-      if (showCount < events.length) {
-        setShowCount((prev) => prev + SHOW_COUNT)
-        // preload more
-        if (events.length - showCount > LIMIT / 2) {
-          return
-        }
-      }
-
-      setLoading(true)
-
-      const moreEvents = await client.loadMoreTimeline(subRequests, {
-        until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-        limit: LIMIT,
-        ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
-      })
-
-      if (moreEvents.length === 0) {
-        setHasMore(false)
-        return
-      }
-
-      setEvents((events) => [...events, ...moreEvents])
-      setLoading(false)
-    }, [showCount, events, subRequests, sinceTimestamp, isFilteredView])
-
-    useEffect(() => {
-      if (!hasMore || loading || isFilteredView) return
-
-      const observerInstance = new IntersectionObserver(
-        (entries) => {
-          if (entries[0].isIntersecting && hasMore) {
-            loadMore()
+      // function to load more data for grouped mode
+      async function loadMoreGroupedData(until: number, timeframeSince: number) {
+        setGroupedLoadingMore(true)
+        try {
+          const moreEvents = await client.loadMoreTimeline(subRequests, {
+            until,
+            limit: LIMIT,
+            ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+          })
+          if (moreEvents.length === 0) {
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+            return
           }
-        },
-        {
-          root: null,
-          rootMargin: '10px',
-          threshold: 0.1
+
+          setEvents((prevEvents) => [...prevEvents, ...moreEvents])
+
+          // check if we need to load even more
+          const oldestNewEvent = moreEvents[moreEvents.length - 1]
+          if (oldestNewEvent.created_at > timeframeSince) {
+            // recursively load more until we reach the time boundary
+            await loadMoreGroupedData(oldestNewEvent.created_at - 1, timeframeSince)
+          } else {
+            setHasMore(false)
+            setGroupedLoadingMore(false)
+          }
+        } catch (error) {
+          console.error('Error loading more grouped data:', error)
+          setHasMore(false)
+          setGroupedLoadingMore(false)
         }
-      )
-
-      const currentBottomRef = bottomRef.current
-
-      if (currentBottomRef) {
-        observerInstance.observe(currentBottomRef)
       }
 
-      return () => {
-        if (observerInstance && currentBottomRef) {
-          observerInstance.unobserve(currentBottomRef)
-        }
-      }
-    }, [hasMore, loading, isFilteredView, loadMore])
+      return () => subc.close()
+    }, [subRequests, refreshCount, showKinds, groupedNotesSettings])
 
     function mergeNewEvents() {
       setEvents((oldEvents) => [...newEvents, ...oldEvents])
@@ -308,23 +363,90 @@ const NoteList = forwardRef(
       }, 0)
     }
 
+    // check for no results
+    if (groupedHasNoResults) {
+      return (
+        <div>
+          <div ref={topRef} className="scroll-mt-[calc(6rem+1px)]" />
+          <GroupedNotesEmptyState
+            onOpenSettings={() => {
+              // Settings will be handled by the GroupedNotesFilter component
+            }}
+            onReset={resetSettings}
+          />
+        </div>
+      )
+    }
+
     const list = (
       <div className="min-h-screen">
         {pinnedEventIds.map((id) => (
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
-        {filteredEvents.map((event) => (
-          <NoteCard
-            key={event.id}
-            className="w-full"
-            event={event}
-            filterMutedNotes={filterMutedNotes}
-          />
-        ))}
+        {userFilteredEvents.map((event) => {
+          const groupedData = groupedNotesData.get(event.id)
+          const totalNotesCount = groupedData?.totalNotesInTimeframe
+          const oldestTimestamp = groupedData?.oldestTimestamp
+          const allNoteTimestamps = groupedData?.allNoteTimestamps || []
+
+          // Use CompactedNoteCard if compacted view is on
+          if (groupedNotesSettings.compactedView && totalNotesCount) {
+            const readStatus = getReadStatus(event.pubkey, event.created_at)
+            const unreadCount = getUnreadCount(event.pubkey, allNoteTimestamps)
+
+            return (
+              <CompactedEventCard
+                key={event.id}
+                className="w-full"
+                event={event}
+                variant={event.kind === kinds.Repost ? 'repost' : 'note'}
+                totalNotesInTimeframe={unreadCount}
+                oldestTimestamp={oldestTimestamp}
+                filterMutedNotes={filterMutedNotes}
+                isSelected={selectedNoteId === event.id}
+                onSelect={() => setSelectedNoteId(event.id)}
+                onLastNoteRead={() => {
+                  // If there's only one note, mark all as read instead of just last
+                  if (totalNotesCount === 1) {
+                    markAllNotesRead(event.pubkey, event.created_at, unreadCount)
+                  } else {
+                    markLastNoteRead(event.pubkey, event.created_at, unreadCount)
+                  }
+                }}
+                onAllNotesRead={() => markAllNotesRead(event.pubkey, event.created_at, unreadCount)}
+                onMarkAsUnread={() => markAsUnread(event.pubkey)}
+                isLastNoteRead={readStatus.isLastNoteRead}
+                areAllNotesRead={readStatus.areAllNotesRead}
+              />
+            )
+          }
+
+          // Use regular NoteCard
+          const unreadCount = totalNotesCount ? getUnreadCount(event.pubkey, allNoteTimestamps) : totalNotesCount
+          const readStatus = totalNotesCount
+            ? getReadStatus(event.pubkey, event.created_at)
+            : { isLastNoteRead: false, areAllNotesRead: false }
+
+          return (
+            <NoteCard
+              key={event.id}
+              className="w-full"
+              event={event}
+              filterMutedNotes={filterMutedNotes}
+              groupedNotesTotalCount={unreadCount}
+              groupedNotesOldestTimestamp={oldestTimestamp}
+              onAllNotesRead={() =>
+                unreadCount && markAllNotesRead(event.pubkey, event.created_at, unreadCount)
+              }
+              areAllNotesRead={readStatus.areAllNotesRead}
+            />
+          )
+        })}
         {/* Loading states */}
-        {loading && !events.length ? (
-          <div ref={bottomRef}>
-            <NoteCardLoadingSkeleton />
+        {groupedLoadingMore ? (
+          <div className="flex justify-center items-center gap-2 mt-4 p-4">
+            <div className="w-4 h-4 border-2 border-primary/20 border-t-primary rounded-full animate-spin" />
+            <div className="text-sm text-muted-foreground">{t('Loading more notes...')}</div>
           </div>
         ) : isFilteredView && events.length > 0 ? (
           <div className="flex justify-center items-center mt-4 p-4">
@@ -338,12 +460,10 @@ const NoteList = forwardRef(
               {t('Load more notes')}
             </Button>
           </div>
-        ) : hasMore || loading ? (
-          <div ref={bottomRef}>
-            <NoteCardLoadingSkeleton />
-          </div>
         ) : events.length && !hasMore ? (
-          <div className="text-center text-sm text-muted-foreground mt-2">{t('no more notes')}</div>
+          <div className="text-center text-sm text-muted-foreground mt-2">
+            {t('end of grouped results')}
+          </div>
         ) : !loading && !events.length ? (
           <div className="flex justify-center w-full mt-2">
             <Button size="lg" onClick={() => setRefreshCount((count) => count + 1)}>
@@ -378,11 +498,10 @@ const NoteList = forwardRef(
     )
   }
 )
+GroupedNoteList.displayName = 'GroupedNoteList'
+export default GroupedNoteList
 
-NoteList.displayName = 'NoteList'
-export default NoteList
-
-export type TNoteListRef = {
+export type TGroupedNoteListRef = {
   scrollToTop: (behavior?: ScrollBehavior) => void
   refresh: () => void
 }

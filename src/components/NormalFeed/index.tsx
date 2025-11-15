@@ -1,4 +1,5 @@
 import NoteList, { TNoteListRef } from '@/components/NoteList'
+import GroupedNoteList, { TGroupedNoteListRef } from '@/components/GroupedNoteList'
 import Tabs from '@/components/Tabs'
 import { Input } from '@/components/ui/input'
 import { isTouchDevice } from '@/lib/utils'
@@ -30,7 +31,7 @@ export default function NormalFeed({
   const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
   const [userFilter, setUserFilter] = useState('')
   const supportTouch = useMemo(() => isTouchDevice(), [])
-  const noteListRef = useRef<TNoteListRef>(null)
+  const noteListRef = useRef<TNoteListRef | TGroupedNoteListRef>(null)
 
   const handleListModeChange = (mode: TNoteListMode) => {
     setListMode(mode)
@@ -115,19 +116,25 @@ export default function NormalFeed({
           }
         />
       )}
-      <NoteList
-        ref={noteListRef}
-        showKinds={temporaryShowKinds}
-        subRequests={subRequests}
-        hideReplies={
-          effectiveListMode === 'posts' &&
-          !(groupedNotesSettings.enabled && groupedNotesSettings.includeReplies)
-        }
-        hideUntrustedNotes={hideUntrustedNotes}
-        showRelayCloseReason={showRelayCloseReason}
-        groupedMode={groupedNotesSettings.enabled}
-        userFilter={userFilter}
-      />
+      {groupedNotesSettings.enabled ? (
+        <GroupedNoteList
+          ref={noteListRef as React.Ref<TGroupedNoteListRef>}
+          showKinds={temporaryShowKinds}
+          subRequests={subRequests}
+          hideUntrustedNotes={hideUntrustedNotes}
+          showRelayCloseReason={showRelayCloseReason}
+          userFilter={userFilter}
+        />
+      ) : (
+        <NoteList
+          ref={noteListRef as React.Ref<TNoteListRef>}
+          showKinds={temporaryShowKinds}
+          subRequests={subRequests}
+          hideReplies={effectiveListMode === 'posts'}
+          hideUntrustedNotes={hideUntrustedNotes}
+          showRelayCloseReason={showRelayCloseReason}
+        />
+      )}
     </>
   )
 }
