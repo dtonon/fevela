@@ -4,9 +4,9 @@ import { tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
 import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
+import debounce from 'debounce'
 import FlexSearch from 'flexsearch'
 import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
-import debounce from 'debounce'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
@@ -284,6 +284,24 @@ class ClientService extends EventTarget {
             }
             events.length = f
 
+            // a background sync may be happening and we may be interested in it, handle when it ends
+            current.onsync = debounce(async () => {
+              for (let i = 0; i < localFilters.length; i++) {
+                const filter = localFilters[i]
+                for await (const event of store.queryEvents(filter, 5_000)) {
+                  // check if this isn't already in the sorted array of events
+                  const [_, exists] = binarySearch(events, (b) => {
+                    if (event.id === b.id) return 0
+                    if (event.created_at === b.created_at) return -1
+                    return b.created_at - event.created_at
+                  })
+                  if (!exists) {
+                    onNew(event)
+                  }
+                }
+              }
+            }, 2200)
+
             // we'll use this for the live query
             const allAuthors = (
               await Promise.all(
@@ -304,22 +322,6 @@ class ClientService extends EventTarget {
               current.onnew = (event: NostrEvent) => {
                 if (matchFilters(localFilters, event)) onNew(event)
               }
-              current.onsync = debounce(async () => {
-                for (let i = 0; i < localFilters.length; i++) {
-                  const filter = localFilters[i]
-                  for await (const event of store.queryEvents(filter, 5_000)) {
-                    // check if this isn't already in the sorted array of events
-                    const [_, exists] = binarySearch(events, (b) => {
-                      if (event.id === b.id) return 0
-                      if (event.created_at === b.created_at) return -1
-                      return b.created_at - event.created_at
-                    })
-                    if (!exists) {
-                      onNew(event)
-                    }
-                  }
-                }
-              }, 2200)
             })
 
             return [events, newestEvent, allAuthors]

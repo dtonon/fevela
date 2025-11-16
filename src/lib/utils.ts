@@ -145,6 +145,23 @@ export function detectLanguage(text?: string): string | null {
   }
 }
 
+export function batchDebounce<T>(func: (args: T[]) => void, delay: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let accumulated: T[] = []
+
+  return (arg: T) => {
+    accumulated.push(arg)
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+    }
+    timeoutId = setTimeout(() => {
+      func(accumulated)
+      accumulated = []
+      timeoutId = null
+    }, delay)
+  }
+}
+
 export function parseEmojiPickerUnified(unified: string): string | TEmoji | undefined {
   if (unified.startsWith(':')) {
     const secondColonIndex = unified.indexOf(':', 1)
