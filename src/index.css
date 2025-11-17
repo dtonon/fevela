@@ -8,6 +8,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  body,
+  html {
+    overscroll-behavior-y: none;
+  }
+
   html {
     @apply font-sans antialiased;
     --bc-color-brand: hsl(var(--primary));

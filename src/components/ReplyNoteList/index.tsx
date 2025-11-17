@@ -5,6 +5,7 @@ import {
   getParentTag,
   getRootTag,
   isMentioningMutedUsers,
+  isProtectedEvent,
   isReplyNoteEvent
 } from '@/lib/event'
 import { toNote } from '@/lib/link'
@@ -143,10 +144,15 @@ export default function ReplyNoteList({
           })
       }
 
+      if (isProtectedEvent(event)) {
+        const seenOn = client.getSeenEventRelayUrls(event.id)
+        relays.push(...seenOn)
+      }
+
       setSubRequests(
         filters.map((filter) => ({
           source: 'relays',
-          urls: relays.concat(BIG_RELAY_URLS).slice(0, 5),
+          urls: relays.concat(BIG_RELAY_URLS).slice(0, 8),
           filter
         }))
       )
