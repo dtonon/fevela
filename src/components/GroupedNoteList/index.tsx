@@ -1,7 +1,7 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
 import { isMentioningMutedUsers, isReplyNoteEvent, isFirstLevelReply } from '@/lib/event'
-import { isTouchDevice } from '@/lib/utils'
+import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
@@ -83,7 +83,15 @@ const GroupedNoteList = forwardRef(
     const topRef = useRef<HTMLDivElement | null>(null)
     const { getPinBuryState } = usePinBury()
 
-    const { noteGroups, hasNoResults } = useMemo(() => {
+    const [{ noteGroups, hasNoResults }, setNoteGroups] = useState<{
+      noteGroups: TNoteGroup[]
+      hasNoResults: boolean
+    }>({
+      noteGroups: [],
+      hasNoResults: false
+    })
+
+    useEffect(() => {
       let filteredEvents = events
 
       if (!settings.includeReplies) {
@@ -201,10 +209,10 @@ const GroupedNoteList = forwardRef(
       }
       noteGroups = [...pinned.reverse(), ...noteGroups, ...buried.reverse()]
 
-      return {
+      setNoteGroups({
         noteGroups,
         hasNoResults: filteredEvents.length === 0 && events.length > 0
-      }
+      })
     }, [events, settings])
 
     const shouldHideEvent = useCallback(
@@ -334,19 +342,54 @@ const GroupedNoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew(event) {
-            if (shouldHideEvent(event)) return
+          onNew: batchDebounce((newEvents) => {
+            // do everything inside this setter otherwise it's impossible to get the latest state
+            setNoteGroups((curr) => {
+              const pending: NostrEvent[] = []
+              const appended: NostrEvent[] = []
 
-            if (pubkey && event.pubkey === pubkey) {
-              // if the new event is from the current user, insert it directly into the feed
-              setEvents((oldEvents) =>
-                oldEvents.some((e) => e.id === event.id) ? oldEvents : [event, ...oldEvents]
-              )
-            } else {
-              // otherwise, buffer it and show the New Notes button
-              setNewEvents((oldEvents) => [event, ...oldEvents])
-            }
-          },
+              for (let i = 0; i < newEvents.length; i++) {
+                const newEvent = newEvents[i]
+
+                // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+                if (
+                  curr.noteGroups.length < 7 ||
+                  newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
+                  curr.noteGroups
+                    .slice(0, 6)
+                    .some((group) => group.topNote.pubkey === newEvent.pubkey)
+                ) {
+                  // if there are very few events in the viewport or the new events would be inserted below
+                  // or they authored by any of the top authors (but they wouldn't be their top notes), just append
+                  appended.push(newEvent)
+                } else if (pubkey && newEvent.pubkey === pubkey) {
+                  // our own notes are also inserted regardless of any concern
+                  appended.push(newEvent)
+                } else {
+                  // any other "new" notes that would be inserted above, make them be pending in the modal thing
+                  pending.push(newEvent)
+                }
+              }
+
+              // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
+              if (pending.length) {
+                setNewEvents((curr) => [...pending, ...curr])
+              }
+
+              if (appended.length) {
+                // merging these will trigger a group recomputation
+                setEvents((oldEvents) => {
+                  // we have no idea of the order here, so just sort everything and eliminate duplicates
+                  const all = [...oldEvents, ...appended].sort(
+                    (a, b) => b.created_at - a.created_at
+                  )
+                  return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
+                })
+              }
+
+              return curr
+            })
+          }, 1800),
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools
@@ -374,7 +417,10 @@ const GroupedNoteList = forwardRef(
     }, [subRequests, refreshCount, showKinds, settings])
 
     function mergeNewEvents() {
-      setEvents((oldEvents) => [...newEvents, ...oldEvents])
+      setEvents((oldEvents) =>
+        // we must sort here because the group calculation assumes everything is sorted
+        [...newEvents, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
+      )
       setNewEvents([])
       setTimeout(() => {
         scrollToTop('smooth')
