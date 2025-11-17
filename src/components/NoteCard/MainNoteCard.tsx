@@ -13,7 +13,7 @@ import RepostDescription from './RepostDescription'
 export default function MainNoteCard({
   event,
   className,
-  reposter,
+  reposters,
   embedded,
   originalNoteId,
   groupedNotesTotalCount,
@@ -24,7 +24,7 @@ export default function MainNoteCard({
 }: {
   event: Event
   className?: string
-  reposter?: string
+  reposters?: string[]
   embedded?: boolean
   originalNoteId?: string
   groupedNotesTotalCount?: number
@@ -46,7 +46,7 @@ export default function MainNoteCard({
       <div className={cn('clickable', embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3')}>
         <Collapsible alwaysExpand={embedded}>
           {pinned && <PinnedButton event={event} />}
-          <RepostDescription className={embedded ? '' : 'px-4'} reposter={reposter} />
+          <RepostDescription className={embedded ? '' : 'px-4'} reposters={reposters} />
           <Note
             className={embedded ? '' : 'px-4'}
             size={embedded ? 'small' : 'normal'}

@@ -1,6 +1,12 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
+import {
+  getEventKey,
+  getEventKeyFromTag,
+  isMentioningMutedUsers,
+  isReplyNoteEvent
+} from '@/lib/event'
+import { tagNameEquals } from '@/lib/tag'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -10,7 +16,8 @@ import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, NostrEvent } from '@nostr/tools/wasm'
+import { Event, kinds, verifyEvent } from 'nostr-tools'
+import { decode } from 'nostr-tools/nip19'
 import {
   forwardRef,
   useCallback,
@@ -107,6 +114,98 @@ const NoteList = forwardRef(
       ]
     )
 
+    const filteredNotes = useMemo(() => {
+      // Store processed event keys to avoid duplicates
+      const keySet = new Set<string>()
+      // Map to track reposters for each event key
+      const repostersMap = new Map<string, Set<string>>()
+      // Final list of filtered events
+      const filteredEvents: Event[] = []
+
+      events.slice(0, showCount).forEach((evt) => {
+        const key = getEventKey(evt)
+        if (keySet.has(key)) return
+        keySet.add(key)
+
+        if (shouldHideEvent(evt)) return
+        if (evt.kind !== kinds.Repost) {
+          filteredEvents.push(evt)
+          return
+        }
+
+        const eventFromContent = evt.content ? (JSON.parse(evt.content) as Event) : null
+        if (eventFromContent && verifyEvent(eventFromContent)) {
+          if (eventFromContent.kind === kinds.Repost) {
+            return
+          }
+          if (shouldHideEvent(eventFromContent)) return
+
+          client.addEventToCache(eventFromContent)
+          const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
+          if (targetSeenOn.length === 0) {
+            const seenOn = client.getSeenEventRelays(evt.id)
+            seenOn.forEach((relay) => {
+              client.trackEventSeenOn(eventFromContent.id, relay)
+            })
+          }
+
+          const targetEventKey = getEventKey(eventFromContent)
+          const reposters = repostersMap.get(targetEventKey)
+          if (reposters) {
+            reposters.add(evt.pubkey)
+          } else {
+            repostersMap.set(targetEventKey, new Set([evt.pubkey]))
+          }
+          // If the target event is not already included, add it now
+          if (!keySet.has(targetEventKey)) {
+            filteredEvents.push(eventFromContent)
+            keySet.add(targetEventKey)
+          }
+          return
+        }
+
+        const targetTag = evt.tags.find(tagNameEquals('a')) ?? evt.tags.find(tagNameEquals('e'))
+        if (targetTag) {
+          const targetEventKey = getEventKeyFromTag(targetTag)
+          if (targetEventKey) {
+            // Add to reposters map
+            const reposters = repostersMap.get(targetEventKey)
+            if (reposters) {
+              reposters.add(evt.pubkey)
+            } else {
+              repostersMap.set(targetEventKey, new Set([evt.pubkey]))
+            }
+            // If the target event is already included, skip adding this repost
+            if (keySet.has(targetEventKey)) {
+              return
+            }
+          }
+        }
+        // If we can't find the original event, just show the repost itself
+        filteredEvents.push(evt)
+        return
+      })
+
+      return filteredEvents.map((evt) => {
+        const key = getEventKey(evt)
+        return { key, event: evt, reposters: Array.from(repostersMap.get(key) ?? []) }
+      })
+    }, [events, showCount, shouldHideEvent])
+
+    const filteredNewEvents = useMemo(() => {
+      const keySet = new Set<string>()
+
+      return newEvents.filter((event: Event) => {
+        if (shouldHideEvent(event)) return false
+
+        const key = getEventKey(event)
+        if (keySet.has(key)) {
+          return false
+        }
+        keySet.add(key)
+        return true
+      })
+    }, [newEvents, shouldHideEvent])
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
         topRef.current?.scrollIntoView({ behavior, block: 'start' })
@@ -172,8 +271,8 @@ const NoteList = forwardRef(
           onNew: batchDebounce((newEvents) => {
             // do everything inside this setter so we get the latest state (because react is incredibly retarded)
             setEvents((events) => {
-              const pending: NostrEvent[] = []
-              const appended: NostrEvent[] = []
+              const pending: Event[] = []
+              const appended: Event[] = []
 
               for (let i = 0; i < newEvents.length; i++) {
                 const newEvent = newEvents[i]
@@ -301,18 +400,17 @@ const NoteList = forwardRef(
         {(pinnedEventIds || []).map((id) => (
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
-        {events
-          .filter((evt) => !shouldHideEvent(evt))
-          .map((event) => (
-            <NoteCard
-              key={event.id}
-              className="w-full"
-              event={event}
-              filterMutedNotes={filterMutedNotes}
-            />
-          ))}
-        {/* Loading states */}
-        {loading && !events.length ? (
+
+        {filteredNotes.map(({ key, event, reposters }) => (
+          <NoteCard
+            key={key}
+            className="w-full"
+            event={event}
+            filterMutedNotes={filterMutedNotes}
+            reposters={reposters}
+          />
+        ))}
+        {hasMore || loading ? (
           <div ref={bottomRef}>
             <NoteCardLoadingSkeleton />
           </div>

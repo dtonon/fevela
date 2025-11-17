@@ -12,20 +12,14 @@ export default function NoteCard({
   event,
   className,
   filterMutedNotes = true,
-  groupedNotesTotalCount,
-  groupedNotesOldestTimestamp,
-  onAllNotesRead,
-  areAllNotesRead,
-  pinned = false
+  pinned = false,
+  reposters
 }: {
   event: Event
   className?: string
   filterMutedNotes?: boolean
-  groupedNotesTotalCount?: number
-  groupedNotesOldestTimestamp?: number
-  onAllNotesRead?: () => void
-  areAllNotesRead?: boolean
   pinned?: boolean
+  reposters?: string[]
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -50,18 +44,7 @@ export default function NoteCard({
       />
     )
   }
-
-  return (
-    <MainNoteCard
-      event={event}
-      className={className}
-      groupedNotesTotalCount={groupedNotesTotalCount}
-      groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
-      onAllNotesRead={onAllNotesRead}
-      areAllNotesRead={areAllNotesRead}
-      pinned={pinned}
-    />
-  )
+  return <MainNoteCard event={event} className={className} pinned={pinned} reposters={reposters} />
 }
 
 export function NoteCardLoadingSkeleton() {
