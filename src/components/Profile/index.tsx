@@ -3,7 +3,7 @@ import FollowButton from '@/components/FollowButton'
 import Nip05 from '@/components/Nip05'
 import NpubQrCode from '@/components/NpubQrCode'
 import ProfileAbout from '@/components/ProfileAbout'
-import ProfileBanner from '@/components/ProfileBanner'
+import { BannerWithLightbox } from '@/components/ProfileBanner'
 import ProfileOptions from '@/components/ProfileOptions'
 import ProfileZapButton from '@/components/ProfileZapButton'
 import PubkeyCopy from '@/components/PubkeyCopy'
@@ -20,7 +20,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import SearchInput from '../SearchInput'
 import NotFound from '../NotFound'
-import { SimpleUserAvatar } from '../UserAvatar'
+import { AvatarWithLightbox } from '../UserAvatar'
 import FollowedBy from './FollowedBy'
 import Followings from './Followings'
 import ProfileFeed from './ProfileFeed'
@@ -122,10 +122,11 @@ export default function Profile({ id }: { id?: string }) {
       {displayTopSection && (
         <div ref={topContainerRef}>
           <div className="relative bg-cover bg-center mb-2">
-            <ProfileBanner banner={banner} pubkey={pubkey} className="w-full aspect-[3/1]" />
-            <SimpleUserAvatar
+            <BannerWithLightbox banner={banner} pubkey={pubkey} className="w-full aspect-[3/1]" />
+            <AvatarWithLightbox
               userId={pubkey}
-              className="w-24 h-24 absolute left-3 bottom-0 translate-y-1/2 border-4 border-background rounded-full"
+              size="large"
+              className="absolute left-3 bottom-0 translate-y-1/2 border-4 border-background"
             />
           </div>
           <div className="px-4">
