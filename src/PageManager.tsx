@@ -433,8 +433,8 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                 <Sidebar />
                 <div
                   className={cn(
-                    'bg-background overflow-hidden',
-                    themeSetting === 'pure-black' ? 'border-l' : 'rounded-lg',
+                    'grid grid-cols-2 w-full bg-background overflow-hidden',
+                    themeSetting === 'pure-black' ? 'border-l' : 'gap-2 pr-2 py-2 rounded-lg',
                     themeSetting !== 'pure-black' && secondaryStack.length > 0 && 'shadow-lg'
                   )}
                 >
