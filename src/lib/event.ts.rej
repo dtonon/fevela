@@ -1,0 +1,43 @@
+--- event.ts
++++ event.ts
+@@ -175,12 +191,23 @@ export function getRootATag(event?: Event) {
+   return event.tags.find(tagNameEquals('A'))
+ }
+ 
++export function getRootITag(event?: Event) {
++  if (
++    !event ||
++    ![kinds.ShortTextNote, ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT].includes(event.kind)
++  ) {
++    return undefined
++  }
++
++  return event.tags.find(tagNameEquals('I'))
++}
++
+ export function getRootEventHexId(event?: Event) {
+   const tag = getRootETag(event)
+   return tag?.[1]
+ }
+ 
+-export function getRootTag(event?: Event): { type: 'e' | 'a'; tag: string[] } | undefined {
++export function getRootTag(event?: Event): { type: 'e' | 'a' | 'i'; tag: string[] } | undefined {
+   if (!event) return undefined
+ 
+   if (event.kind === kinds.ShortTextNote) {
+@@ -195,8 +222,13 @@ export function getRootTag(event?: Event): { type: 'e' | 'a'; tag: string[] } |
+     return tag ? { type: 'a', tag } : undefined
+   }
+ 
+-  const tag = getRootETag(event)
+-  return tag ? { type: 'e', tag } : undefined
++  const rootETag = getRootETag(event)
++  if (rootETag) {
++    return { type: 'e', tag: rootETag }
++  }
++
++  const rootITag = getRootITag(event)
++  return rootITag ? { type: 'i', tag: rootITag } : undefined
+ }
+ 
+ export function getRootBech32Id(event?: Event) {

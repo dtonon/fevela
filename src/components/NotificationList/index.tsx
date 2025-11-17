@@ -207,7 +207,7 @@ const NotificationList = forwardRef((_, ref) => {
           return oldEvents
         }
 
-        noteStatsService.updateNoteStatsByEvents([event])
+        stuffStatsService.updateStuffStatsByEvents([event])
         if (index === -1) {
           return [...oldEvents, event]
         }

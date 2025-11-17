@@ -1,6 +1,6 @@
 import SearchInput from '@/components/SearchInput'
 import { useSearchProfiles } from '@/hooks'
-import { toNote } from '@/lib/link'
+import { toExternalContent, toNote } from '@/lib/link'
 import { randomString } from '@/lib/random'
 import { normalizeUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
@@ -44,6 +44,9 @@ const SearchBar = forwardRef<
   const searchInputRef = useRef<HTMLInputElement>(null)
   const normalizedUrl = useMemo(() => {
     if (['w', 'ws', 'ws:', 'ws:/', 'wss', 'wss:', 'wss:/'].includes(input)) {
+      return undefined
+    }
+    if (!input.includes('.')) {
       return undefined
     }
     try {
@@ -90,6 +93,8 @@ const SearchBar = forwardRef<
 
     if (params.type === 'note') {
       push(toNote(params.search))
+    } else if (params.type === 'externalContent') {
+      push(toExternalContent(params.search))
     } else {
       onSearch(params)
     }
@@ -129,8 +134,9 @@ const SearchBar = forwardRef<
 
     setSelectableOptions([
       { type: 'notes', search },
-      { type: 'hashtag', search: hashtag, input: `#${hashtag}` },
       ...(normalizedUrl ? [{ type: 'relay', search: normalizedUrl, input: normalizedUrl }] : []),
+      { type: 'externalContent', search, input },
+      { type: 'hashtag', search: hashtag, input: `#${hashtag}` },
       ...profiles.map((profile) => ({
         type: 'profile',
         search: profile.npub,
@@ -194,6 +200,16 @@ const SearchBar = forwardRef<
                 key={index}
                 selected={selectedIndex === index}
                 url={option.search}
+                onClick={() => updateSearch(option)}
+              />
+            )
+          }
+          if (option.type === 'externalContent') {
+            return (
+              <ExternalContentItem
+                key={index}
+                selected={selectedIndex === index}
+                search={option.search}
                 onClick={() => updateSearch(option)}
               />
             )
@@ -323,10 +339,16 @@ function NormalItem({
   onClick?: () => void
   selected?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Item onClick={onClick} selected={selected}>
-      <Search className="text-muted-foreground" />
-      <div className="font-semibold truncate">{search}</div>
+      <div className="size-10 flex justify-center items-center">
+        <Search className="text-muted-foreground flex-shrink-0" />
+      </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="font-semibold truncate">{search}</div>
+        <div className="text-sm text-muted-foreground">{t('Search for notes')}</div>
+      </div>
     </Item>
   )
 }
@@ -340,10 +362,16 @@ function HashtagItem({
   onClick?: () => void
   selected?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Item onClick={onClick} selected={selected}>
-      <Hash className="text-muted-foreground" />
-      <div className="font-semibold truncate">{hashtag}</div>
+      <div className="size-10 flex justify-center items-center">
+        <Hash className="text-muted-foreground flex-shrink-0" />
+      </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="font-semibold truncate">#{hashtag}</div>
+        <div className="text-sm text-muted-foreground">{t('Search for hashtag')}</div>
+      </div>
     </Item>
   )
 }
@@ -357,10 +385,16 @@ function NoteItem({
   onClick?: () => void
   selected?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Item onClick={onClick} selected={selected}>
-      <Notebook className="text-muted-foreground" />
-      <div className="font-semibold truncate">{id}</div>
+      <div className="size-10 flex justify-center items-center">
+        <Notebook className="text-muted-foreground flex-shrink-0" />
+      </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="font-semibold truncate font-mono text-sm">{id}</div>
+        <div className="text-sm text-muted-foreground">{t('Go to note')}</div>
+      </div>
     </Item>
   )
 }
@@ -398,10 +432,39 @@ function RelayItem({
   onClick?: () => void
   selected?: boolean
 }) {
+  const { t } = useTranslation()
   return (
     <Item onClick={onClick} selected={selected}>
-      <Server className="text-muted-foreground" />
-      <div className="font-semibold truncate">{url}</div>
+      <div className="size-10 flex justify-center items-center">
+        <Server className="text-muted-foreground flex-shrink-0" />
+      </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="font-semibold truncate">{url}</div>
+        <div className="text-sm text-muted-foreground">{t('Go to relay')}</div>
+      </div>
+    </Item>
+  )
+}
+
+function ExternalContentItem({
+  search,
+  onClick,
+  selected
+}: {
+  search: string
+  onClick?: () => void
+  selected?: boolean
+}) {
+  const { t } = useTranslation()
+  return (
+    <Item onClick={onClick} selected={selected}>
+      <div className="size-10 flex justify-center items-center">
+        <MessageSquare className="text-muted-foreground flex-shrink-0" />
+      </div>
+      <div className="flex flex-col min-w-0 flex-1">
+        <div className="font-semibold truncate">{search}</div>
+        <div className="text-sm text-muted-foreground">{t('View discussions about this')}</div>
+      </div>
     </Item>
   )
 }

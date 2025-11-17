@@ -6,7 +6,7 @@ import { Event } from '@nostr/tools/wasm'
 import Collapsible from '../Collapsible'
 import GroupedNotesIndicator from '../GroupedNotesIndicator'
 import Note from '../Note'
-import NoteStats from '../NoteStats'
+import StuffStats from '../StuffStats'
 import PinnedButton from './PinnedButton'
 import RepostDescription from './RepostDescription'
 
@@ -54,7 +54,7 @@ export default function MainNoteCard({
             originalNoteId={originalNoteId}
           />
         </Collapsible>
-        {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}
+        {!embedded && <StuffStats className="mt-3 px-4" stuff={event} />}
         {!embedded && groupedNotesTotalCount && (
           <GroupedNotesIndicator
             event={event}

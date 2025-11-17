@@ -32,7 +32,7 @@ export function ReplyProvider({ children }: { children: React.ReactNode }) {
 
       const parentTag = getParentTag(reply)
       if (parentTag) {
-        const parentKey = getEventKeyFromTag(parentTag.tag)
+        const parentKey = getKeyFromTag(parentTag.tag)
         if (parentKey) {
           newReplyEventMap.set(parentKey, [...(newReplyEventMap.get(parentKey) || []), reply])
         }

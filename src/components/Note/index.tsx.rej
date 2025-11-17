@@ -1,0 +1,27 @@
+--- index.tsx
++++ index.tsx
+@@ -139,17 +137,21 @@ export default function Note({
+           )}
+         </div>
+       </div>
+-      {parentEventId && (
++      {!hideParentNotePreview && (
+         <ParentNotePreview
+           eventId={parentEventId}
++          externalContent={parentExternalContent}
+           className="mt-2"
+           onClick={(e) => {
+             e.stopPropagation()
+-            push(toNote(parentEventId))
++            if (parentExternalContent) {
++              push(toExternalContent(parentExternalContent))
++            } else if (parentEventId) {
++              push(toNote(parentEventId))
++            }
+           }}
+         />
+       )}
+-      <IValue event={event} className="mt-2" />
+       {content}
+     </div>
+   )

@@ -105,10 +105,14 @@ class ClientService extends EventTarget {
         if (mentions.length > 0) {
           const relayLists = await this.fetchRelayLists(mentions)
           relayLists.forEach((relayList) => {
-            _additionalRelayUrls.push(...relayList.read.slice(0, 4))
+            relayList.read.slice(0, 4).forEach((url) => relaySet.add(url))
           })
         }
       }
+
+      const relayList = await this.fetchRelayList(event.pubkey)
+      relayList.write.forEach((url) => relaySet.add(url))
+
       if (
         [
           kinds.RelayList,
@@ -118,20 +122,23 @@ class ClientService extends EventTarget {
           ExtendedKind.RELAY_REVIEW
         ].includes(event.kind)
       ) {
-        _additionalRelayUrls.push(...BIG_RELAY_URLS)
+        BIG_RELAY_URLS.forEach((url) => relaySet.add(url))
       }
 
-      const relayList = await this.fetchRelayList(event.pubkey)
-      relays = (relayList?.write.slice(0, 10) ?? []).concat(
-        Array.from(new Set(_additionalRelayUrls)) ?? []
-      )
+      if (event.kind === ExtendedKind.COMMENT) {
+        const rootITag = event.tags.find(tagNameEquals('I'))
+        if (rootITag) {
+          // For external content comments, always publish to big relays
+          BIG_RELAY_URLS.forEach((url) => relaySet.add(url))
+        }
+      }
     }
 
-    if (!relays.length) {
-      relays.push(...BIG_RELAY_URLS)
+    if (!relaySet.size) {
+      BIG_RELAY_URLS.forEach((url) => relaySet.add(url))
     }
 
-    return relays
+    return Array.from(relaySet)
   }
 
   async publishEvent(relayUrls: string[], event: NostrEvent) {

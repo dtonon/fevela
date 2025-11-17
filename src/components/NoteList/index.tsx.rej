@@ -1,0 +1,24 @@
+--- index.tsx
++++ index.tsx
+@@ -1,11 +1,6 @@
+ import NewNotesButton from '@/components/NewNotesButton'
+ import { Button } from '@/components/ui/button'
+-import {
+-  getEventKey,
+-  getEventKeyFromTag,
+-  isMentioningMutedUsers,
+-  isReplyNoteEvent
+-} from '@/lib/event'
++import { getEventKey, getKeyFromTag, isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
+ import { tagNameEquals } from '@/lib/tag'
+ import { isTouchDevice } from '@/lib/utils'
+ import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+@@ -173,7 +168,7 @@ const NoteList = forwardRef(
+ 
+         const targetTag = evt.tags.find(tagNameEquals('a')) ?? evt.tags.find(tagNameEquals('e'))
+         if (targetTag) {
+-          const targetEventKey = getEventKeyFromTag(targetTag)
++          const targetEventKey = getKeyFromTag(targetTag)
+           if (targetEventKey) {
+             // Add to reposters map
+             const reposters = repostersMap.get(targetEventKey)

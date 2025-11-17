@@ -1,7 +1,7 @@
 import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
 import {
   getEventKey,
-  getEventKeyFromTag,
+  getKeyFromTag,
   getParentTag,
   getRootTag,
   isMentioningMutedUsers,
@@ -265,7 +265,7 @@ export default function ReplyNoteList({
   return (
     <div className="min-h-[80vh]">
       {loading && <LoadingBar />}
-      {!loading && until && until > event.created_at && (
+      {!loading && until && (!event || until > event.created_at) && (
         <div
           className={`text-sm text-center text-muted-foreground border-b py-2 ${!loading ? 'hover:text-foreground cursor-pointer' : ''}`}
           onClick={loadMore}
@@ -287,14 +287,16 @@ export default function ReplyNoteList({
             }
           }
 
-          const rootEventKey = getEventKey(event)
+          const rootKey = event ? getEventKey(event) : externalContent!
           const currentReplyKey = getEventKey(reply)
           const parentTag = getParentTag(reply)
-          const parentEventKey = parentTag ? getEventKeyFromTag(parentTag.tag) : undefined
+          const parentKey = parentTag ? getKeyFromTag(parentTag.tag) : undefined
           const parentEventId = parentTag
             ? parentTag.type === 'e'
               ? generateBech32IdFromETag(parentTag.tag)
-              : generateBech32IdFromATag(parentTag.tag)
+              : parentTag.type === 'a'
+                ? generateBech32IdFromATag(parentTag.tag)
+                : undefined
             : undefined
           return (
             <div
@@ -304,10 +306,10 @@ export default function ReplyNoteList({
             >
               <ReplyNote
                 event={reply}
-                parentEventId={rootEventKey !== parentEventKey ? parentEventId : undefined}
+                parentEventId={rootKey !== parentKey ? parentEventId : undefined}
                 onClickParent={() => {
-                  if (!parentEventKey) return
-                  highlightReply(parentEventKey, parentEventId)
+                  if (!parentKey) return
+                  highlightReply(parentKey, parentEventId)
                 }}
                 highlight={highlightReplyKey === currentReplyKey}
               />
