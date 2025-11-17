@@ -1,19 +1,11 @@
 import { isMentioningMutedUsers } from '@/lib/event'
-import { tagNameEquals } from '@/lib/tag'
+import { generateBech32IdFromATag, generateBech32IdFromETag, tagNameEquals } from '@/lib/tag'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import client from '@/services/client.service'
-import { Event, verifyEvent } from '@nostr/tools/wasm'
-import * as kinds from '@nostr/tools/kinds'
-import { neventEncode } from '@nostr/tools/nip19'
+import { Event, kinds, verifyEvent } from 'nostr-tools'
 import { useEffect, useMemo, useState } from 'react'
-import Collapsible from '../Collapsible'
-import Note from '../Note'
-import NoteStats from '../NoteStats'
-import PinnedButton from './PinnedButton'
-import RepostDescription from './RepostDescription'
-import { useSecondaryPage } from '@/PageManager'
-import { toNote } from '@/lib/link'
+import MainNoteCard from './MainNoteCard'
 
 export default function RepostNoteCard({
   event,
@@ -64,15 +56,20 @@ export default function RepostNoteCard({
           return
         }
 
-        const [, id, relay, , pubkey] = event.tags.find(tagNameEquals('e')) ?? []
-        if (!id) {
+        let targetEventId: string | undefined
+        const aTag = event.tags.find(tagNameEquals('a'))
+        if (aTag) {
+          targetEventId = generateBech32IdFromATag(aTag)
+        } else {
+          const eTag = event.tags.find(tagNameEquals('e'))
+          if (eTag) {
+            targetEventId = generateBech32IdFromETag(eTag)
+          }
+        }
+        if (!targetEventId) {
           return
         }
-        const targetEventId = neventEncode({
-          id,
-          relays: relay ? [relay] : [],
-          author: pubkey
-        })
+
         const targetEvent = await client.fetchEvent(targetEventId)
         if (targetEvent) {
           setTargetEvent(targetEvent)
@@ -85,26 +82,14 @@ export default function RepostNoteCard({
     fetch()
   }, [event])
 
-  const { push } = useSecondaryPage()
-
   if (!targetEvent || shouldHide) return null
 
   return (
-    <div
+    <MainNoteCard
       className={className}
-      onClick={(e) => {
-        e.stopPropagation()
-        push(toNote(targetEvent.id ?? event))
-      }}
-    >
-      <div className="clickable py-3">
-        <Collapsible alwaysExpand={false}>
-          {pinned && <PinnedButton event={targetEvent} />}
-          <RepostDescription className="px-4" reposter={event.pubkey} />
-          <Note className="px-4" size="normal" event={targetEvent} originalNoteId={event.id} />
-        </Collapsible>
-        <NoteStats className="mt-3 px-4 pb-4" event={targetEvent} fetchIfNotExisting />
-      </div>
-    </div>
+      reposters={[event.pubkey]}
+      event={targetEvent}
+      pinned={pinned}
+    />
   )
 }
