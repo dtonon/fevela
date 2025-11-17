@@ -505,6 +505,36 @@ export default {
     Extension: 'Extension',
     Remote: 'Remote',
     'Encrypted Key': 'Encrypted Key',
-    'Private Key': 'Private Key'
+    'Private Key': 'Private Key',
+    'Request to Join Relay': 'Request to Join Relay',
+    'Leave Relay': 'Leave Relay',
+    Leave: 'Leave',
+    'Are you sure you want to leave this relay?': 'Are you sure you want to leave this relay?',
+    'Join request sent successfully': 'Join request sent successfully',
+    'Failed to send join request': 'Failed to send join request',
+    'Leave request sent successfully': 'Leave request sent successfully',
+    'Failed to send leave request': 'Failed to send leave request',
+    'Enter an invite code if you have one. Otherwise, leave it blank to send a request.':
+      'Enter an invite code if you have one. Otherwise, leave it blank to send a request.',
+    'Invite Code (Optional)': 'Invite Code (Optional)',
+    'Enter invite code': 'Enter invite code',
+    'Sending...': 'Sending...',
+    'Send Request': 'Send Request',
+    'You can get an invite code from a relay member.':
+      'You can get an invite code from a relay member.',
+    'Enter the invite code you received from a relay member.':
+      'Enter the invite code you received from a relay member.',
+    'Get Invite Code': 'Get Invite Code',
+    'Share this invite code with others to invite them to join this relay.':
+      'Share this invite code with others to invite them to join this relay.',
+    'Invite Code': 'Invite Code',
+    Copy: 'Copy',
+    'This invite code can be used by others to join the relay.':
+      'This invite code can be used by others to join the relay.',
+    'No invite code available from this relay.': 'No invite code available from this relay.',
+    Close: 'Close',
+    'Failed to get invite code from relay': 'Failed to get invite code from relay',
+    'Failed to get invite code': 'Failed to get invite code',
+    'Invite code copied to clipboard': 'Invite code copied to clipboard'
   }
 }

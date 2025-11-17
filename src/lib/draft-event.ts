@@ -491,6 +491,25 @@ export function createRelayReviewDraftEvent(
   }
 }
 
+// https://github.com/nostr-protocol/nips/blob/master/43.md
+export function createJoinDraftEvent(inviteCode: string): TDraftEvent {
+  return {
+    kind: 28934,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [['claim', inviteCode], ['-']],
+    content: ''
+  }
+}
+
+export function createLeaveDraftEvent(): TDraftEvent {
+  return {
+    kind: 28936,
+    created_at: Math.floor(Date.now() / 1000),
+    tags: [['-']],
+    content: ''
+  }
+}
+
 function generateImetaTags(imageUrls: string[]) {
   return imageUrls
     .map((imageUrl) => {
