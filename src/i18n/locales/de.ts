@@ -520,6 +520,36 @@ export default {
     Extension: 'Erweiterung',
     Remote: 'Remote',
     'Encrypted Key': 'Verschlüsselter Schlüssel',
-    'Private Key': 'Privater Schlüssel'
+    'Private Key': 'Privater Schlüssel',
+    'Request to Join Relay': 'Relay-Beitritt beantragen',
+    'Leave Relay': 'Relay verlassen',
+    Leave: 'Verlassen',
+    'Are you sure you want to leave this relay?': 'Möchten Sie dieses Relay wirklich verlassen?',
+    'Join request sent successfully': 'Beitrittsanfrage erfolgreich gesendet',
+    'Failed to send join request': 'Fehler beim Senden der Beitrittsanfrage',
+    'Leave request sent successfully': 'Austrittsanfrage erfolgreich gesendet',
+    'Failed to send leave request': 'Fehler beim Senden der Austrittsanfrage',
+    'Enter an invite code if you have one. Otherwise, leave it blank to send a request.':
+      'Geben Sie einen Einladungscode ein, falls Sie einen haben. Andernfalls lassen Sie es leer, um eine Anfrage zu senden.',
+    'Invite Code (Optional)': 'Einladungscode (Optional)',
+    'Enter invite code': 'Einladungscode eingeben',
+    'Sending...': 'Wird gesendet...',
+    'Send Request': 'Anfrage senden',
+    'You can get an invite code from a relay member.':
+      'Sie können einen Einladungscode von einem Relay-Mitglied erhalten.',
+    'Enter the invite code you received from a relay member.':
+      'Geben Sie den Einladungscode ein, den Sie von einem Relay-Mitglied erhalten haben.',
+    'Get Invite Code': 'Einladungscode Erhalten',
+    'Share this invite code with others to invite them to join this relay.':
+      'Teilen Sie diesen Einladungscode mit anderen, um sie einzuladen, diesem Relay beizutreten.',
+    'Invite Code': 'Einladungscode',
+    Copy: 'Kopieren',
+    'This invite code can be used by others to join the relay.':
+      'Dieser Einladungscode kann von anderen verwendet werden, um dem Relay beizutreten.',
+    'No invite code available from this relay.': 'Kein Einladungscode von diesem Relay verfügbar.',
+    Close: 'Schließen',
+    'Failed to get invite code from relay': 'Fehler beim Abrufen des Einladungscodes vom Relay',
+    'Failed to get invite code': 'Fehler beim Abrufen des Einladungscodes',
+    'Invite code copied to clipboard': 'Einladungscode in die Zwischenablage kopiert'
   }
 }

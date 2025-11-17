@@ -637,16 +637,36 @@ class ClientService extends EventTarget {
       cache?: boolean
     } = {}
   ) {
-    const relays = Array.from(new Set(urls))
-    const events = await pool.querySync(relays.length > 0 ? relays : BIG_RELAY_URLS, filter, {
-      label: 'f-fetch-events',
-      maxWait: 10_000
-    })
-    if (cache) {
-      events.forEach((evt) => {
-        this.addEventToCache(evt)
+    const relays = urls.filter((url, i) => i === 0 || urls[i - 1] !== url)
+    const events: NostrEvent[] = []
+
+    await new Promise<void>((resolve) => {
+      pool.subscribeEose(relays, filter, {
+        label: 'f-fetch-events',
+        maxWait: 10_000,
+        onauth: (async (authEvt) => {
+          if (this.signer) {
+            const evt = await this.signer!.signEvent(authEvt)
+            if (!evt) {
+              throw new Error('sign event failed')
+            }
+            return evt as VerifiedEvent
+          }
+
+          throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
+        }) as (event: EventTemplate) => Promise<VerifiedEvent>,
+        onevent: (event: NostrEvent) => {
+          events.push(event)
+          if (cache) {
+            this.addEventToCache(event)
+          }
+        },
+        onclose(_: string[]) {
+          resolve()
+        }
       })
-    }
+    })
+
     return events
   }
 
