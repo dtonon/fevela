@@ -1,0 +1,17 @@
+--- client.service.ts
++++ client.service.ts
+@@ -98,11 +98,11 @@ class ClientService extends EventTarget {
+       }
+     }
+ 
+-    let relays: string[]
++    const relaySet = new Set<string>()
+     if (specifiedRelayUrls?.length) {
+-      relays = specifiedRelayUrls
++      specifiedRelayUrls.forEach((url) => relaySet.add(url))
+     } else {
+-      const _additionalRelayUrls: string[] = additionalRelayUrls ?? []
++      additionalRelayUrls?.forEach((url) => relaySet.add(url))
+       if (!specifiedRelayUrls?.length && ![kinds.Contacts, kinds.Mutelist].includes(event.kind)) {
+         const mentions: string[] = []
+         event.tags.forEach(([tagName, tagValue]) => {

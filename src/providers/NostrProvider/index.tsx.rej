@@ -1,0 +1,11 @@
+--- index.tsx
++++ index.tsx
+@@ -369,7 +369,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
+           limit: 100
+         }
+       ])
+-      noteStatsService.updateNoteStatsByEvents(events)
++      stuffStatsService.updateStuffStatsByEvents(events)
+     }
+     initInteractions()
+   }, [account])

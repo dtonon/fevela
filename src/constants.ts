@@ -73,6 +73,7 @@ export const DEFAULT_RELAY_LIST = {
 }
 
 export const ExtendedKind = {
+  EXTERNAL_CONTENT_REACTION: 17,
   PICTURE: 20,
   VIDEO: 21,
   SHORT_VIDEO: 22,
@@ -116,6 +117,8 @@ export const EMOJI_REGEX =
   /[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]|[\u{1F900}-\u{1F9FF}]|[\u{1FA70}-\u{1FAFF}]|[\u{1F004}]|[\u{1F0CF}]|[\u{1F18E}]|[\u{3030}]|[\u{2B50}]|[\u{2B55}]|[\u{2934}-\u{2935}]|[\u{2B05}-\u{2B07}]|[\u{2B1B}-\u{2B1C}]|[\u{3297}]|[\u{3299}]|[\u{303D}]|[\u{00A9}]|[\u{00AE}]|[\u{2122}]|[\u{23E9}-\u{23EF}]|[\u{23F0}]|[\u{23F3}]|[\u{FE00}-\u{FE0F}]|[\u{200D}]/gu
 export const YOUTUBE_URL_REGEX =
   /https?:\/\/(?:(?:www|m)\.)?(?:youtube\.com\/(?:watch\?[^#\s]*|embed\/[\w-]+|shorts\/[\w-]+|live\/[\w-]+)|youtu\.be\/[\w-]+)(?:\?[^#\s]*)?(?:#[^\s]*)?/gi
+export const X_URL_REGEX =
+  /https?:\/\/(?:www\.)?(twitter\.com|x\.com)\/(?:#!\/)?(\w+)\/status(?:es)?\/(\d+)(?:[?#].*)?/gi
 
 export const FEVELA_PUBKEY = '8adab951da7d88367ed86731eeb7b4e2f8582efaac81a6459a5d580213b89a6e'
 export const DEV_PUBKEY = '7bdef7be22dd8e59f4600e044aa53a1cf975a9dc7d27df5833bc77db784a5805'

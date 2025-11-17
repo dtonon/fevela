@@ -19,7 +19,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useZap } from '@/providers/ZapProvider'
 import lightning from '@/services/lightning.service'
-import noteStatsService from '@/services/note-stats.service'
+import stuffStatsService from '@/services/stuff-stats.service'
 import { Loader } from 'lucide-react'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { Dispatch, SetStateAction, useEffect, useMemo, useRef, useState } from 'react'
@@ -188,7 +188,7 @@ function ZapDialogContent({
         return
       }
       if (event) {
-        noteStatsService.addZap(pubkey, event.id, zapResult.invoice, sats, comment)
+        stuffStatsService.addZap(pubkey, event.id, zapResult.invoice, sats, comment)
       }
     } catch (error) {
       toast.error(`${t('Zap failed')}: ${(error as Error).message}`)

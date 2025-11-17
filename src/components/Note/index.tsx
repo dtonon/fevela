@@ -1,7 +1,7 @@
 import { useSecondaryPage } from '@/PageManager'
 import { ExtendedKind, SUPPORTED_KINDS } from '@/constants'
-import { getParentBech32Id, isNsfwEvent } from '@/lib/event'
-import { toNote } from '@/lib/link'
+import { getParentStuff, isNsfwEvent } from '@/lib/event'
+import { toExternalContent, toNote } from '@/lib/link'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
@@ -23,7 +23,6 @@ import Username from '../Username'
 import CommunityDefinition from './CommunityDefinition'
 import GroupMetadata from './GroupMetadata'
 import Highlight from './Highlight'
-import IValue from './IValue'
 import LiveEvent from './LiveEvent'
 import LongFormArticle from './LongFormArticle'
 import LongFormArticlePreview from './LongFormArticlePreview'
@@ -54,10 +53,9 @@ export default function Note({
 }) {
   const { push } = useSecondaryPage()
   const { isSmallScreen } = useScreenSize()
-  const parentEventId = useMemo(
-    () => (hideParentNotePreview ? undefined : getParentBech32Id(event)),
-    [event, hideParentNotePreview]
-  )
+  const { parentEventId, parentExternalContent } = useMemo(() => {
+    return getParentStuff(event)
+  }, [event])
   const { defaultShowNsfw } = useContentPolicy()
   const [showNsfw, setShowNsfw] = useState(false)
   const { mutePubkeySet } = useMuteList()
@@ -145,17 +143,21 @@ export default function Note({
           </div>
         </div>
       )}
-      {parentEventId && (
+      {!hideParentNotePreview && (
         <ParentNotePreview
           eventId={parentEventId}
+          externalContent={parentExternalContent}
           className="mt-2"
           onClick={(e) => {
             e.stopPropagation()
-            push(toNote(parentEventId))
+            if (parentExternalContent) {
+              push(toExternalContent(parentExternalContent))
+            } else if (parentEventId) {
+              push(toNote(parentEventId))
+            }
           }}
         />
       )}
-      <IValue event={event} className="mt-2" />
       {content}
     </div>
   )

@@ -15,10 +15,10 @@ import { Tabs, TTabValue } from './Tabs'
 
 export default function NoteInteractions({
   pageIndex,
-  event
+  stuff
 }: {
   pageIndex?: number
-  event: Event
+  stuff: Event
 }) {
   const { t } = useTranslation()
   const [type, setType] = useState<TTabValue>('replies')
@@ -27,20 +27,20 @@ export default function NoteInteractions({
   switch (type) {
     case 'replies':
       list = (
-        <ReplyNoteList index={pageIndex} event={event} showOnlyFirstLevel={showOnlyFirstLevel} />
+        <ReplyNoteList index={pageIndex} stuff={stuff} showOnlyFirstLevel={showOnlyFirstLevel} />
       )
       break
     case 'quotes':
-      list = <QuoteList event={event} />
+      list = <QuoteList event={stuff} />
       break
     case 'reactions':
-      list = <ReactionList event={event} />
+      list = <ReactionList stuff={stuff} />
       break
     case 'reposts':
-      list = <RepostList event={event} />
+      list = <RepostList event={stuff} />
       break
     case 'zaps':
-      list = <ZapList event={event} />
+      list = <ZapList event={stuff} />
       break
     default:
       break

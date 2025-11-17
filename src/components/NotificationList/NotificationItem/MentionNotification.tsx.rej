@@ -1,0 +1,13 @@
+--- MentionNotification.tsx
++++ MentionNotification.tsx
+@@ -27,7 +27,9 @@ export function MentionNotification({
+     const mentions = getEmbeddedPubkeys(notification)
+     return mentions.includes(pubkey)
+   }, [pubkey, notification])
+-  const parentEventId = useMemo(() => getParentBech32Id(notification), [notification])
++  const { parentEventId, parentExternalContent } = useMemo(() => {
++    return getParentStuff(notification)
++  }, [notification])
+ 
+   return (
+     <Notification

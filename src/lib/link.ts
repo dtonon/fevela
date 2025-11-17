@@ -12,13 +12,11 @@ export const toNote = (eventOrId: Event | string) => {
 export const toNoteList = ({
   hashtag,
   search,
-  externalContentId,
   domain,
   kinds
 }: {
   hashtag?: string
   search?: string
-  externalContentId?: string
   domain?: string
   kinds?: number[]
 }) => {
@@ -29,7 +27,6 @@ export const toNoteList = ({
     kinds.forEach((k) => query.append('k', k.toString()))
   }
   if (search) query.set('s', search)
-  if (externalContentId) query.set('i', externalContentId)
   if (domain) query.set('d', domain)
   return `${path}?${query.toString()}`
 }
@@ -79,6 +76,7 @@ export const toSearch = (params?: TSearchParams) => {
   }
   return `/search?${query.toString()}`
 }
+export const toExternalContent = (id: string) => `/external-content?id=${encodeURIComponent(id)}`
 export const toSettings = () => '/settings'
 export const toRelaySettings = (tag?: 'mailbox' | 'favorite-relays') => {
   return '/settings/relays' + (tag ? '#' + tag : '')

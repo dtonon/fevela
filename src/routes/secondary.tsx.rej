@@ -1,0 +1,18 @@
+--- secondary.tsx
++++ secondary.tsx
+@@ -1,6 +1,7 @@
+ import AppearanceSettingsPage from '@/pages/secondary/AppearanceSettingsPage'
+ import BookmarkPage from '@/pages/secondary/BookmarkPage'
+ import EmojiPackSettingsPage from '@/pages/secondary/EmojiPackSettingsPage'
++import ExternalContentPage from '@/pages/secondary/ExternalContentPage'
+ import FollowingListPage from '@/pages/secondary/FollowingListPage'
+ import GeneralSettingsPage from '@/pages/secondary/GeneralSettingsPage'
+ import MuteListPage from '@/pages/secondary/MuteListPage'
+@@ -34,6 +35,7 @@ const SECONDARY_ROUTE_CONFIGS = [
+   { path: '/relays/:url', element: <RelayPage /> },
+   { path: '/relays/:url/reviews', element: <RelayReviewsPage /> },
+   { path: '/search', element: <SearchPage /> },
++  { path: '/external-content', element: <ExternalContentPage /> },
+   { path: '/settings', element: <SettingsPage /> },
+   { path: '/settings/relays', element: <RelaySettingsPage /> },
+   { path: '/settings/wallet', element: <WalletPage /> },

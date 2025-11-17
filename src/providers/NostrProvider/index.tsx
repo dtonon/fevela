@@ -12,7 +12,7 @@ import { username } from '@/lib/event-metadata'
 import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
 import storage from '@/services/local-storage.service'
-import noteStatsService from '@/services/note-stats.service'
+import stuffStatsService from '@/services/stuff-stats.service'
 import {
   ISigner,
   TAccount,

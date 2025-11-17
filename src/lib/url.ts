@@ -6,7 +6,12 @@ export function isWebsocketUrl(url: string): boolean {
 export function normalizeUrl(url: string): string {
   try {
     if (url.indexOf('://') === -1) {
-      if (url.startsWith('localhost:') || url.startsWith('localhost/')) {
+      if (
+        url.startsWith('localhost:') ||
+        url.startsWith('localhost/') ||
+        url.startsWith('127.') ||
+        url.startsWith('192.168.')
+      ) {
         url = 'ws://' + url
       } else {
         url = 'wss://' + url
