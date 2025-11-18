@@ -1,7 +1,7 @@
 import { isValidPubkey } from '@/lib/pubkey'
 import client from '@/services/client.service'
 import DataLoader from 'dataloader'
-import { Filter } from 'nostr-tools'
+import { Filter } from 'nostr-tools/filter'
 
 /**
  * NIP-43: Relay Access Metadata and Requests

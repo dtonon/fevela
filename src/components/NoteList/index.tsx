@@ -1,12 +1,6 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import {
-  getEventKey,
-  getEventKeyFromTag,
-  isMentioningMutedUsers,
-  isReplyNoteEvent
-} from '@/lib/event'
-import { tagNameEquals } from '@/lib/tag'
+import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -16,8 +10,8 @@ import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, kinds, verifyEvent } from 'nostr-tools'
-import { decode } from 'nostr-tools/nip19'
+import { Event, NostrEvent, verifyEvent } from 'nostr-tools/wasm'
+import * as kinds from 'nostr-tools/kinds'
 import {
   forwardRef,
   useCallback,
@@ -114,98 +108,59 @@ const NoteList = forwardRef(
       ]
     )
 
-    const filteredNotes = useMemo(() => {
-      // Store processed event keys to avoid duplicates
-      const keySet = new Set<string>()
-      // Map to track reposters for each event key
-      const repostersMap = new Map<string, Set<string>>()
-      // Final list of filtered events
-      const filteredEvents: Event[] = []
+    const filteredEvents = useMemo(() => {
+      const repostersMap = new Map<string, string[]>()
+      const filteredEvents: { event: NostrEvent; reposters: string[] }[] = []
 
-      events.slice(0, showCount).forEach((evt) => {
-        const key = getEventKey(evt)
-        if (keySet.has(key)) return
-        keySet.add(key)
+      for (let i = 0; i < Math.min(events.length, showCount); i++) {
+        const event = events[i]
 
-        if (shouldHideEvent(evt)) return
-        if (evt.kind !== kinds.Repost) {
-          filteredEvents.push(evt)
-          return
+        if (shouldHideEvent(event)) continue
+
+        if (event.kind !== kinds.Repost) {
+          // for all events just stop processing here, this is it
+          filteredEvents.push({ event, reposters: [] })
+          continue
         }
 
-        const eventFromContent = evt.content ? (JSON.parse(evt.content) as Event) : null
-        if (eventFromContent && verifyEvent(eventFromContent)) {
-          if (eventFromContent.kind === kinds.Repost) {
-            return
-          }
-          if (shouldHideEvent(eventFromContent)) return
+        // except reposts, for these we will do some grouping
+        let eventFromContent: NostrEvent
+        try {
+          eventFromContent = JSON.parse(event.content) as NostrEvent
+        } catch (_err) {
+          continue
+        }
 
-          client.addEventToCache(eventFromContent)
+        // before we verify anything let's check if we have already seen this
+        let reposters = repostersMap.get(eventFromContent.id)
+        if (!reposters) {
+          // we haven't seen it:
+          reposters = []
+
+          if (shouldHideEvent(eventFromContent)) continue
+          if (!verifyEvent(eventFromContent)) continue
+
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
           if (targetSeenOn.length === 0) {
-            const seenOn = client.getSeenEventRelays(evt.id)
+            const seenOn = client.getSeenEventRelays(event.id)
             seenOn.forEach((relay) => {
               client.trackEventSeenOn(eventFromContent.id, relay)
             })
           }
 
-          const targetEventKey = getEventKey(eventFromContent)
-          const reposters = repostersMap.get(targetEventKey)
-          if (reposters) {
-            reposters.add(evt.pubkey)
-          } else {
-            repostersMap.set(targetEventKey, new Set([evt.pubkey]))
-          }
-          // If the target event is not already included, add it now
-          if (!keySet.has(targetEventKey)) {
-            filteredEvents.push(eventFromContent)
-            keySet.add(targetEventKey)
-          }
-          return
+          filteredEvents.push({ event: eventFromContent, reposters })
         }
 
-        const targetTag = evt.tags.find(tagNameEquals('a')) ?? evt.tags.find(tagNameEquals('e'))
-        if (targetTag) {
-          const targetEventKey = getEventKeyFromTag(targetTag)
-          if (targetEventKey) {
-            // Add to reposters map
-            const reposters = repostersMap.get(targetEventKey)
-            if (reposters) {
-              reposters.add(evt.pubkey)
-            } else {
-              repostersMap.set(targetEventKey, new Set([evt.pubkey]))
-            }
-            // If the target event is already included, skip adding this repost
-            if (keySet.has(targetEventKey)) {
-              return
-            }
-          }
+        // now that we have it all set up and this repost added to the list add the current reposter
+        if (!reposters.includes(event.pubkey)) {
+          reposters.push(event.pubkey)
         }
-        // If we can't find the original event, just show the repost itself
-        filteredEvents.push(evt)
-        return
-      })
+        repostersMap.set(eventFromContent.id, reposters)
+      }
 
-      return filteredEvents.map((evt) => {
-        const key = getEventKey(evt)
-        return { key, event: evt, reposters: Array.from(repostersMap.get(key) ?? []) }
-      })
+      return filteredEvents
     }, [events, showCount, shouldHideEvent])
 
-    const filteredNewEvents = useMemo(() => {
-      const keySet = new Set<string>()
-
-      return newEvents.filter((event: Event) => {
-        if (shouldHideEvent(event)) return false
-
-        const key = getEventKey(event)
-        if (keySet.has(key)) {
-          return false
-        }
-        keySet.add(key)
-        return true
-      })
-    }, [newEvents, shouldHideEvent])
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
         topRef.current?.scrollIntoView({ behavior, block: 'start' })
@@ -333,29 +288,41 @@ const NoteList = forwardRef(
     }, [subRequests, refreshCount, showKinds])
 
     const loadMore = useCallback(async () => {
-      if (showCount < events.length) {
-        setShowCount((prev) => prev + SHOW_COUNT)
-        // preload more
-        if (events.length - showCount > LIMIT / 2) {
-          return
+      setEvents((events) => {
+        // do this update inside the events setter because react is stupid and that's
+        // the only safe way to get the latest events state
+
+        if (showCount < events.length) {
+          setShowCount((prev) => prev + SHOW_COUNT)
+          // do we need to preload more?
+          if (events.length - showCount > LIMIT / 2) {
+            // no, we don't
+            return events
+          }
         }
-      }
 
-      setLoading(true)
+        setLoading(true)
 
-      const moreEvents = await client.loadMoreTimeline(subRequests, {
-        until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
-        limit: LIMIT,
-        ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+        client
+          .loadMoreTimeline(subRequests, {
+            until: events.length ? events[events.length - 1].created_at - 1 : dayjs().unix(),
+            limit: LIMIT,
+            ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+          })
+          .then((moreEvents) => {
+            if (moreEvents.length === 0) {
+              // we have nothing more to load
+              setHasMore(false)
+              return
+            }
+
+            setLoading(false)
+            setEvents((events) => [...events, ...moreEvents])
+            return
+          })
+
+        return events // bogus, just return the same thing
       })
-
-      if (moreEvents.length === 0) {
-        setHasMore(false)
-        return
-      }
-
-      setEvents((events) => [...events, ...moreEvents])
-      setLoading(false)
     }, [showCount, subRequests, sinceTimestamp, isFilteredView])
 
     useEffect(() => {
@@ -401,9 +368,9 @@ const NoteList = forwardRef(
           <PinnedNoteCard key={id} eventId={id} className="w-full" />
         ))}
 
-        {filteredNotes.map(({ key, event, reposters }) => (
+        {filteredEvents.map(({ event, reposters }) => (
           <NoteCard
-            key={key}
+            key={event.id}
             className="w-full"
             event={event}
             filterMutedNotes={filterMutedNotes}

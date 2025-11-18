@@ -1,11 +1,13 @@
 import { isMentioningMutedUsers } from '@/lib/event'
-import { generateBech32IdFromATag, generateBech32IdFromETag, tagNameEquals } from '@/lib/tag'
+import { tagNameEquals } from '@/lib/tag'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import client from '@/services/client.service'
-import { Event, kinds, verifyEvent } from 'nostr-tools'
+import { Event, verifyEvent } from 'nostr-tools/wasm'
+import * as kinds from 'nostr-tools/kinds'
 import { useEffect, useMemo, useState } from 'react'
 import MainNoteCard from './MainNoteCard'
+import { neventEncode } from 'nostr-tools/nip19'
 
 export default function RepostNoteCard({
   event,
@@ -56,19 +58,15 @@ export default function RepostNoteCard({
           return
         }
 
-        let targetEventId: string | undefined
-        const aTag = event.tags.find(tagNameEquals('a'))
-        if (aTag) {
-          targetEventId = generateBech32IdFromATag(aTag)
-        } else {
-          const eTag = event.tags.find(tagNameEquals('e'))
-          if (eTag) {
-            targetEventId = generateBech32IdFromETag(eTag)
-          }
-        }
-        if (!targetEventId) {
+        const [, id, relay, , pubkey] = event.tags.find(tagNameEquals('e')) ?? []
+        if (!id) {
           return
         }
+        const targetEventId = neventEncode({
+          id,
+          relays: relay ? [relay] : [],
+          author: pubkey
+        })
 
         const targetEvent = await client.fetchEvent(targetEventId)
         if (targetEvent) {
