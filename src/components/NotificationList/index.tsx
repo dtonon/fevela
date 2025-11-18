@@ -1,6 +1,7 @@
 import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
-import { compareEvents, getEmbeddedPubkeys, getParentETag } from '@/lib/event'
+import { getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
+import { binarySearch } from '@nostr/tools/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { useNotification } from '@/providers/NotificationProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
@@ -11,21 +12,13 @@ import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { Filter, matchFilter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import Tabs from '../Tabs'
 import { NotificationItem } from './NotificationItem'
 import { NotificationSkeleton } from './NotificationItem/Notification'
-import { isTouchDevice } from '@/lib/utils'
+import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
 
 const LIMIT = 100
@@ -145,14 +138,16 @@ const NotificationList = forwardRef((_, ref) => {
     }
 
     const filterEvents = async () => {
-      const filtered: NostrEvent[] = []
+      const filtered: (NostrEvent | Promise<NostrEvent | undefined>)[] = []
 
       for (const event of events) {
         // For text-based kinds, check if it's a mention
         if (textKinds.includes(event.kind)) {
-          if (await isMention(event)) {
-            filtered.push(event)
-          }
+          filtered.push(
+            isMention(event).then((is) => {
+              if (is) return event
+            })
+          )
         } else {
           // For reactions, reposts, zaps - always include in All tab
           if (notificationType === 'all') {
@@ -161,7 +156,9 @@ const NotificationList = forwardRef((_, ref) => {
         }
       }
 
-      setFilteredNotifications(filtered)
+      setFilteredNotifications(
+        (await Promise.all(filtered)).filter((evt): evt is NonNullable<NostrEvent> => !!evt)
+      )
     }
 
     filterEvents()
@@ -198,24 +195,37 @@ const NotificationList = forwardRef((_, ref) => {
     [loading]
   )
 
-  const handleNewEvent = useCallback(
-    (event: NostrEvent) => {
-      if (event.pubkey === pubkey) return
-      setEvents((oldEvents) => {
-        const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
-        if (index !== -1 && oldEvents[index].id === event.id) {
-          return oldEvents
-        }
+  const handleNewEvent = batchDebounce((events: NostrEvent[]) => {
+    events.sort((a, b) => b.created_at - a.created_at)
+    noteStatsService.updateNoteStatsByEvents(events)
 
-        noteStatsService.updateNoteStatsByEvents([event])
-        if (index === -1) {
-          return [...oldEvents, event]
-        }
-        return [...oldEvents.slice(0, index), event, ...oldEvents.slice(index)]
-      })
-    },
-    [pubkey]
-  )
+    setEvents((oldEvents) => {
+      const updated: NostrEvent[] = []
+      let prevIdx = 0
+
+      for (let i = 0; i < events.length; i++) {
+        const event = events[i]
+
+        const [idx, found] = binarySearch(oldEvents, (b) => {
+          if (event.id === b.id) return 0
+          if (event.created_at === b.created_at) return -1
+          return b.created_at - event.created_at
+        })
+        if (found) continue
+
+        updated.push(...oldEvents.slice(prevIdx, idx))
+        updated.push(event)
+        prevIdx = idx
+      }
+
+      if (updated.length > 0) {
+        updated.push(...oldEvents.slice(prevIdx))
+        return updated
+      } else {
+        return oldEvents
+      }
+    })
+  }, 1800)
 
   useEffect(() => {
     if (!subRequests || !pubkey) return
@@ -232,7 +242,7 @@ const NotificationList = forwardRef((_, ref) => {
       {
         onEvents: (events, isFinal) => {
           if (events.length > 0) {
-            setEvents(events.filter((event) => event.pubkey !== pubkey))
+            setEvents(events)
           }
 
           if (isFinal) {
@@ -263,7 +273,7 @@ const NotificationList = forwardRef((_, ref) => {
     return () => {
       client.removeEventListener('newEvent', handler)
     }
-  }, [pubkey, active, filter, handleNewEvent])
+  }, [pubkey, active, filter])
 
   useEffect(() => {
     if (!pubkey || !subRequests.length || loading || !hasMore) return

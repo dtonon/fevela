@@ -192,6 +192,7 @@ class ClientService extends EventTarget {
 
   emitNewEvent(event: NostrEvent) {
     this.dispatchEvent(new CustomEvent('newEvent', { detail: event }))
+    this.addEventToCache(event)
   }
 
   async signHttpAuth(url: string, method: string, description = '') {
