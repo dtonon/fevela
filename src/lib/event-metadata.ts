@@ -2,7 +2,8 @@ import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
 import { TPollType, TRelayList } from '@/types'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
-import { getAmountFromInvoice, getLightningAddressFromProfile } from './lightning'
+import { getSatoshisAmountFromBolt11 } from '@nostr/tools/nip57'
+import { getLightningAddressFromProfile } from './lightning'
 import { formatPubkey, pubkeyToNpub } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
 import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
@@ -124,7 +125,7 @@ export function getZapInfoFromEvent(receiptEvent: Event) {
       }
     })
     if (!recipientPubkey || !invoice) return null
-    amount = invoice ? getAmountFromInvoice(invoice) : 0
+    amount = invoice ? getSatoshisAmountFromBolt11(invoice) : 0
     if (description) {
       try {
         const zapRequest = JSON.parse(description)

@@ -1,7 +1,6 @@
 import { BIG_RELAY_URLS, DEV_PUBKEY, FEVELA_PUBKEY } from '@/constants'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { init, launchPaymentModal } from '@getalby/bitcoin-connect-react'
-import { Invoice } from '@getalby/lightning-tools'
 import { bech32 } from '@scure/base'
 import { WebLNProvider } from '@webbtc/webln-types'
 import dayjs from 'dayjs'
@@ -85,7 +84,7 @@ class LightningService {
     if (zapRequestResBody.error) {
       throw new Error(zapRequestResBody.message)
     }
-    const { pr, verify, reason } = zapRequestResBody
+    const { pr, reason } = zapRequestResBody
     if (!pr) {
       throw new Error(reason ?? 'Failed to create invoice')
     }
@@ -96,60 +95,43 @@ class LightningService {
       return { preimage, invoice: pr }
     }
 
+    let subCloser: SubCloser | undefined
     return new Promise((resolve) => {
       closeOuterModel?.()
       let checkPaymentInterval: ReturnType<typeof setInterval> | undefined
-      let subCloser: SubCloser | undefined
       const { setPaid } = launchPaymentModal({
         invoice: pr,
         onPaid: (response) => {
           clearInterval(checkPaymentInterval)
-          subCloser?.close()
+          subCloser?.close?.()
           resolve({ preimage: response.preimage, invoice: pr })
         },
         onCancelled: () => {
           clearInterval(checkPaymentInterval)
-          subCloser?.close()
+          subCloser?.close?.()
           resolve(null)
         }
       })
 
-      if (verify) {
-        checkPaymentInterval = setInterval(async () => {
-          const invoice = new Invoice({ pr, verify })
-          const paid = await invoice.verifyPayment()
-
-          if (paid && invoice.preimage) {
-            setPaid({
-              preimage: invoice.preimage
-            })
-          }
-        }, 1000)
-      } else {
-        const filter: Filter = {
-          kinds: [kinds.Zap],
-          '#p': [recipient],
-          since: dayjs().subtract(1, 'minute').unix()
-        }
-        if (event) {
-          filter['#e'] = [event.id]
-        }
-        subCloser = pool.subscribe(
-          senderRelayList.write.concat(BIG_RELAY_URLS).slice(0, 4),
-          filter,
-          {
-            label: 'f-zap',
-            onevent: (evt) => {
-              const info = getZapInfoFromEvent(evt)
-              if (!info) return
-
-              if (info.invoice === pr) {
-                setPaid({ preimage: info.preimage ?? '' })
-              }
-            }
-          }
-        )
+      const filter: Filter = {
+        kinds: [kinds.Zap],
+        '#p': [recipient],
+        since: dayjs().subtract(1, 'minute').unix()
       }
+      if (event) {
+        filter['#e'] = [event.id]
+      }
+      subCloser = pool.subscribe(senderRelayList.write.concat(BIG_RELAY_URLS).slice(0, 4), filter, {
+        label: 'f-zap',
+        onevent: (evt) => {
+          const info = getZapInfoFromEvent(evt)
+          if (!info) return
+
+          if (info.invoice === pr) {
+            setPaid({ preimage: info.preimage ?? '' })
+          }
+        }
+      })
     })
   }
 

@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
-import { formatAmount, getAmountFromInvoice } from '@/lib/lightning'
+import { formatAmount } from '@/lib/lightning'
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import lightning from '@/services/lightning.service'
 import { Loader, Zap } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { getSatoshisAmountFromBolt11 } from '@nostr/tools/nip57'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
@@ -13,9 +14,7 @@ export function EmbeddedLNInvoice({ invoice, className }: { invoice: string; cla
   const { checkLogin, pubkey } = useNostr()
   const [paying, setPaying] = useState(false)
 
-  const amount = useMemo(() => {
-    return getAmountFromInvoice(invoice)
-  }, [invoice])
+  const amount = getSatoshisAmountFromBolt11(invoice)
 
   const handlePay = async () => {
     try {

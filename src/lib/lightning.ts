@@ -1,11 +1,5 @@
 import { NostrUser } from '@nostr/gadgets/metadata'
-import { Invoice } from '@getalby/lightning-tools'
 import { isEmail } from './utils'
-
-export function getAmountFromInvoice(invoice: string): number {
-  const _invoice = new Invoice({ pr: invoice }) // TODO: need to validate
-  return _invoice.satoshi
-}
 
 export function formatAmount(amount: number) {
   if (amount < 1000) return amount
