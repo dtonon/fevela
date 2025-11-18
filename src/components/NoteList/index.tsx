@@ -10,8 +10,8 @@ import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import { Event, NostrEvent, verifyEvent } from 'nostr-tools/wasm'
-import * as kinds from 'nostr-tools/kinds'
+import { Event, NostrEvent, verifyEvent } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
   useCallback,

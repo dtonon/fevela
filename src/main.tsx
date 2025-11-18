@@ -16,8 +16,8 @@ window.addEventListener('orientationchange', setVh)
 setVh()
 
 initNostrWasm()
-  .then(setNostrWasm)
-  .then(() => {
+  .then((nw) => {
+    setNostrWasm(nw)
     setPool(new AbstractSimplePool({ verifyEvent }))
     pool.trackRelays = true
 

@@ -3,11 +3,11 @@ import { tagNameEquals } from '@/lib/tag'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import client from '@/services/client.service'
-import { Event, verifyEvent } from 'nostr-tools/wasm'
-import * as kinds from 'nostr-tools/kinds'
+import { Event, verifyEvent } from '@nostr/tools/wasm'
+import * as kinds from '@nostr/tools/kinds'
 import { useEffect, useMemo, useState } from 'react'
 import MainNoteCard from './MainNoteCard'
-import { neventEncode } from 'nostr-tools/nip19'
+import { neventEncode } from '@nostr/tools/nip19'
 
 export default function RepostNoteCard({
   event,
