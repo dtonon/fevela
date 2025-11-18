@@ -14,13 +14,21 @@ export default function RepostNoteCard({
   className,
   filterMutedNotes = true,
   pinned = false,
-  onTargetEventLoaded
+  onTargetEventLoaded,
+  groupedNotesTotalCount,
+  groupedNotesOldestTimestamp,
+  onAllNotesRead,
+  areAllNotesRead
 }: {
   event: Event
   className?: string
   filterMutedNotes?: boolean
   pinned?: boolean
   onTargetEventLoaded?: (event: Event) => void
+  groupedNotesTotalCount?: number
+  groupedNotesOldestTimestamp?: number
+  onAllNotesRead?: () => void
+  areAllNotesRead?: boolean
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -88,6 +96,10 @@ export default function RepostNoteCard({
       reposters={[event.pubkey]}
       event={targetEvent}
       pinned={pinned}
+      groupedNotesTotalCount={groupedNotesTotalCount}
+      groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
+      onAllNotesRead={onAllNotesRead}
+      areAllNotesRead={areAllNotesRead}
     />
   )
 }
