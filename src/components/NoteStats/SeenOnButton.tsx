@@ -91,7 +91,7 @@ export default function SeenOnButton({ event }: { event: Event }) {
         <DropdownMenuSeparator />
         {isLocal(event) && (
           <DropdownMenuItem className="min-w-52 bg-slate-100">
-            <Save /> local database
+            <Save className="!w-6 !h-6" /> local database
           </DropdownMenuItem>
         )}
         {relays.map((relay) => (
