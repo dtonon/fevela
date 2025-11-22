@@ -1,5 +1,5 @@
 import { useTranslatedEvent } from '@/hooks'
-import { LINK_PREVIEW_MODE } from '@/constants'
+import { LINK_PREVIEW_MODE, YOUTUBE_URL_REGEX } from '@/constants'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { getImetaInfoFromImetaTag } from '@/lib/tag'
 import { cn } from '@/lib/utils'
@@ -40,32 +40,36 @@ export default function Content({
         case 'text': {
           if (block.text.trim() === '') continue
 
-          nodes.push(<span>{block.text}</span>)
+          nodes.push(<span key={nodes.length}>{block.text}</span>)
           break
         }
         case 'url': {
-          if (
-            block.url.startsWith('https://www.youtube.com/watch') ||
-            block.url.startsWith('https://youtu.be/')
-          ) {
-            nodes.push(
-              <YoutubeEmbeddedPlayer url={block.url} className="mt-2" mustLoad={mustLoadMedia} />
-            )
-          } else if (linkPreviewMode === LINK_PREVIEW_MODE.ENABLED) {
-            nodes.push(<WebPreview className="mt-2" url={block.url} />)
-          } else {
-            nodes.push(<ExternalLink url={block.url} />)
+          nodes.push(<ExternalLink key={nodes.length} url={block.url} />)
+          if (linkPreviewMode === LINK_PREVIEW_MODE.ENABLED) {
+            if (block.url.match(YOUTUBE_URL_REGEX)) {
+              nodes.push(
+                <YoutubeEmbeddedPlayer
+                  key={nodes.length}
+                  url={block.url}
+                  className="mt-2"
+                  mustLoad={mustLoadMedia}
+                />
+              )
+            } else {
+              nodes.push(<WebPreview key={nodes.length} className="mt-2" url={block.url} />)
+            }
           }
           break
         }
         case 'relay': {
-          nodes.push(<EmbeddedWebsocketUrl url={block.url} />)
+          nodes.push(<EmbeddedWebsocketUrl key={nodes.length} url={block.url} />)
           break
         }
         case 'image': {
           if (nodes.length > 0 && (nodes[nodes.length - 1].type as any).name === 'ImageGallery') {
             nodes[nodes.length - 1] = (
               <ImageGallery
+                key={nodes[nodes.length - 1].key}
                 className="mt-2"
                 images={allImages}
                 start={(nodes[nodes.length - 1].props as any).start}
@@ -76,6 +80,7 @@ export default function Content({
           } else {
             nodes.push(
               <ImageGallery
+                key={nodes.length}
                 className="mt-2"
                 images={allImages}
                 start={imageIndex}
@@ -101,30 +106,48 @@ export default function Content({
           imageIndex++
           break
         }
-        case 'video': {
-          nodes.push(<MediaPlayer className="mt-2" src={block.url} mustLoad={mustLoadMedia} />)
-          break
-        }
+        case 'video':
         case 'audio': {
-          nodes.push(<MediaPlayer className="mt-2" src={block.url} mustLoad={mustLoadMedia} />)
+          nodes.push(
+            <MediaPlayer
+              key={nodes.length}
+              className="mt-2"
+              src={block.url}
+              mustLoad={mustLoadMedia}
+            />
+          )
           break
         }
         case 'reference': {
           if ('id' in block.pointer) {
-            nodes.push(<EmbeddedNote noteId={neventEncode(block.pointer)} className="mt-2" />)
+            nodes.push(
+              <EmbeddedNote
+                key={nodes.length}
+                noteId={neventEncode(block.pointer)}
+                className="mt-2"
+              />
+            )
           } else if ('identifier' in block.pointer) {
-            nodes.push(<EmbeddedNote noteId={naddrEncode(block.pointer)} className="mt-2" />)
+            nodes.push(
+              <EmbeddedNote
+                key={nodes.length}
+                noteId={naddrEncode(block.pointer)}
+                className="mt-2"
+              />
+            )
           } else {
-            nodes.push(<EmbeddedMention userId={nprofileEncode(block.pointer)} />)
+            nodes.push(
+              <EmbeddedMention key={nodes.length} userId={nprofileEncode(block.pointer)} />
+            )
           }
           break
         }
         case 'hashtag': {
-          nodes.push(<EmbeddedHashtag hashtag={block.value} />)
+          nodes.push(<EmbeddedHashtag key={nodes.length} hashtag={block.value} />)
           break
         }
         case 'emoji': {
-          nodes.push(<Emoji classNames={{ img: 'mb-1' }} emoji={block} />)
+          nodes.push(<Emoji key={nodes.length} classNames={{ img: 'mb-1' }} emoji={block} />)
           break
         }
       }

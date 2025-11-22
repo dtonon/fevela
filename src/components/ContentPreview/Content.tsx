@@ -1,59 +1,73 @@
-import {
-  EmbeddedEmojiParser,
-  EmbeddedEventParser,
-  EmbeddedMentionParser,
-  EmbeddedUrlParser,
-  parseContent
-} from '@/lib/content-parser'
+import { parse } from '@nostr/tools/nip27'
+import { nprofileEncode } from '@nostr/tools/nip19'
 import { cn } from '@/lib/utils'
-import { TEmoji } from '@/types'
-import { useMemo } from 'react'
+import { ReactElement, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { EmbeddedMentionText } from '../Embedded'
+import { EmbeddedHashtag, EmbeddedWebsocketUrl } from '../Embedded'
 import Emoji from '../Emoji'
+import { NostrEvent } from '@nostr/tools/core'
+import { SimpleUsername } from '../Username'
 
-export default function Content({
-  content,
-  className,
-  emojiInfos
-}: {
-  content: string
-  className?: string
-  emojiInfos?: TEmoji[]
-}) {
+export default function Content({ event, className }: { event: NostrEvent; className?: string }) {
   const { t } = useTranslation()
-  const nodes = useMemo(() => {
-    return parseContent(content, [
-      EmbeddedUrlParser,
-      EmbeddedEventParser,
-      EmbeddedMentionParser,
-      EmbeddedEmojiParser
-    ])
-  }, [content])
 
-  return (
-    <span className={cn('pointer-events-none', className)}>
-      {nodes.map((node, index) => {
-        if (node.type === 'image' || node.type === 'images') {
-          return index > 0 ? ` [${t('Image')}]` : `[${t('Image')}]`
+  const nodes = useMemo(() => {
+    const nodes: ReactElement[] = []
+
+    for (const block of parse(event)) {
+      switch (block.type) {
+        case 'text': {
+          nodes.push(<span key={nodes.length}>{block.text}</span>)
+          break
         }
-        if (node.type === 'media') {
-          return index > 0 ? ` [${t('Media')}]` : `[${t('Media')}]`
+        case 'url': {
+          nodes.push(<span key={nodes.length}>{block.url}</span>)
+          break
         }
-        if (node.type === 'event') {
-          return index > 0 ? ` [${t('Note')}]` : `[${t('Note')}]`
+        case 'audio':
+        case 'video': {
+          nodes.push(<span key={nodes.length}>{`[${t('Media')}]`}</span>)
+          break
         }
-        if (node.type === 'mention') {
-          return <EmbeddedMentionText key={index} userId={node.data.split(':')[1]} />
+        case 'image': {
+          nodes.push(<span key={nodes.length}>{`[${t('Image')}]`}</span>)
+          break
         }
-        if (node.type === 'emoji') {
-          const shortcode = node.data.split(':')[1]
-          const emoji = emojiInfos?.find((e) => e.shortcode === shortcode)
-          if (!emoji) return node.data
-          return <Emoji key={index} emoji={emoji} classNames={{ img: 'size-4' }} />
+        case 'relay': {
+          nodes.push(<EmbeddedWebsocketUrl key={nodes.length} url={block.url} />)
+          break
         }
-        return node.data
-      })}
-    </span>
-  )
+        case 'reference': {
+          if ('id' in block.pointer) {
+            nodes.push(<span key={nodes.length}>{`[${t('Note')}]`}</span>)
+          } else if ('identifier' in block.pointer) {
+            nodes.push(<span key={nodes.length}>{`[${t('Note')}]`}</span>)
+          } else {
+            nodes.push(
+              <SimpleUsername
+                key={nodes.length}
+                userId={nprofileEncode(block.pointer)}
+                showAt
+                className={cn('inline', className)}
+                withoutSkeleton
+              />
+            )
+          }
+          break
+        }
+        case 'hashtag': {
+          nodes.push(<EmbeddedHashtag key={nodes.length} hashtag={block.value} />)
+          break
+        }
+        case 'emoji': {
+          nodes.push(<Emoji key={nodes.length} classNames={{ img: 'mb-1' }} emoji={block} />)
+          break
+        }
+      }
+    }
+
+    return nodes
+  }, [event])
+
+  return <span className={cn('pointer-events-none', className)}>{nodes}</span>
 }

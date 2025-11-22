@@ -108,36 +108,6 @@ export function isLocalNetworkUrl(urlString: string): boolean {
   }
 }
 
-export function isImage(url: string) {
-  try {
-    const imageExtensions = ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.svg']
-    return imageExtensions.some((ext) => new URL(url).pathname.toLowerCase().endsWith(ext))
-  } catch {
-    return false
-  }
-}
-
-export function isMedia(url: string) {
-  try {
-    const mediaExtensions = [
-      '.mp4',
-      '.webm',
-      '.ogg',
-      '.mov',
-      '.mp3',
-      '.wav',
-      '.flac',
-      '.aac',
-      '.m4a',
-      '.opus',
-      '.wma'
-    ]
-    return mediaExtensions.some((ext) => new URL(url).pathname.toLowerCase().endsWith(ext))
-  } catch {
-    return false
-  }
-}
-
 export const truncateUrl = (url: string, maxLength: number = 40) => {
   try {
     const urlObj = new URL(url)
@@ -146,6 +116,8 @@ export const truncateUrl = (url: string, maxLength: number = 40) => {
 
     if (domain.startsWith('www.')) {
       domain = domain.slice(4)
+    } else if (domain.startsWith('m.')) {
+      domain = domain.slice(2)
     }
 
     if (!path || path === '/') {
@@ -154,6 +126,11 @@ export const truncateUrl = (url: string, maxLength: number = 40) => {
 
     if (path.endsWith('/')) {
       path = path.slice(0, -1)
+    }
+
+    if (domain === 'youtube.com') {
+      const v = urlObj.searchParams.get('v')
+      if (v) path += '?v=' + v
     }
 
     const u = domain + path

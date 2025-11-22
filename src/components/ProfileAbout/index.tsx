@@ -1,13 +1,8 @@
-import {
-  EmbeddedHashtagParser,
-  EmbeddedMentionParser,
-  EmbeddedUrlParser,
-  EmbeddedWebsocketUrlParser,
-  parseContent
-} from '@/lib/content-parser'
+import { parse } from '@nostr/tools/nip27'
+import { neventEncode, naddrEncode, nprofileEncode } from '@nostr/tools/nip19'
 import { detectLanguage } from '@/lib/utils'
 import { useTranslationService } from '@/providers/TranslationServiceProvider'
-import { useMemo, useState } from 'react'
+import { ReactElement, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { EmbeddedHashtag, EmbeddedMention, EmbeddedWebsocketUrl } from '../Embedded'
@@ -24,30 +19,52 @@ export default function ProfileAbout({ about, className }: { about?: string; cla
   }, [about, i18n.language])
   const [translatedAbout, setTranslatedAbout] = useState<string | null>(null)
   const [translating, setTranslating] = useState(false)
+
   const aboutNodes = useMemo(() => {
     if (!about) return null
 
-    const nodes = parseContent(translatedAbout ?? about, [
-      EmbeddedWebsocketUrlParser,
-      EmbeddedUrlParser,
-      EmbeddedHashtagParser,
-      EmbeddedMentionParser
-    ])
-    return nodes.map((node, index) => {
-      if (node.type === 'url') {
-        return <ExternalLink key={index} url={node.data} />
+    const nodes: ReactElement[] = []
+    for (const block of parse(translatedAbout ?? about)) {
+      switch (block.type) {
+        case 'text': {
+          nodes.push(<span key={nodes.length}>{block.text}</span>)
+          break
+        }
+        case 'emoji': {
+          nodes.push(<span key={nodes.length}>:{block.shortcode}:</span>)
+          break
+        }
+        case 'url':
+        case 'image':
+        case 'video':
+        case 'audio': {
+          nodes.push(<ExternalLink key={nodes.length} url={block.url} />)
+          break
+        }
+        case 'relay': {
+          nodes.push(<EmbeddedWebsocketUrl key={nodes.length} url={block.url} />)
+          break
+        }
+        case 'reference': {
+          if ('id' in block.pointer) {
+            nodes.push(<ExternalLink key={nodes.length} url={neventEncode(block.pointer)} />)
+          } else if ('identifier' in block.pointer) {
+            nodes.push(<ExternalLink key={nodes.length} url={naddrEncode(block.pointer)} />)
+          } else {
+            nodes.push(
+              <EmbeddedMention key={nodes.length} userId={nprofileEncode(block.pointer)} />
+            )
+          }
+          break
+        }
+        case 'hashtag': {
+          nodes.push(<EmbeddedHashtag key={nodes.length} hashtag={block.value} />)
+          break
+        }
       }
-      if (node.type === 'websocket-url') {
-        return <EmbeddedWebsocketUrl key={index} url={node.data} />
-      }
-      if (node.type === 'hashtag') {
-        return <EmbeddedHashtag key={index} hashtag={node.data} />
-      }
-      if (node.type === 'mention') {
-        return <EmbeddedMention key={index} userId={node.data.split(':')[1]} />
-      }
-      return node.data
-    })
+    }
+
+    return nodes
   }, [about, translatedAbout])
 
   const handleTranslate = async () => {

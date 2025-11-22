@@ -2,7 +2,7 @@ import { BIG_RELAY_URLS } from '@/constants'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
-import { getEmojiInfosFromEmojiTags, tagNameEquals } from '@/lib/tag'
+import { tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
 import { TEmoji } from '@/types'
 import dayjs from 'dayjs'
@@ -234,19 +234,13 @@ class NoteStatsService {
     const likes = old.likes || []
     if (likeIdSet.has(evt.id)) return
 
-    let emoji: TEmoji | string = evt.content.trim()
-    if (!emoji) return
-
-    if (emoji.startsWith(':') && emoji.endsWith(':')) {
-      const emojiInfos = getEmojiInfosFromEmojiTags(evt.tags)
-      const shortcode = emoji.split(':')[1]
-      const emojiInfo = emojiInfos.find((info) => info.shortcode === shortcode)
-      if (emojiInfo) {
-        emoji = emojiInfo
-      } else {
-        emoji = '+'
-      }
+    let emoji: TEmoji | string | undefined
+    if (evt.content.startsWith(':') && evt.content.endsWith(':')) {
+      emoji = evt.tags.find(
+        ([t, shortcode]) => t === 'emoji' && shortcode === evt.content.slice(1, -1)
+      )?.[2]
     }
+    if (!emoji) emoji = '+'
 
     likeIdSet.add(evt.id)
     likes.push({ id: evt.id, pubkey: evt.pubkey, created_at: evt.created_at, emoji })
