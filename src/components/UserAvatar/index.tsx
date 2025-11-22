@@ -7,6 +7,7 @@ import { randomString } from '@/lib/random'
 import { cn } from '@/lib/utils'
 import { SecondaryPageLink } from '@/PageManager'
 import modalManager from '@/services/modal-manager.service'
+import { NostrUser } from '@nostr/gadgets/metadata'
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import Lightbox from 'yet-another-react-lightbox'
@@ -50,16 +51,19 @@ export default function UserAvatar({
 
 export function SimpleUserAvatar({
   userId,
+  profile: providedProfile,
   size = 'normal',
   className,
   onClick
 }: {
-  userId: string
+  userId?: string
+  profile?: NostrUser
   size?: 'large' | 'big' | 'semiBig' | 'normal' | 'medium' | 'small' | 'xSmall' | 'tiny'
   className?: string
   onClick?: (e: React.MouseEvent<HTMLDivElement, MouseEvent>) => void
 }) {
-  const { profile } = useFetchProfile(userId)
+  const { profile: fetchedProfile } = useFetchProfile(providedProfile ? undefined : userId)
+  const profile = providedProfile || fetchedProfile
   const defaultAvatar = useMemo(
     () => (profile?.pubkey ? generateImageByPubkey(profile.pubkey) : ''),
     [profile]

@@ -25,7 +25,6 @@ import { NotificationSkeleton } from '../NotificationList/NotificationItem/Notif
 import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
 import { Input } from '@/components/ui/input'
-import { userIdToPubkey } from '@/lib/pubkey'
 import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
@@ -105,16 +104,7 @@ const ConversationList = forwardRef((_, ref) => {
 
     const searchProfiles = async () => {
       try {
-        const npubs = await client.searchNpubsFromLocal(userFilter, 1000)
-        const pubkeys = npubs
-          .map((npub) => {
-            try {
-              return userIdToPubkey(npub)
-            } catch {
-              return null
-            }
-          })
-          .filter((pubkey): pubkey is string => pubkey !== null)
+        const pubkeys = await client.searchPubKeysFromLocal(userFilter, 1000)
         setMatchingPubkeys(new Set(pubkeys))
       } catch (e) {
         console.error('Error searching profiles:', e)

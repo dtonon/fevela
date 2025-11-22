@@ -814,7 +814,7 @@ class ClientService extends EventTarget {
         ...filter,
         kinds: [kinds.Metadata]
       },
-      { label: 'f-search-profiles', maxWait: 10_000 }
+      { label: 'f-search-profiles', maxWait: 5_000 }
     )
 
     const profiles = events.map(nostrUserFromEvent)
@@ -822,14 +822,13 @@ class ClientService extends EventTarget {
     return profiles
   }
 
-  async searchNpubsFromLocal(query: string, limit: number = 100) {
-    const result = await this.userIndex.searchAsync(query, { limit })
-    return result.map((pubkey) => pubkeyToNpub(pubkey as string)).filter(Boolean) as string[]
+  async searchPubKeysFromLocal(query: string, limit: number = 100): Promise<string[]> {
+    return this.userIndex.searchAsync(query, { limit }) as Promise<string[]>
   }
 
   async searchProfilesFromLocal(query: string, limit: number = 100): Promise<NostrUser[]> {
-    const npubs = await this.searchNpubsFromLocal(query, limit)
-    const profiles = await Promise.all(npubs.map((npub) => this.fetchProfile(npub)))
+    const pubkeys = await this.searchPubKeysFromLocal(query, limit)
+    const profiles = await Promise.all(pubkeys.map((pubkey) => this.fetchProfile(pubkey)))
     return profiles.filter((profile) => !!profile)
   }
 

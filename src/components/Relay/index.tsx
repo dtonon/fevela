@@ -16,6 +16,20 @@ export default function Relay({ url, className }: { url?: string; className?: st
   const [searchInput, setSearchInput] = useState('')
   const [debouncedInput, setDebouncedInput] = useState(searchInput)
 
+  const subRequests = useMemo(
+    () =>
+      normalizedUrl
+        ? [
+            {
+              source: 'relays' as const,
+              urls: [normalizedUrl],
+              filter: debouncedInput ? { search: debouncedInput } : {}
+            }
+          ]
+        : [],
+    [normalizedUrl, debouncedInput]
+  )
+
   useEffect(() => {
     if (normalizedUrl) {
       addRelayUrls([normalizedUrl])
@@ -51,16 +65,7 @@ export default function Relay({ url, className }: { url?: string; className?: st
           />
         </div>
       )}
-      <NormalFeed
-        subRequests={[
-          {
-            source: 'relays',
-            urls: [normalizedUrl],
-            filter: debouncedInput ? { search: debouncedInput } : {}
-          }
-        ]}
-        showRelayCloseReason
-      />
+      <NormalFeed subRequests={subRequests} showRelayCloseReason />
     </div>
   )
 }

@@ -5,8 +5,37 @@ import Profile from '../Profile'
 import { ProfileListBySearch } from '../ProfileListBySearch'
 import Relay from '../Relay'
 import TrendingNotes from '../TrendingNotes'
+import { useMemo } from 'react'
 
 export default function SearchResult({ searchParams }: { searchParams: TSearchParams | null }) {
+  const notesSubRequests = useMemo(
+    () =>
+      searchParams?.type === 'notes'
+        ? [
+            {
+              source: 'relays' as const,
+              urls: SEARCHABLE_RELAY_URLS,
+              filter: { search: searchParams.search }
+            }
+          ]
+        : [],
+    [searchParams]
+  )
+
+  const hashtagSubRequests = useMemo(
+    () =>
+      searchParams?.type === 'hashtag'
+        ? [
+            {
+              source: 'relays' as const,
+              urls: BIG_RELAY_URLS,
+              filter: { '#t': [searchParams.search] }
+            }
+          ]
+        : [],
+    [searchParams]
+  )
+
   if (!searchParams) {
     return <TrendingNotes />
   }
@@ -17,24 +46,10 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
     return <ProfileListBySearch search={searchParams.search} />
   }
   if (searchParams.type === 'notes') {
-    return (
-      <NormalFeed
-        subRequests={[
-          { source: 'relays', urls: SEARCHABLE_RELAY_URLS, filter: { search: searchParams.search } }
-        ]}
-        showRelayCloseReason
-      />
-    )
+    return <NormalFeed subRequests={notesSubRequests} showRelayCloseReason />
   }
   if (searchParams.type === 'hashtag') {
-    return (
-      <NormalFeed
-        subRequests={[
-          { source: 'relays', urls: BIG_RELAY_URLS, filter: { '#t': [searchParams.search] } }
-        ]}
-        showRelayCloseReason
-      />
-    )
+    return <NormalFeed subRequests={hashtagSubRequests} showRelayCloseReason />
   }
   return <Relay url={searchParams.search} />
 }

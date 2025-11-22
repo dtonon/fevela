@@ -35,13 +35,13 @@ export default function SaveRelayDropdownMenu({
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { urls, relaySets } = useFavoriteRelays()
-  const normalizedUrls = useMemo(() => itemUrls.map(normalizeUrl).filter(Boolean), [urls])
+  const normalizedUrls = useMemo(() => itemUrls.map(normalizeUrl).filter(Boolean), [itemUrls])
   const alreadySaved = useMemo(() => {
     return (
       normalizedUrls.every((normalizedUrl) => urls.includes(normalizedUrl)) ||
       relaySets.some((set) => normalizedUrls.every((url) => set.relayUrls.includes(url)))
     )
-  }, [relaySets, normalizedUrls])
+  }, [relaySets, normalizedUrls, urls])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const trigger = bigButton ? (
@@ -113,9 +113,9 @@ function RelayItem({ itemUrls }: { itemUrls: string[] }) {
 
   const handleClick = async () => {
     if (saved) {
-      await deleteFavoriteRelays(urls)
+      await deleteFavoriteRelays(itemUrls)
     } else {
-      await addFavoriteRelays(urls)
+      await addFavoriteRelays(itemUrls)
     }
   }
 
