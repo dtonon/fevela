@@ -35,7 +35,7 @@ export default function SaveRelayDropdownMenu({
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { urls, relaySets } = useFavoriteRelays()
-  const normalizedUrls = useMemo(() => itemUrls.map(normalizeUrl).filter(Boolean), [urls])
+  const normalizedUrls = useMemo(() => itemUrls.map(normalizeUrl).filter(Boolean), [itemUrls])
   const alreadySaved = useMemo(() => {
     return (
       normalizedUrls.every((normalizedUrl) => urls.includes(normalizedUrl)) ||
@@ -113,9 +113,9 @@ function RelayItem({ itemUrls }: { itemUrls: string[] }) {
 
   const handleClick = async () => {
     if (saved) {
-      await deleteFavoriteRelays(urls)
+      await deleteFavoriteRelays(itemUrls)
     } else {
-      await addFavoriteRelays(urls)
+      await addFavoriteRelays(itemUrls)
     }
   }
 
