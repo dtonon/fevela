@@ -8,6 +8,7 @@ export function EmbeddedHashtag({ hashtag }: { hashtag: string }) {
       to={toNoteList({ hashtag: hashtag.replace('#', '') })}
       onClick={(e) => e.stopPropagation()}
     >
+      {hashtag[0] === '#' ? '' : '#'}
       {hashtag}
     </SecondaryPageLink>
   )

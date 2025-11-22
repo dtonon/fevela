@@ -1,30 +1,15 @@
 import { useTranslatedEvent } from '@/hooks'
 import { LINK_PREVIEW_MODE } from '@/constants'
-import {
-  EmbeddedEmojiParser,
-  EmbeddedEventParser,
-  EmbeddedHashtagParser,
-  EmbeddedLNInvoiceParser,
-  EmbeddedMentionParser,
-  EmbeddedUrlParser,
-  EmbeddedWebsocketUrlParser,
-  parseContent
-} from '@/lib/content-parser'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
-import { getImetaInfosFromEvent } from '@/lib/event'
-import { getEmojiInfosFromEmojiTags, getImetaInfoFromImetaTag } from '@/lib/tag'
+import { getImetaInfoFromImetaTag } from '@/lib/tag'
 import { cn } from '@/lib/utils'
 import mediaUpload from '@/services/media-upload.service'
 import { TImetaInfo } from '@/types'
 import { Event } from '@nostr/tools/wasm'
-import { useMemo } from 'react'
-import {
-  EmbeddedHashtag,
-  EmbeddedLNInvoice,
-  EmbeddedMention,
-  EmbeddedNote,
-  EmbeddedWebsocketUrl
-} from '../Embedded'
+import { parse } from '@nostr/tools/nip27'
+import { neventEncode, naddrEncode, nprofileEncode } from '@nostr/tools/nip19'
+import { ReactElement, useMemo } from 'react'
+import { EmbeddedHashtag, EmbeddedMention, EmbeddedNote, EmbeddedWebsocketUrl } from '../Embedded'
 import Emoji from '../Emoji'
 import ExternalLink from '../ExternalLink'
 import ImageGallery from '../ImageGallery'
@@ -45,125 +30,108 @@ export default function Content({
 }) {
   const { linkPreviewMode } = useUserPreferences()
   const translatedEvent = useTranslatedEvent(event?.id)
-  const { nodes, allImages, lastNormalUrl, emojiInfos } = useMemo(() => {
-    const _content = translatedEvent?.content ?? event?.content ?? content
-    if (!_content) return {}
+  const nodes = useMemo(() => {
+    const nodes: ReactElement[] = []
+    const allImages: TImetaInfo[] = []
+    let imageIndex = 0
 
-    const nodes = parseContent(_content, [
-      EmbeddedUrlParser,
-      EmbeddedLNInvoiceParser,
-      EmbeddedWebsocketUrlParser,
-      EmbeddedEventParser,
-      EmbeddedMentionParser,
-      EmbeddedHashtagParser,
-      EmbeddedEmojiParser
-    ])
+    for (const block of parse(translatedEvent ?? event ?? content ?? '')) {
+      switch (block.type) {
+        case 'text': {
+          if (block.text.trim() === '') continue
 
-    const imetaInfos = event ? getImetaInfosFromEvent(event) : []
-    const allImages = nodes
-      .map((node) => {
-        if (node.type === 'image') {
-          const imageInfo = imetaInfos.find((image) => image.url === node.data)
-          if (imageInfo) {
-            return imageInfo
+          nodes.push(<span>{block.text}</span>)
+          break
+        }
+        case 'url': {
+          if (
+            block.url.startsWith('https://www.youtube.com/watch') ||
+            block.url.startsWith('https://youtu.be/')
+          ) {
+            nodes.push(
+              <YoutubeEmbeddedPlayer url={block.url} className="mt-2" mustLoad={mustLoadMedia} />
+            )
+          } else if (linkPreviewMode === LINK_PREVIEW_MODE.ENABLED) {
+            nodes.push(<WebPreview className="mt-2" url={block.url} />)
+          } else {
+            nodes.push(<ExternalLink url={block.url} />)
           }
-          const tag = mediaUpload.getImetaTagByUrl(node.data)
-          return tag
-            ? getImetaInfoFromImetaTag(tag, event?.pubkey)
-            : { url: node.data, pubkey: event?.pubkey }
+          break
         }
-        if (node.type === 'images') {
-          const urls = Array.isArray(node.data) ? node.data : [node.data]
-          return urls.map((url) => {
-            const imageInfo = imetaInfos.find((image) => image.url === url)
-            return imageInfo ?? { url, pubkey: event?.pubkey }
-          })
+        case 'relay': {
+          nodes.push(<EmbeddedWebsocketUrl url={block.url} />)
+          break
         }
-        return null
-      })
-      .filter(Boolean)
-      .flat() as TImetaInfo[]
+        case 'image': {
+          if (nodes.length > 0 && (nodes[nodes.length - 1].type as any).name === 'ImageGallery') {
+            nodes[nodes.length - 1] = (
+              <ImageGallery
+                className="mt-2"
+                images={allImages}
+                start={(nodes[nodes.length - 1].props as any).start}
+                end={imageIndex + 1}
+                mustLoad={mustLoadMedia}
+              />
+            )
+          } else {
+            nodes.push(
+              <ImageGallery
+                className="mt-2"
+                images={allImages}
+                start={imageIndex}
+                end={imageIndex + 1}
+                mustLoad={mustLoadMedia}
+              />
+            )
+          }
 
-    const emojiInfos = getEmojiInfosFromEmojiTags(event?.tags)
+          let imeta: TImetaInfo | null = null
+          if (event) {
+            let tag = event.tags.find(
+              ([k, ...vals]) => k === 'imeta' && vals.find((val) => val === `url ${block.url}`)
+            )
+            if (!tag) tag = mediaUpload.getImetaTagByUrl(block.url)
+            if (tag) {
+              imeta = getImetaInfoFromImetaTag(tag, event.pubkey)
+            }
+          }
+          if (!imeta) imeta = { url: block.url, pubkey: event?.pubkey }
 
-    const lastNormalUrlNode = nodes.findLast((node) => node.type === 'url')
-    const lastNormalUrl =
-      typeof lastNormalUrlNode?.data === 'string' ? lastNormalUrlNode.data : undefined
+          allImages.push(imeta)
+          imageIndex++
+          break
+        }
+        case 'video': {
+          nodes.push(<MediaPlayer className="mt-2" src={block.url} mustLoad={mustLoadMedia} />)
+          break
+        }
+        case 'audio': {
+          nodes.push(<MediaPlayer className="mt-2" src={block.url} mustLoad={mustLoadMedia} />)
+          break
+        }
+        case 'reference': {
+          if ('id' in block.pointer) {
+            nodes.push(<EmbeddedNote noteId={neventEncode(block.pointer)} className="mt-2" />)
+          } else if ('identifier' in block.pointer) {
+            nodes.push(<EmbeddedNote noteId={naddrEncode(block.pointer)} className="mt-2" />)
+          } else {
+            nodes.push(<EmbeddedMention userId={nprofileEncode(block.pointer)} />)
+          }
+          break
+        }
+        case 'hashtag': {
+          nodes.push(<EmbeddedHashtag hashtag={block.value} />)
+          break
+        }
+        case 'emoji': {
+          nodes.push(<Emoji classNames={{ img: 'mb-1' }} emoji={block} />)
+          break
+        }
+      }
+    }
 
-    return { nodes, allImages, emojiInfos, lastNormalUrl }
-  }, [event, translatedEvent, content])
+    return nodes
+  }, [translatedEvent ?? event ?? content])
 
-  if (!nodes || nodes.length === 0) {
-    return null
-  }
-
-  let imageIndex = 0
-  return (
-    <div className={cn('text-wrap break-words whitespace-pre-wrap', className)}>
-      {nodes.map((node, index) => {
-        if (node.type === 'text') {
-          return node.data
-        }
-        if (node.type === 'image' || node.type === 'images') {
-          const start = imageIndex
-          const end = imageIndex + (Array.isArray(node.data) ? node.data.length : 1)
-          imageIndex = end
-          return (
-            <ImageGallery
-              className="mt-2"
-              key={index}
-              images={allImages}
-              start={start}
-              end={end}
-              mustLoad={mustLoadMedia}
-            />
-          )
-        }
-        if (node.type === 'media') {
-          return (
-            <MediaPlayer className="mt-2" key={index} src={node.data} mustLoad={mustLoadMedia} />
-          )
-        }
-        if (node.type === 'url') {
-          return <ExternalLink url={node.data} key={index} />
-        }
-        if (node.type === 'invoice') {
-          return <EmbeddedLNInvoice invoice={node.data} key={index} className="mt-2" />
-        }
-        if (node.type === 'websocket-url') {
-          return <EmbeddedWebsocketUrl url={node.data} key={index} />
-        }
-        if (node.type === 'event') {
-          const id = node.data.split(':')[1]
-          return <EmbeddedNote key={index} noteId={id} className="mt-2" />
-        }
-        if (node.type === 'mention') {
-          return <EmbeddedMention key={index} userId={node.data.split(':')[1]} />
-        }
-        if (node.type === 'hashtag') {
-          return <EmbeddedHashtag hashtag={node.data} key={index} />
-        }
-        if (node.type === 'emoji') {
-          const shortcode = node.data.split(':')[1]
-          const emoji = emojiInfos.find((e) => e.shortcode === shortcode)
-          if (!emoji) return node.data
-          return <Emoji classNames={{ img: 'mb-1' }} emoji={emoji} key={index} />
-        }
-        if (node.type === 'youtube') {
-          return (
-            <YoutubeEmbeddedPlayer
-              key={index}
-              url={node.data}
-              className="mt-2"
-              mustLoad={mustLoadMedia}
-            />
-          )
-        }
-        return null
-      })}
-      {linkPreviewMode === LINK_PREVIEW_MODE.ENABLED && lastNormalUrl && (
-        <WebPreview className="mt-2" url={lastNormalUrl} />
-      )}
-    </div>
-  )
+  return <div className={cn('text-wrap break-words whitespace-pre-wrap', className)}>{nodes}</div>
 }
