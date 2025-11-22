@@ -41,7 +41,7 @@ export default function SaveRelayDropdownMenu({
       normalizedUrls.every((normalizedUrl) => urls.includes(normalizedUrl)) ||
       relaySets.some((set) => normalizedUrls.every((url) => set.relayUrls.includes(url)))
     )
-  }, [relaySets, normalizedUrls])
+  }, [relaySets, normalizedUrls, urls])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const trigger = bigButton ? (
