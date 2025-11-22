@@ -1,15 +1,16 @@
 import FollowingBadge from '@/components/FollowingBadge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { formatNpub, userIdToPubkey } from '@/lib/pubkey'
+import { formatNpub } from '@/lib/pubkey'
 import { cn } from '@/lib/utils'
 import { SuggestionKeyDownProps } from '@tiptap/suggestion'
+import { NostrUser } from '@nostr/gadgets/metadata'
 import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 import Nip05 from '../../../Nip05'
 import { SimpleUserAvatar } from '../../../UserAvatar'
 import { SimpleUsername } from '../../../Username'
 
 export interface MentionListProps {
-  items: string[]
+  items: NostrUser[]
   command: (payload: { id: string; label?: string }) => void
 }
 
@@ -24,7 +25,7 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>((props, ref)
     const item = props.items[index]
 
     if (item) {
-      props.command({ id: item, label: formatNpub(item) })
+      props.command({ id: formatNpub(item.pubkey), label: formatNpub(item.pubkey) })
     }
   }
 
@@ -81,18 +82,18 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>((props, ref)
             'cursor-pointer text-start items-center m-1 p-2 outline-none transition-colors [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 rounded-md',
             selectedIndex === index && 'bg-accent text-accent-foreground'
           )}
-          key={item}
+          key={item.pubkey}
           onClick={() => selectItem(index)}
           onMouseEnter={() => setSelectedIndex(index)}
         >
           <div className="flex gap-2 w-80 items-center truncate pointer-events-none">
-            <SimpleUserAvatar userId={item} />
+            <SimpleUserAvatar profile={item} />
             <div className="flex-1 w-0">
               <div className="flex items-center gap-2">
-                <SimpleUsername userId={item} className="font-semibold truncate" />
-                <FollowingBadge userId={item} />
+                <SimpleUsername profile={item} className="font-semibold truncate" />
+                <FollowingBadge pubkey={item.pubkey} />
               </div>
-              <Nip05 pubkey={userIdToPubkey(item)} />
+              <Nip05 pubkey={item.pubkey} />
             </div>
           </div>
         </button>

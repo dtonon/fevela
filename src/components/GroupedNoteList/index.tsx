@@ -13,7 +13,6 @@ import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
-import { userIdToPubkey } from '@/lib/pubkey'
 import {
   forwardRef,
   useCallback,
@@ -253,16 +252,7 @@ const GroupedNoteList = forwardRef(
 
       const searchProfiles = async () => {
         try {
-          const npubs = await client.searchNpubsFromLocal(userFilter, 1000)
-          const pubkeys = npubs
-            .map((npub) => {
-              try {
-                return userIdToPubkey(npub)
-              } catch {
-                return null
-              }
-            })
-            .filter((pubkey): pubkey is string => pubkey !== null)
+          const pubkeys = await client.searchPubKeysFromLocal(userFilter, 1000)
           setMatchingPubkeys(new Set(pubkeys))
         } catch (error) {
           console.error('Error searching profiles:', error)

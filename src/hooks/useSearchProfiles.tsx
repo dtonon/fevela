@@ -13,7 +13,7 @@ export function useSearchProfiles(search: string, limit: number) {
   const [profiles, setProfiles] = useState<NostrUser[]>([])
 
   useEffect(() => {
-    const fetchProfiles = async () => {
+    ;(async () => {
       if (!search) {
         setProfiles([])
         return
@@ -21,38 +21,45 @@ export function useSearchProfiles(search: string, limit: number) {
 
       setIsFetching(true)
       setProfiles([])
-      try {
-        const profiles = await client.searchProfilesFromLocal(search, limit)
-        setProfiles(profiles)
-        if (profiles.length >= limit) {
-          return
-        }
-        const existingPubkeys = new Set(profiles.map((profile) => profile.pubkey))
-        const fetchedProfiles = await client.searchProfiles(
-          searchableRelayUrls.concat(SEARCHABLE_RELAY_URLS).slice(0, 4),
-          {
-            search,
-            limit
-          }
-        )
-        if (fetchedProfiles.length) {
-          fetchedProfiles.forEach((profile) => {
-            if (existingPubkeys.has(profile.pubkey)) {
-              return
-            }
-            existingPubkeys.add(profile.pubkey)
-            profiles.push(profile)
-          })
-          setProfiles([...profiles])
-        }
-      } catch (err) {
-        setError(err as Error)
-      } finally {
-        setIsFetching(false)
-      }
-    }
 
-    fetchProfiles()
+      const both: Promise<void>[] = []
+      let profiles: NostrUser[] = []
+      let have: Set<string> = new Set()
+
+      function handleResults(results: NostrUser[]) {
+        if (profiles.length === 0) {
+          profiles = results
+          have = new Set(results.map((r) => r.pubkey))
+        } else {
+          for (let i = 0; i < results.length; i++) {
+            if (!have.has(results[i].pubkey)) {
+              profiles.push(results[i])
+              have.add(results[i].pubkey)
+            }
+          }
+        }
+
+        setProfiles(profiles)
+      }
+
+      const local = client.searchProfilesFromLocal(search, limit).then(handleResults)
+      both.push(local)
+
+      const remote = client
+        .searchProfiles(searchableRelayUrls.concat(SEARCHABLE_RELAY_URLS).slice(0, 4), {
+          search,
+          limit
+        })
+        .then(handleResults)
+      both.push(remote)
+
+      const results = await Promise.allSettled(both)
+      if (results.every((p) => p.status === 'rejected')) {
+        setError(new Error(`fail to search profiles: ${results.map((v) => v.reason)}`))
+      }
+
+      setIsFetching(false)
+    })()
   }, [searchableRelayUrls, search, limit])
 
   return { isFetching, error, profiles }

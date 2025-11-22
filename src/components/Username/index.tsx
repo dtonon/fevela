@@ -4,6 +4,7 @@ import { useFetchProfile } from '@/hooks'
 import { toProfile } from '@/lib/link'
 import { cn } from '@/lib/utils'
 import { SecondaryPageLink } from '@/PageManager'
+import { NostrUser } from '@nostr/gadgets/metadata'
 import ProfileCard from '../ProfileCard'
 
 export default function Username({
@@ -52,18 +53,23 @@ export default function Username({
 
 export function SimpleUsername({
   userId,
+  profile: providedProfile,
   showAt = false,
   className,
   skeletonClassName,
   withoutSkeleton = false
 }: {
-  userId: string
+  userId?: string
+  profile?: NostrUser
   showAt?: boolean
   className?: string
   skeletonClassName?: string
   withoutSkeleton?: boolean
 }) {
-  const { profile, isFetching } = useFetchProfile(userId)
+  const { profile: fetchedProfile, isFetching } = useFetchProfile(
+    providedProfile ? undefined : userId
+  )
+  const profile = providedProfile || fetchedProfile
   if (!profile && isFetching && !withoutSkeleton) {
     return (
       <div className="py-1">
