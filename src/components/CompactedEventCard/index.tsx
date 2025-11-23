@@ -1,3 +1,4 @@
+import { parse } from '@nostr/tools/nip27'
 import { Separator } from '@/components/ui/separator'
 import { Skeleton } from '@/components/ui/skeleton'
 import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
@@ -8,7 +9,7 @@ import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import client from '@/services/client.service'
 import { Event, verifyEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
-import { neventEncode } from '@nostr/tools/nip19'
+import { neventEncode, nprofileEncode, npubEncode } from '@nostr/tools/nip19'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Collapsible from '../Collapsible'
@@ -17,64 +18,13 @@ import UserAvatar from '../UserAvatar'
 import Username, { SimpleUsername } from '../Username'
 import { useSecondaryPage } from '@/PageManager'
 import { toNote, toProfile } from '@/lib/link'
-import { userIdToPubkey } from '@/lib/pubkey'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
 import { username } from '@/lib/event-metadata'
 import { Repeat2 } from 'lucide-react'
+import { truncateUrl } from '@/lib/url'
 
-// Helper function to extract preview text from event
-async function getPreviewText(event: Event): Promise<string> {
-  // Define media URL patterns
-  const imagePattern = /https?:\/\/\S+\.(jpg|jpeg|png|gif|webp)\S*/gi
-  const videoPattern = /https?:\/\/\S+\.(mp4|webm|mov)\S*/gi
-  const audioPattern = /https?:\/\/\S+\.(mp3|wav|ogg)\S*/gi
-  const nostrEntity = /nostr:(note|nevent|naddr|nrelay)[a-zA-Z0-9]+/g
-  const nostrProfile = /nostr:(npub|nprofile)[a-zA-Z0-9]+/g
-
-  let processedContent = event.content.trim()
-
-  processedContent = processedContent.replace(nostrEntity, '«mention»')
-
-  const profileMatches = processedContent.match(nostrProfile)
-  if (profileMatches) {
-    for (const match of profileMatches) {
-      try {
-        const userId = match.replace('nostr:', '')
-        const pubkey = userIdToPubkey(userId)
-        if (pubkey) {
-          const profile = await client.fetchProfile(userId)
-          if (profile) {
-            processedContent = processedContent.replace(match, `@${username(profile)}`)
-          } else {
-            processedContent = processedContent.replace(match, `@${userId.substring(0, 12)}...`)
-          }
-        }
-      } catch {
-        // If parsing fails, keep the original
-      }
-    }
-  }
-
-  processedContent = processedContent.replace(imagePattern, '«image»').trim()
-  processedContent = processedContent.replace(videoPattern, '«video»').trim()
-  processedContent = processedContent.replace(audioPattern, '«audio»').trim()
-
-  // Strip markdown and formatting
-  const plainText = processedContent
-    .replace(/[*_~`#]/g, '') // Remove markdown characters
-    .replace(/\n+/g, ' ') // Replace newlines with spaces
-    .replace(/\s+/g, ' ') // Normalize whitespace
-    .trim()
-
-  // Truncate if too long
-  const maxLength = 150
-  if (plainText.length > maxLength) {
-    return plainText.substring(0, maxLength).trim() + '...'
-  }
-
-  return plainText
-}
+const maxLength = 150
 
 export default function CompactedEventCard({
   event,
@@ -304,4 +254,75 @@ export default function CompactedEventCard({
       <Separator />
     </div>
   )
+}
+
+// Helper function to extract preview text from event
+async function getPreviewText(event: Event): Promise<string> {
+  if (event.kind === 20) {
+    return '«image» ' + event.content.trim().substring(0, maxLength - 8)
+  }
+
+  let plainText = ''
+
+  for (const block of parse(event.content)) {
+    switch (block.type) {
+      case 'text': {
+        plainText += block.text
+          .replace(/[*_~`#]/g, '') // Remove markdown characters
+          .replace(/\n+/g, ' ') // Replace newlines with spaces
+          .replace(/\s+/g, ' ') // Normalize whitespace
+        break
+      }
+      case 'video': {
+        plainText += '«video»'
+        break
+      }
+      case 'audio': {
+        plainText += '«audio»'
+        break
+      }
+      case 'image': {
+        plainText += '«image»'
+        break
+      }
+      case 'reference': {
+        if ('id' in block.pointer) {
+          plainText += '«mention»'
+        } else if ('identifier' in block.pointer) {
+          plainText += '«mention»'
+        } else {
+          const profile = await client.fetchProfile(nprofileEncode(block.pointer))
+          if (profile) {
+            plainText += `@${username(profile)}`
+          } else {
+            plainText += `@${npubEncode(block.pointer.pubkey).slice(0, 12)}...`
+          }
+        }
+        break
+      }
+      case 'relay': {
+        plainText += block.url
+        break
+      }
+      case 'url': {
+        plainText += truncateUrl(block.url)
+        break
+      }
+      case 'hashtag': {
+        plainText += '#' + block.value
+        break
+      }
+      case 'emoji': {
+        plainText += ':' + block.shortcode + ':'
+        break
+      }
+    }
+
+    // Truncate if too long
+    if (plainText.length > maxLength) {
+      return plainText.trim().substring(0, maxLength).trim() + '...'
+    }
+  }
+
+  return plainText.trim()
 }
