@@ -1,5 +1,7 @@
+import { SubCloser } from '@nostr/tools/abstract-pool'
+import { parse } from '@nostr/tools/nip27'
 import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
-import { compareEvents, getEmbeddedPubkeys } from '@/lib/event'
+import { compareEvents } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
@@ -9,15 +11,7 @@ import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { matchFilter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
-import {
-  forwardRef,
-  useCallback,
-  useEffect,
-  useImperativeHandle,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
 import { NotificationItem } from '../NotificationList/NotificationItem'
@@ -38,10 +32,7 @@ const ConversationList = forwardRef((_, ref) => {
   const { notificationListStyle } = useUserPreferences()
   const [refreshCount, setRefreshCount] = useState(0)
   const [loading, setLoading] = useState(true)
-  const [notifications, setNotifications] = useState<NostrEvent[]>([])
   const [conversations, setConversations] = useState<NostrEvent[]>([])
-  const [filteredConversations, setFilteredConversations] = useState<NostrEvent[]>([])
-  const [visibleConversations, setVisibleConversations] = useState<NostrEvent[]>([])
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
@@ -60,40 +51,6 @@ const ConversationList = forwardRef((_, ref) => {
     ],
     []
   )
-
-  // Filter events to show only conversations (not explicit mentions)
-  useEffect(() => {
-    if (!pubkey) {
-      setConversations([])
-      return
-    }
-
-    // Check if an event is an explicit mention in content (but not user's own post)
-    const isMention = (event: NostrEvent): boolean => {
-      // Include user's own posts regardless
-      if (event.pubkey === pubkey) {
-        return false
-      }
-      // Only check for explicit mentions in content (e.g., nostr:npub... references)
-      const embeddedPubkeys = getEmbeddedPubkeys(event)
-      return embeddedPubkeys.includes(pubkey)
-    }
-
-    const filterEvents = () => {
-      const filtered: NostrEvent[] = []
-
-      for (const event of notifications) {
-        const eventIsMention = isMention(event)
-        if (!eventIsMention) {
-          filtered.push(event)
-        }
-      }
-
-      setConversations(filtered)
-    }
-
-    filterEvents()
-  }, [notifications, pubkey])
 
   // Search for matching pubkeys when user filter changes
   useEffect(() => {
@@ -116,15 +73,13 @@ const ConversationList = forwardRef((_, ref) => {
   }, [userFilter])
 
   // Apply user filter (by author name or content)
-  useEffect(() => {
+  const filteredConversations = useMemo(() => {
     if (!userFilter.trim()) {
-      setFilteredConversations(conversations)
-      return
+      return conversations
     }
 
     const filterLower = userFilter.toLowerCase()
-
-    const filtered = conversations.filter((event) => {
+    return conversations.filter((event) => {
       // Check if author matches
       if (matchingPubkeys && matchingPubkeys.has(event.pubkey)) {
         return true
@@ -137,8 +92,6 @@ const ConversationList = forwardRef((_, ref) => {
 
       return false
     })
-
-    setFilteredConversations(filtered)
   }, [conversations, userFilter, matchingPubkeys])
 
   useImperativeHandle(
@@ -152,36 +105,19 @@ const ConversationList = forwardRef((_, ref) => {
     [loading]
   )
 
-  const handleNewEvent = useCallback(
-    (event: NostrEvent) => {
-      setNotifications((oldEvents) => {
-        const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
-        if (index !== -1 && oldEvents[index].id === event.id) {
-          return oldEvents
-        }
-
-        noteStatsService.updateNoteStatsByEvents([event])
-        if (index === -1) {
-          return [...oldEvents, event]
-        }
-        return [...oldEvents.slice(0, index), event, ...oldEvents.slice(index)]
-      })
-    },
-    [pubkey]
-  )
-
   useEffect(() => {
     if (current !== 'conversations') return
-
     if (!pubkey) {
       setUntil(undefined)
       return
     }
 
-    const init = async () => {
+    let subc: SubCloser | undefined
+    ;(async () => {
       setLoading(true)
-      setNotifications([])
+      setConversations([])
       setShowCount(SHOW_COUNT)
+
       const relayList = await client.fetchRelayList(pubkey)
 
       const subRequests: TFeedSubRequest[] = [
@@ -190,14 +126,6 @@ const ConversationList = forwardRef((_, ref) => {
           urls: relayList.read,
           filter: {
             '#p': [pubkey],
-            kinds: filterKinds
-          }
-        },
-        {
-          source: 'relays',
-          urls: relayList.write,
-          filter: {
-            authors: [pubkey],
             kinds: filterKinds
           }
         },
@@ -219,13 +147,19 @@ const ConversationList = forwardRef((_, ref) => {
 
       setSubRequests(subRequests)
 
-      const subc = client.subscribeTimeline(
+      // Check if an event is an explicit mention in content (but not user's own post)
+      // (we don't want mentions, we only want replies)
+
+      subc = client.subscribeTimeline(
         subRequests,
         { limit: LIMIT },
         {
           onEvents: (events, isFinal) => {
             if (events.length > 0) {
-              setNotifications(events)
+              const conversations = events.filter(
+                (evt) => evt.pubkey == pubkey || !eventMentionsPubkey(evt, pubkey)
+              )
+              setConversations(conversations)
             }
 
             if (isFinal) {
@@ -234,18 +168,13 @@ const ConversationList = forwardRef((_, ref) => {
             }
           },
           onNew: (event) => {
-            handleNewEvent(event)
+            if (event.pubkey == pubkey || !eventMentionsPubkey(event, pubkey)) handleNewEvent(event)
           }
         }
       )
+    })()
 
-      return () => subc.close()
-    }
-
-    const promise = init()
-    return () => {
-      promise.then((closer) => closer?.())
-    }
+    return () => subc?.close?.()
   }, [pubkey, refreshCount, filterKinds, current])
 
   useEffect(() => {
@@ -278,11 +207,7 @@ const ConversationList = forwardRef((_, ref) => {
     return () => {
       client.removeEventListener('newEvent', handler)
     }
-  }, [pubkey, active, filterKinds, handleNewEvent])
-
-  useEffect(() => {
-    setVisibleConversations(filteredConversations.slice(0, showCount))
-  }, [filteredConversations, showCount])
+  }, [pubkey, active, filterKinds])
 
   useEffect(() => {
     const options = {
@@ -292,29 +217,32 @@ const ConversationList = forwardRef((_, ref) => {
     }
 
     const loadMore = async () => {
-      if (showCount < filteredConversations.length) {
-        setShowCount((count) => count + SHOW_COUNT)
-        // preload more
-        if (filteredConversations.length - showCount > LIMIT / 2) {
+      // do these checks inside setters because react doesn't give us any other option
+      setShowCount((count) => {
+        // preload more?
+        if (filteredConversations.length - showCount <= LIMIT / 2) {
+          preloadMore()
+        }
+
+        return count + SHOW_COUNT
+      })
+
+      async function preloadMore() {
+        if (!pubkey || subRequests.length === 0 || !until || loading) return
+
+        setLoading(true)
+        const newConversations = (
+          await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
+        ).filter((evt) => evt.pubkey == pubkey || !eventMentionsPubkey(evt, pubkey))
+        setLoading(false)
+        if (newConversations.length === 0) {
+          setUntil(undefined)
           return
         }
+
+        setConversations((old) => [...old, ...newConversations])
+        setUntil(newConversations[newConversations.length - 1].created_at - 1)
       }
-
-      if (!pubkey || subRequests.length === 0 || !until || loading) return
-
-      setLoading(true)
-      const newNotifications = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
-      setLoading(false)
-      if (newNotifications.length === 0) {
-        setUntil(undefined)
-        return
-      }
-
-      if (newNotifications.length > 0) {
-        setNotifications((oldNotifications) => [...oldNotifications, ...newNotifications])
-      }
-
-      setUntil(newNotifications[newNotifications.length - 1].created_at - 1)
     }
 
     const observerInstance = new IntersectionObserver((entries) => {
@@ -334,7 +262,7 @@ const ConversationList = forwardRef((_, ref) => {
         observerInstance.unobserve(currentBottomRef)
       }
     }
-  }, [pubkey, subRequests, until, loading, showCount, filteredConversations])
+  }, [pubkey, filteredConversations, subRequests, until, loading])
 
   const refresh = () => {
     topRef.current?.scrollIntoView({ behavior: 'instant', block: 'start' })
@@ -345,7 +273,7 @@ const ConversationList = forwardRef((_, ref) => {
 
   const list = (
     <div className={notificationListStyle === NOTIFICATION_LIST_STYLE.COMPACT ? 'pt-2' : ''}>
-      {visibleConversations.map((conversation) => (
+      {filteredConversations.slice(0, showCount).map((conversation) => (
         <NotificationItem key={conversation.id} notification={conversation} isNew={false} />
       ))}
       <div className="text-center text-sm text-muted-foreground">
@@ -411,6 +339,34 @@ const ConversationList = forwardRef((_, ref) => {
       )}
     </div>
   )
+
+  function eventMentionsPubkey(event: NostrEvent, pubkey: string): boolean {
+    for (const block of parse(event.content)) {
+      // Only check for explicit mentions in content (e.g., nostr:npub... references)
+      if (block.type === 'reference' && 'pubkey' in block && block.pubkey === pubkey) {
+        // this is a mention
+        return true
+      }
+    }
+
+    return false
+  }
+
+  function handleNewEvent(event: NostrEvent) {
+    setConversations((oldEvents) => {
+      const index = oldEvents.findIndex((oldEvent) => compareEvents(oldEvent, event) <= 0)
+      if (index !== -1 && oldEvents[index].id === event.id) {
+        return oldEvents
+      }
+
+      noteStatsService.updateNoteStatsByEvents([event])
+      if (index === -1) {
+        return [...oldEvents, event]
+      }
+      return [...oldEvents.slice(0, index), event, ...oldEvents.slice(index)]
+    })
+  }
 })
+
 ConversationList.displayName = 'ConversationList'
 export default ConversationList
