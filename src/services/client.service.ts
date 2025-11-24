@@ -1,5 +1,5 @@
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
-import { isValidPubkey, pubkeyToNpub } from '@/lib/pubkey'
+import { isValidPubkey } from '@/lib/pubkey'
 import { tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
 import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
