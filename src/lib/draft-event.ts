@@ -141,7 +141,9 @@ export async function createShortTextNoteDraftEvent(
   }
 
   // p tags
-  tags.push(...mentions.map((pubkey) => buildPTag(pubkey)))
+  tags.push(
+    ...mentions.filter((pubkey) => pubkey !== client.pubkey).map((pubkey) => buildPTag(pubkey))
+  )
 
   if (options.addClientTag) {
     tags.push(buildClientTag())
@@ -210,7 +212,9 @@ export async function createCommentDraftEvent(
   }
 
   tags.push(
-    ...mentions.filter((pubkey) => pubkey !== parentEvent.pubkey).map((pubkey) => buildPTag(pubkey))
+    ...mentions
+      .filter((pubkey) => pubkey !== parentEvent.pubkey && pubkey !== client.pubkey)
+      .map((pubkey) => buildPTag(pubkey))
   )
 
   if (rootCoordinateTag) {
@@ -233,7 +237,7 @@ export async function createCommentDraftEvent(
         ? buildATag(parentEvent)
         : buildETag(parentEvent.id, parentEvent.pubkey),
       buildKTag(parentEvent.kind),
-      buildPTag(parentEvent.pubkey)
+      ...(parentEvent.pubkey !== client.pubkey ? [buildPTag(parentEvent.pubkey)] : [])
     ]
   )
 
@@ -388,7 +392,9 @@ export async function createPollDraftEvent(
   tags.push(...quoteReplaceableCoordinates.map((coordinate) => buildReplaceableQTag(coordinate)))
 
   // p tags
-  tags.push(...mentions.map((pubkey) => buildPTag(pubkey)))
+  tags.push(
+    ...mentions.filter((pubkey) => pubkey !== client.pubkey).map((pubkey) => buildPTag(pubkey))
+  )
 
   const validOptions = options.filter((opt) => opt.trim())
   tags.push(...validOptions.map((option) => ['option', randomString(9), option.trim()]))
