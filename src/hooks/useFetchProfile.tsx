@@ -4,7 +4,7 @@ import client from '@/services/client.service'
 import { NostrUser } from '@nostr/gadgets/metadata'
 import { useEffect, useState } from 'react'
 
-export function useFetchProfile(id?: string) {
+export function useFetchProfile(input?: string) {
   const { profile: currentAccountProfile } = useNostr()
   const [isFetching, setIsFetching] = useState(true)
   const [error, setError] = useState<Error | null>(null)
@@ -18,15 +18,15 @@ export function useFetchProfile(id?: string) {
     ;(async () => {
       setIsFetching(true)
       try {
-        if (!id) {
+        if (!input) {
           setIsFetching(false)
-          setError(new Error('No id provided'))
+          setError(new Error('No input provided'))
           return
         }
 
-        const pubkey = userIdToPubkey(id)
+        const pubkey = userIdToPubkey(input)
         setPubkey(pubkey)
-        const profile = await client.fetchProfile(id)
+        const profile = await client.fetchProfile(input)
         if (profile) {
           setProfile(profile)
         }
@@ -52,7 +52,7 @@ export function useFetchProfile(id?: string) {
     return () => {
       client.removeEventListener('profileFetched:' + pubkey, handleProfileFetched)
     }
-  }, [id])
+  }, [input])
 
   useEffect(() => {
     if (currentAccountProfile && pubkey === currentAccountProfile.pubkey) {

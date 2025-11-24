@@ -5,9 +5,20 @@ import { toNoteList } from '@/lib/link'
 import { SecondaryPageLink } from '@/PageManager'
 import { BadgeAlert, BadgeCheck } from 'lucide-react'
 import { Favicon } from '../Favicon'
+import { NostrUser } from '@nostr/gadgets/metadata'
 
-export default function Nip05({ pubkey, append }: { pubkey: string; append?: string }) {
-  const { profile } = useFetchProfile(pubkey)
+export default function Nip05({
+  profile: providedProfile,
+  pubkey,
+  append
+}: {
+  pubkey?: string
+  profile?: NostrUser
+  append?: string
+}) {
+  const { profile: fetchedProfile } = useFetchProfile(providedProfile ? undefined : pubkey)
+  const profile = providedProfile || fetchedProfile
+
   const { nip05IsVerified, nip05Name, nip05Domain, isFetching } = useFetchNip05(
     profile?.metadata?.nip05,
     pubkey

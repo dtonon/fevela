@@ -370,7 +370,12 @@ const NoteList = forwardRef(
 
         {filteredEvents.map(({ event, reposters }) => (
           <NoteCard
-            key={event.id}
+            key={
+              event.id +
+              // this differentiates between reposts and direct notes:
+              ':' +
+              reposters.length
+            }
             className="w-full"
             event={event}
             filterMutedNotes={filterMutedNotes}
