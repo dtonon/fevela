@@ -126,11 +126,23 @@ export default function CompactedEventCard({
     setPreviewText(null)
 
     const generatePreview = async () => {
+      // For reposts, wait until targetEvent is loaded
+      if (isRepost && !targetEvent) return
+
       const eventToPreview = isRepost && targetEvent ? targetEvent : event
       const preview = await getPreviewText(eventToPreview)
       setPreviewText(preview)
     }
     generatePreview()
+
+    // Timeout for reposts that fail to load
+    if (isRepost && !targetEvent) {
+      const timeoutId = setTimeout(() => {
+        setPreviewText(t('Missing preview'))
+      }, 5000)
+
+      return () => clearTimeout(timeoutId)
+    }
   }, [event, isRepost, targetEvent, shouldShowPreview])
 
   // Repost logic - fetch target event for reposts
