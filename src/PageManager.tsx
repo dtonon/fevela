@@ -118,6 +118,40 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
   const { themeSetting } = useTheme()
   const { enableSingleColumnLayout } = useUserPreferences()
   const ignorePopStateRef = useRef(false)
+  const [leftColumnWidth, setLeftColumnWidth] = useState(() => {
+    const stored = localStorage.getItem('column-width')
+    return stored ? parseFloat(stored) : 50
+  })
+  const [isResizing, setIsResizing] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    localStorage.setItem('column-width', leftColumnWidth.toString())
+  }, [leftColumnWidth])
+
+  useEffect(() => {
+    if (!isResizing) return
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!containerRef.current) return
+      const containerRect = containerRef.current.getBoundingClientRect()
+      const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
+      // Clamp between 20% and 80%
+      setLeftColumnWidth(Math.max(20, Math.min(80, newWidth)))
+    }
+
+    const handleMouseUp = () => {
+      setIsResizing(false)
+    }
+
+    document.addEventListener('mousemove', handleMouseMove)
+    document.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove)
+      document.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isResizing])
 
   useEffect(() => {
     if (['/npub1', '/nprofile1'].some((prefix) => window.location.pathname.startsWith(prefix))) {
@@ -432,10 +466,16 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
               >
                 <Sidebar />
                 <div
+                  ref={containerRef}
                   className={cn(
-                    'grid grid-cols-2 w-full',
+                    'relative grid w-full',
                     themeSetting === 'pure-black' ? '' : 'gap-2 pr-2 py-2'
                   )}
+                  style={{
+                    gridTemplateColumns: `${leftColumnWidth}% ${100 - leftColumnWidth}%`,
+                    userSelect: isResizing ? 'none' : 'auto',
+                    cursor: isResizing ? 'col-resize' : 'auto'
+                  }}
                 >
                   <div
                     className={cn(
@@ -455,6 +495,18 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                       </div>
                     ))}
                   </div>
+                  {/* Resize handle */}
+                  <div
+                    className="absolute top-0 bottom-0 w-1 hover:w-2 -ml-1 cursor-col-resize z-10 transition-all"
+                    style={{
+                      left: `${leftColumnWidth}%`,
+                      backgroundColor: isResizing ? 'rgba(59, 130, 246, 0.5)' : 'transparent'
+                    }}
+                    onMouseDown={(e) => {
+                      e.preventDefault()
+                      setIsResizing(true)
+                    }}
+                  />
                   <div
                     className={cn(
                       'bg-background overflow-hidden',
