@@ -22,6 +22,17 @@ export default function LongFormArticle({
   const { push } = useSecondaryPage()
   const metadata = useMemo(() => getLongFormArticleMetadataFromEvent(event), [event])
 
+  // Strip title from content if it appears at the beginning
+  const processedContent = useMemo(() => {
+    if (!metadata.title) return event.content
+
+    const escapedTitle = metadata.title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    // Match optional whitespace, optional markdown headings (# or ##, etc.), the title, and trailing whitespace/newlines
+    const titleRegex = new RegExp(`^\\s*#{0,6}\\s*${escapedTitle}\\s*\n*`, 'i')
+
+    return event.content.replace(titleRegex, '').trimStart()
+  }, [event.content, metadata.title])
+
   const components = useMemo(
     () =>
       ({
@@ -104,7 +115,7 @@ export default function LongFormArticle({
         }}
         components={components}
       >
-        {event.content}
+        {processedContent}
       </Markdown>
       {metadata.tags.length > 0 && (
         <div className="flex gap-2 flex-wrap pb-2">
