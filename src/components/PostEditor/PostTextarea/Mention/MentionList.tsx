@@ -1,6 +1,6 @@
 import FollowingBadge from '@/components/FollowingBadge'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { formatNpub } from '@/lib/pubkey'
+import { formatNpub, pubkeyToNpub } from '@/lib/pubkey'
 import { cn } from '@/lib/utils'
 import { SuggestionKeyDownProps } from '@tiptap/suggestion'
 import { NostrUser } from '@nostr/gadgets/metadata'
@@ -25,7 +25,10 @@ const MentionList = forwardRef<MentionListHandle, MentionListProps>((props, ref)
     const item = props.items[index]
 
     if (item) {
-      props.command({ id: formatNpub(item.pubkey), label: formatNpub(item.pubkey) })
+      const fullNpub = pubkeyToNpub(item.pubkey)
+      if (fullNpub) {
+        props.command({ id: fullNpub, label: formatNpub(fullNpub) })
+      }
     }
   }
 
