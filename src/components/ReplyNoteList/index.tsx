@@ -163,6 +163,14 @@ export default function ReplyNoteList({
     if (loading || subRequests.length === 0 || currentIndex !== index) return
 
     setLoading(true)
+    let isClosed = false
+
+    // Timeout fallback in case relays don't respond
+    const timeoutId = setTimeout(() => {
+      if (!isClosed) {
+        setLoading(false)
+      }
+    }, 10000)
 
     let subc: SubCloser | undefined
     try {
@@ -174,6 +182,8 @@ export default function ReplyNoteList({
         {
           onEvents: (events, isFinal) => {
             if (isFinal) {
+              isClosed = true
+              clearTimeout(timeoutId)
               setUntil(
                 events.length >= LIMIT ? events[events.length - 1].created_at - 1 : undefined
               )
@@ -191,10 +201,14 @@ export default function ReplyNoteList({
         }
       )
     } catch (_err) {
+      clearTimeout(timeoutId)
       setLoading(false)
     }
 
-    return () => subc?.close?.()
+    return () => {
+      clearTimeout(timeoutId)
+      subc?.close?.()
+    }
   }, [subRequests, currentIndex, index])
 
   useEffect(() => {
@@ -233,13 +247,18 @@ export default function ReplyNoteList({
     if (loading || !until) return
 
     setLoading(true)
-    const events = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
-    const olderEvents = events.filter((evt) => isReplyNoteEvent(evt))
-    if (olderEvents.length > 0) {
-      addReplies(olderEvents)
+    try {
+      const events = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
+      const olderEvents = events.filter((evt) => isReplyNoteEvent(evt))
+      if (olderEvents.length > 0) {
+        addReplies(olderEvents)
+      }
+      setUntil(events.length ? events[events.length - 1].created_at - 1 : undefined)
+    } catch (_err) {
+      // Failed to load more, but don't block UI
+    } finally {
+      setLoading(false)
     }
-    setUntil(events.length ? events[events.length - 1].created_at - 1 : undefined)
-    setLoading(false)
   }
 
   const highlightReply = useCallback((key: string, eventId?: string, scrollTo = true) => {
