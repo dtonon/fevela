@@ -1,6 +1,6 @@
+import { npubEncode } from '@nostr/tools/nip19'
 import { getNoteBech32Id, isProtectedEvent } from '@/lib/event'
 import { toNjump } from '@/lib/link'
-import { pubkeyToNpub } from '@/lib/pubkey'
 import { simplifyUrl } from '@/lib/url'
 import { useCurrentRelays } from '@/providers/CurrentRelaysProvider'
 import { useFavoriteRelays } from '@/providers/FavoriteRelaysProvider'
@@ -240,7 +240,7 @@ export function useMenuActions({
         icon: Copy,
         label: t('Copy user ID'),
         onClick: () => {
-          navigator.clipboard.writeText(pubkeyToNpub(event.pubkey) ?? '')
+          navigator.clipboard.writeText(npubEncode(event.pubkey) ?? '')
           closeDrawer()
         }
       },

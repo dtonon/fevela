@@ -1,3 +1,4 @@
+import { npubEncode } from '@nostr/tools/nip19'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -5,7 +6,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { pubkeyToNpub } from '@/lib/pubkey'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { Bell, BellOff, Copy, Ellipsis } from 'lucide-react'
@@ -28,7 +28,7 @@ export default function ProfileOptions({ pubkey }: { pubkey: string }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent>
-        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(pubkeyToNpub(pubkey) ?? '')}>
+        <DropdownMenuItem onClick={() => navigator.clipboard.writeText(npubEncode(pubkey))}>
           <Copy />
           {t('Copy user ID')}
         </DropdownMenuItem>

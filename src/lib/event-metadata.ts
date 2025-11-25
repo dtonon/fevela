@@ -1,10 +1,11 @@
+import { npubEncode } from '@nostr/tools/nip19'
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
 import { TPollType, TRelayList } from '@/types'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { getSatoshisAmountFromBolt11 } from '@nostr/tools/nip57'
 import { getLightningAddressFromProfile } from './lightning'
-import { formatPubkey, pubkeyToNpub } from './pubkey'
+import { formatPubkey } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
 import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
 import { isTorBrowser } from './utils'
@@ -64,7 +65,7 @@ export function getProfileFromEvent(event: Event) {
       profileObj.nip05?.split('@')[0]?.trim()
     return {
       pubkey: event.pubkey,
-      npub: pubkeyToNpub(event.pubkey) ?? '',
+      npub: npubEncode(event.pubkey),
       banner: profileObj.banner,
       avatar: profileObj.picture,
       username: username || formatPubkey(event.pubkey),
@@ -81,7 +82,7 @@ export function getProfileFromEvent(event: Event) {
     console.error(event.content, err)
     return {
       pubkey: event.pubkey,
-      npub: pubkeyToNpub(event.pubkey) ?? '',
+      npub: npubEncode(event.pubkey),
       username: formatPubkey(event.pubkey)
     }
   }
