@@ -163,6 +163,13 @@ export default function ImageGallery({
                 closeOnPullUp: true,
                 closeOnPullDown: true
               }}
+              carousel={{
+                finite: images.length <= 1
+              }}
+              render={{
+                buttonPrev: images.length <= 1 ? () => null : undefined,
+                buttonNext: images.length <= 1 ? () => null : undefined
+              }}
               styles={{
                 toolbar: { paddingTop: '2.25rem' }
               }}
