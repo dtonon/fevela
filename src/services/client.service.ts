@@ -474,6 +474,9 @@ class ClientService extends EventTarget {
         if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
           eventsN.sort((a, b) => b.created_at - a.created_at)
         onEvents(eventsN, true)
+      } else {
+        // No events found, but still need to signal completion
+        onEvents([], true)
       }
     })
 
