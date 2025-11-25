@@ -124,6 +124,8 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
   })
   const [isResizing, setIsResizing] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
+  const handleRef = useRef<HTMLDivElement>(null)
+  const rafRef = useRef<number | null>(null)
 
   useEffect(() => {
     localStorage.setItem('column-width', leftColumnWidth.toString())
@@ -132,16 +134,39 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
   useEffect(() => {
     if (!isResizing) return
 
+    // Inject global cursor style with !important
+    const styleElement = document.createElement('style')
+    styleElement.id = 'resize-cursor-override'
+    styleElement.textContent = '* { cursor: col-resize !important; user-select: none !important; }'
+    document.head.appendChild(styleElement)
+
     const handleMouseMove = (e: MouseEvent) => {
       if (!containerRef.current) return
       const containerRect = containerRef.current.getBoundingClientRect()
       const newWidth = ((e.clientX - containerRect.left) / containerRect.width) * 100
-      // Clamp between 20% and 80%
-      setLeftColumnWidth(Math.max(20, Math.min(80, newWidth)))
+      const clampedWidth = Math.max(20, Math.min(80, newWidth))
+
+      // Update handle position immediately via DOM
+      if (handleRef.current) {
+        handleRef.current.style.left = `${clampedWidth}%`
+      }
+
+      // Throttle actual column width updates
+      if (rafRef.current !== null) return
+      rafRef.current = requestAnimationFrame(() => {
+        rafRef.current = null
+        setLeftColumnWidth(clampedWidth)
+      })
     }
 
     const handleMouseUp = () => {
       setIsResizing(false)
+      const style = document.getElementById('resize-cursor-override')
+      if (style) style.remove()
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
     }
 
     document.addEventListener('mousemove', handleMouseMove)
@@ -150,6 +175,12 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove)
       document.removeEventListener('mouseup', handleMouseUp)
+      const style = document.getElementById('resize-cursor-override')
+      if (style) style.remove()
+      if (rafRef.current !== null) {
+        cancelAnimationFrame(rafRef.current)
+        rafRef.current = null
+      }
     }
   }, [isResizing])
 
@@ -497,10 +528,11 @@ export function PageManager({ maxStackSize = 5 }: { maxStackSize?: number }) {
                   </div>
                   {/* Resize handle */}
                   <div
+                    ref={handleRef}
                     className="absolute top-0 bottom-0 w-1 hover:w-2 -ml-1 cursor-col-resize z-10 transition-all"
                     style={{
                       left: `${leftColumnWidth}%`,
-                      backgroundColor: isResizing ? 'rgba(59, 130, 246, 0.5)' : 'transparent'
+                      backgroundColor: isResizing ? 'hsl(var(--primary) / 0.5)' : 'transparent'
                     }}
                     onMouseDown={(e) => {
                       e.preventDefault()
