@@ -43,6 +43,7 @@ const NotificationList = forwardRef((_, ref) => {
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
+  const filterGeneration = useRef(0)
 
   const filter = useMemo<Omit<Filter, 'since' | 'until'> | undefined>(() => {
     if (!pubkey) return
@@ -94,6 +95,10 @@ const NotificationList = forwardRef((_, ref) => {
       setFilteredNotifications([])
       return
     }
+
+    // Increment generation to cancel previous filtering operations
+    filterGeneration.current += 1
+    const currentGeneration = filterGeneration.current
 
     // Text-based kinds that need mention filtering
     const textKinds = [
@@ -156,9 +161,14 @@ const NotificationList = forwardRef((_, ref) => {
         }
       }
 
-      setFilteredNotifications(
-        (await Promise.all(filtered)).filter((evt): evt is NonNullable<NostrEvent> => !!evt)
+      const results = (await Promise.all(filtered)).filter(
+        (evt): evt is NonNullable<NostrEvent> => !!evt
       )
+
+      // Only apply results if this is still the current generation
+      if (currentGeneration === filterGeneration.current) {
+        setFilteredNotifications(results)
+      }
     }
 
     filterEvents()
@@ -230,6 +240,9 @@ const NotificationList = forwardRef((_, ref) => {
   useEffect(() => {
     if (!subRequests || !pubkey) return
     if (current !== 'notifications') return
+
+    // Cancel any pending debounced events from previous subscription
+    handleNewEvent.cancel()
 
     setLoading(true)
     setEvents([])

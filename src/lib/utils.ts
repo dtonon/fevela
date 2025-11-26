@@ -149,7 +149,7 @@ export function batchDebounce<T>(func: (args: T[]) => void, delay: number) {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
   let accumulated: T[] = []
 
-  return (arg: T) => {
+  const debouncedFunc = (arg: T) => {
     accumulated.push(arg)
     if (timeoutId) {
       clearTimeout(timeoutId)
@@ -160,6 +160,16 @@ export function batchDebounce<T>(func: (args: T[]) => void, delay: number) {
       timeoutId = null
     }, delay)
   }
+
+  debouncedFunc.cancel = () => {
+    if (timeoutId) {
+      clearTimeout(timeoutId)
+      timeoutId = null
+    }
+    accumulated = []
+  }
+
+  return debouncedFunc
 }
 
 export function parseEmojiPickerUnified(unified: string): string | TEmoji | undefined {
