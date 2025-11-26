@@ -27,6 +27,7 @@ import ProfileFeed from './ProfileFeed'
 import Relays from './Relays'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { SimpleUsername } from '../Username'
+import { normalizeHttpUrl } from '@/lib/url'
 
 export default function Profile({ id }: { id?: string }) {
   const { t } = useTranslation()
@@ -179,7 +180,7 @@ export default function Profile({ id }: { id?: string }) {
                 <div className="flex gap-1 items-center text-primary mt-2 truncate select-text">
                   <Link size={14} className="shrink-0" />
                   <a
-                    href={website}
+                    href={normalizeHttpUrl(website)}
                     target="_blank"
                     className="hover:underline truncate flex-1 max-w-fit w-0"
                   >
