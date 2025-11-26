@@ -218,7 +218,10 @@ const NotificationList = forwardRef((_, ref) => {
 
         const [idx, found] = binarySearch(oldEvents, (b) => {
           if (event.id === b.id) return 0
-          if (event.created_at === b.created_at) return -1
+          if (event.created_at === b.created_at) {
+            // Stable tiebreaker when timestamps match
+            return event.id < b.id ? -1 : 1
+          }
           return b.created_at - event.created_at
         })
         if (found) continue
@@ -255,7 +258,14 @@ const NotificationList = forwardRef((_, ref) => {
       {
         onEvents: (events, isFinal) => {
           if (events.length > 0) {
-            setEvents(events)
+            // Deduplicate events by ID
+            const seen = new Set<string>()
+            const deduped = events.filter((e) => {
+              if (seen.has(e.id)) return false
+              seen.add(e.id)
+              return true
+            })
+            setEvents(deduped)
           }
 
           if (isFinal) {
@@ -333,10 +343,21 @@ const NotificationList = forwardRef((_, ref) => {
       setLoading(false)
 
       if (olderEvents.length > 0) {
-        setEvents((currentEvents) => [
-          ...currentEvents,
-          ...olderEvents.filter((event) => event.pubkey !== pubkey)
-        ])
+        setEvents((currentEvents) => {
+          const existingIds = new Set(currentEvents.map((e) => e.id))
+          const seenInBatch = new Set<string>()
+          const newEvents = olderEvents.filter((event) => {
+            // Skip own events
+            if (event.pubkey === pubkey) return false
+            // Skip if already in current events
+            if (existingIds.has(event.id)) return false
+            // Skip if duplicate within olderEvents batch
+            if (seenInBatch.has(event.id)) return false
+            seenInBatch.add(event.id)
+            return true
+          })
+          return [...currentEvents, ...newEvents]
+        })
       } else {
         setHasMore(false)
       }
