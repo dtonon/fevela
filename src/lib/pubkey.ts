@@ -1,12 +1,10 @@
+import { npubEncode } from '@nostr/tools/nip19'
 import { LRUCache } from 'lru-cache'
 import * as nip19 from '@nostr/tools/nip19'
 
 export function formatPubkey(pubkey: string) {
-  const npub = pubkeyToNpub(pubkey)
-  if (npub) {
-    return formatNpub(npub)
-  }
-  return pubkey.slice(0, 4) + '...' + pubkey.slice(-4)
+  const npub = npubEncode(pubkey)
+  return formatNpub(npub)
 }
 
 export function formatNpub(npub: string, length = 12) {
@@ -28,14 +26,6 @@ export function formatUserId(userId: string) {
     return formatNpub(userId)
   }
   return formatPubkey(userId)
-}
-
-export function pubkeyToNpub(pubkey: string) {
-  try {
-    return nip19.npubEncode(pubkey)
-  } catch {
-    return null
-  }
 }
 
 export function userIdToPubkey(userId: string) {
