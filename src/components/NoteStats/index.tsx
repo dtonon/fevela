@@ -40,7 +40,7 @@ export default function NoteStats({
 
   if (isSmallScreen) {
     return (
-      <div className={cn('select-none', className)}>
+      <div className={cn('select-none overflow-visible', className)}>
         {displayTopZapsAndLikes && (
           <>
             <TopZaps event={event} />
@@ -67,7 +67,7 @@ export default function NoteStats({
   }
 
   return (
-    <div className={cn('select-none', className)}>
+    <div className={cn('select-none overflow-visible', className)}>
       {displayTopZapsAndLikes && (
         <>
           <TopZaps event={event} />

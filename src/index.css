@@ -193,3 +193,23 @@
     transform: translate(-1px, -1px) rotate(-1deg);
   }
 }
+
+@keyframes radialProgress {
+  0% {
+    stroke-dashoffset: 251;
+  }
+  100% {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes ringExplode {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.8);
+    opacity: 0;
+  }
+}

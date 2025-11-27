@@ -37,13 +37,13 @@ export default function MainNoteCard({
 
   return (
     <div
-      className={className}
+      className={cn(className, 'overflow-visible')}
       onClick={(e) => {
         e.stopPropagation()
         push(toNote(originalNoteId ?? event))
       }}
     >
-      <div className={cn('clickable', embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3')}>
+      <div className={cn('clickable overflow-visible', embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3')}>
         <Collapsible alwaysExpand={embedded}>
           {pinned && <PinnedButton event={event} />}
           <RepostDescription className={embedded ? '' : 'px-4'} reposters={reposters} />
