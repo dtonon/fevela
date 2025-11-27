@@ -17,7 +17,6 @@ export default function Likes({ event }: { event: Event }) {
   const [liking, setLiking] = useState<string | null>(null)
   const longPressTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [isLongPressing, setIsLongPressing] = useState<string | null>(null)
-  const [isCompleted, setIsCompleted] = useState<string | null>(null)
 
   const likes = useMemo(() => {
     const _likes = noteStats?.likes
@@ -64,7 +63,10 @@ export default function Likes({ event }: { event: Event }) {
 
     setIsLongPressing(key)
     longPressTimerRef.current = setTimeout(() => {
-      setIsCompleted(key)
+      const emoji = likes.find((l) => l.key === key)?.emoji
+      if (emoji) {
+        like(key, emoji)
+      }
       setIsLongPressing(null)
     }, 800)
   }
@@ -75,16 +77,7 @@ export default function Likes({ event }: { event: Event }) {
       longPressTimerRef.current = null
     }
 
-    if (isCompleted) {
-      const completedKey = isCompleted
-      const completedEmoji = likes.find((l) => l.key === completedKey)?.emoji
-      if (completedEmoji) {
-        like(completedKey, completedEmoji)
-      }
-    }
-
     setIsLongPressing(null)
-    setIsCompleted(null)
   }
 
   const handleMouseLeave = () => {
@@ -93,7 +86,6 @@ export default function Likes({ event }: { event: Event }) {
       longPressTimerRef.current = null
     }
     setIsLongPressing(null)
-    setIsCompleted(null)
   }
 
   const handleTouchMove = (e: React.TouchEvent) => {
@@ -121,7 +113,7 @@ export default function Likes({ event }: { event: Event }) {
               pubkey && pubkeys.has(pubkey)
                 ? 'border-primary bg-primary/20 text-foreground cursor-not-allowed'
                 : 'bg-muted/80 text-muted-foreground cursor-pointer hover:bg-primary/40 hover:border-primary hover:text-foreground',
-              (isLongPressing === key || isCompleted === key) && 'border-primary bg-primary/20'
+              isLongPressing === key && 'border-primary bg-primary/20'
             )}
             onClick={(e) => e.stopPropagation()}
             onMouseDown={() => handleMouseDown(key)}
@@ -132,14 +124,13 @@ export default function Likes({ event }: { event: Event }) {
             onTouchEnd={handleMouseUp}
             onTouchCancel={handleMouseLeave}
           >
-            {(isLongPressing === key || isCompleted === key) && (
+            {isLongPressing === key && (
               <div className="absolute inset-0 rounded-full overflow-hidden">
                 <div
                   className="h-full bg-gradient-to-r from-primary/40 via-primary/60 to-primary/80"
                   style={{
-                    width: isCompleted === key ? '100%' : '0%',
-                    animation:
-                      isLongPressing === key ? 'progressFill 1000ms ease-out forwards' : 'none'
+                    width: '0%',
+                    animation: 'progressFill 1000ms ease-out forwards'
                   }}
                 />
               </div>
@@ -148,13 +139,7 @@ export default function Likes({ event }: { event: Event }) {
               {liking === key ? (
                 <Loader className="animate-spin size-4" />
               ) : (
-                <div
-                  style={{
-                    animation: isCompleted === key ? 'shake 0.5s ease-in-out infinite' : undefined
-                  }}
-                >
-                  <Emoji emoji={emoji} classNames={{ img: 'size-4' }} />
-                </div>
+                <Emoji emoji={emoji} classNames={{ img: 'size-4' }} />
               )}
               <div className="text-sm">{pubkeys.size}</div>
             </div>
