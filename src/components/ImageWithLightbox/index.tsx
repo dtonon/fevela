@@ -82,6 +82,13 @@ export default function ImageWithLightbox({
                 closeOnPullUp: true,
                 closeOnPullDown: true
               }}
+              carousel={{
+                finite: true
+              }}
+              render={{
+                buttonPrev: () => null,
+                buttonNext: () => null
+              }}
               styles={{
                 toolbar: { paddingTop: '2.25rem' }
               }}
