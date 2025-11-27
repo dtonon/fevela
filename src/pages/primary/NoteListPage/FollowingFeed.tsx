@@ -5,7 +5,7 @@ import { TFeedSubRequest } from '@/types'
 import { useEffect, useState } from 'react'
 
 export default function FollowingFeed() {
-  const { pubkey, isReady } = useNostr()
+  const { pubkey, isReady, followList } = useNostr()
   const { feedInfo } = useFeed()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
 
@@ -28,7 +28,7 @@ export default function FollowingFeed() {
         }
       ])
     })()
-  }, [feedInfo.feedType, pubkey, isReady])
+  }, [feedInfo.feedType, pubkey, isReady, followList])
 
   return <NormalFeed subRequests={subRequests} isMainFeed />
 }
