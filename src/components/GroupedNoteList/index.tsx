@@ -212,7 +212,7 @@ const GroupedNoteList = forwardRef(
         noteGroups,
         hasNoResults: filteredEvents.length === 0 && events.length > 0
       })
-    }, [events, settings])
+    }, [events, settings, getPinBuryState])
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
@@ -432,7 +432,7 @@ const GroupedNoteList = forwardRef(
     }
 
     const list = (
-      <div className="min-h-screen">
+      <div className="min-h-screen" style={{ overflowAnchor: 'none' }}>
         {nameFilteredGroups.map(({ totalNotes, oldestTimestamp, allNoteTimestamps, topNote }) => {
           // use CompactedNoteCard if compacted view is on
           if (settings.compactedView) {

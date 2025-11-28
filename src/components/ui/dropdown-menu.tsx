@@ -226,6 +226,7 @@ const DropdownMenuContent = React.forwardRef<
             checkScrollability()
           }
         }}
+        onCloseAutoFocus={(e) => e.preventDefault()}
         collisionPadding={10}
         {...props}
       >
