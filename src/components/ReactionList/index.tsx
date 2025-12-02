@@ -46,6 +46,7 @@ export default function ReactionList({ event }: { event: Event }) {
       {filteredLikes.slice(0, showCount).map((like) => (
         <div
           key={like.id}
+          title={like.id}
           className="px-4 py-3 border-b transition-colors clickable flex items-center gap-3"
           onClick={() => push(toProfile(like.pubkey))}
         >

@@ -236,9 +236,10 @@ class NoteStatsService {
 
     let emoji: TEmoji | string | undefined
     if (evt.content.startsWith(':') && evt.content.endsWith(':')) {
-      emoji = evt.tags.find(
+      const emojiTag = evt.tags.find(
         ([t, shortcode]) => t === 'emoji' && shortcode === evt.content.slice(1, -1)
-      )?.[2]
+      )
+      if (emojiTag) emoji = { url: emojiTag[2], shortcode: emojiTag[1] }
     }
     if (!emoji) emoji = '+'
 
