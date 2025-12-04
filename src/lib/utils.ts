@@ -1,12 +1,4 @@
-import {
-  EMAIL_REGEX,
-  EMBEDDED_EVENT_REGEX,
-  EMBEDDED_MENTION_REGEX,
-  EMOJI_REGEX,
-  HASHTAG_REGEX,
-  URL_REGEX,
-  WS_URL_REGEX
-} from '@/constants'
+import { parse } from '@nostr/tools/nip27'
 import { TEmoji } from '@/types'
 import { clsx, type ClassValue } from 'clsx'
 import { parseNativeEmoji } from 'emoji-picker-react/src/dataUtils/parseNativeEmoji'
@@ -78,44 +70,40 @@ export function detectLanguage(text?: string): string | null {
   if (!text) {
     return null
   }
-  const cleanText = text
-    .replace(URL_REGEX, '')
-    .replace(WS_URL_REGEX, '')
-    .replace(EMAIL_REGEX, '')
-    .replace(EMBEDDED_MENTION_REGEX, '')
-    .replace(EMBEDDED_EVENT_REGEX, '')
-    .replace(HASHTAG_REGEX, '')
-    .replace(EMOJI_REGEX, '')
-    .trim()
 
-  if (!cleanText) {
-    return null
-  }
+  const cleanText: string[] = []
+  for (const block of parse(text)) {
+    switch (block.type) {
+      case 'text': {
+        if (/[\u3040-\u309f\u30a0-\u30ff]/.test(block.text)) {
+          return 'ja'
+        }
+        if (/[\u0e00-\u0e7f]/.test(block.text)) {
+          return 'th'
+        }
+        if (/[\u4e00-\u9fff]/.test(block.text)) {
+          return 'zh'
+        }
+        if (/[\u0600-\u06ff]/.test(block.text)) {
+          return 'ar'
+        }
+        if (/[\u0590-\u05FF]/.test(block.text)) {
+          return 'fa'
+        }
+        if (/[\u0400-\u04ff]/.test(block.text)) {
+          return 'ru'
+        }
+        if (/[\u0900-\u097f]/.test(block.text)) {
+          return 'hi'
+        }
 
-  if (/[\u3040-\u309f\u30a0-\u30ff]/.test(cleanText)) {
-    return 'ja'
-  }
-  if (/[\u0e00-\u0e7f]/.test(cleanText)) {
-    return 'th'
-  }
-  if (/[\u4e00-\u9fff]/.test(cleanText)) {
-    return 'zh'
-  }
-  if (/[\u0600-\u06ff]/.test(cleanText)) {
-    return 'ar'
-  }
-  if (/[\u0590-\u05FF]/.test(cleanText)) {
-    return 'fa'
-  }
-  if (/[\u0400-\u04ff]/.test(cleanText)) {
-    return 'ru'
-  }
-  if (/[\u0900-\u097f]/.test(cleanText)) {
-    return 'hi'
+        cleanText.push(block.text)
+      }
+    }
   }
 
   try {
-    const detectedLang = franc(cleanText)
+    const detectedLang = franc(cleanText.join(''))
     const langMap: { [key: string]: string } = {
       ara: 'ar', // Arabic
       deu: 'de', // German

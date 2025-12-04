@@ -1,4 +1,4 @@
-import { TEmoji, TImetaInfo } from '@/types'
+import { TImetaInfo } from '@/types'
 import { isBlurhashValid } from 'blurhash'
 import * as nip19 from '@nostr/tools/nip19'
 import { isValidPubkey } from './pubkey'
@@ -70,13 +70,4 @@ export function getImetaInfoFromImetaTag(tag: string[], pubkey?: string): TImeta
     }
   }
   return imeta
-}
-
-export function getEmojiInfosFromEmojiTags(tags: string[][] = []) {
-  return tags
-    .map((tag) => {
-      if (tag.length < 3 || tag[0] !== 'emoji') return null
-      return { shortcode: tag[1], url: tag[2] }
-    })
-    .filter(Boolean) as TEmoji[]
 }
