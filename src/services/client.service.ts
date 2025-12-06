@@ -254,6 +254,8 @@ class ClientService extends EventTarget {
       }))
 
     // do local db requests
+    let localSyncCallback: () => void
+    let localNewCallback: (_: NostrEvent) => void
     const local: Promise<[NostrEvent[], NostrEvent | undefined, string[]]> =
       localFilters.length === 0
         ? Promise.resolve([[], undefined, []])
@@ -286,7 +288,7 @@ class ClientService extends EventTarget {
             events.length = f
 
             // a background sync may be happening and we may be interested in it, handle when it ends
-            current.onsync = debounce(async () => {
+            localSyncCallback = debounce(async () => {
               for (let i = 0; i < localFilters.length; i++) {
                 const filter = localFilters[i]
                 for await (const event of store.queryEvents(filter, 5_000)) {
@@ -302,6 +304,7 @@ class ClientService extends EventTarget {
                 }
               }
             }, 2200)
+            current.onsync.push(localSyncCallback)
 
             // we'll use this for the live query
             const allAuthors = (
@@ -320,9 +323,10 @@ class ClientService extends EventTarget {
                 signal: abort.signal
               })
 
-              current.onnew = (event: NostrEvent) => {
+              localNewCallback = (event: NostrEvent) => {
                 if (matchFilters(localFilters, event)) onNew(event)
               }
+              current.onnew.push(localNewCallback)
             })
 
             return [events, newestEvent, allAuthors]
@@ -486,6 +490,18 @@ class ClientService extends EventTarget {
         abort.abort('<subc>')
         subc?.close?.()
         preliminarySub?.close?.()
+        if (localSyncCallback) {
+          const idx = current.onsync.indexOf(localSyncCallback)
+          if (idx !== -1) {
+            current.onsync.splice(idx, 1)
+          }
+        }
+        if (localNewCallback) {
+          const idx = current.onnew.indexOf(localNewCallback)
+          if (idx !== -1) {
+            current.onnew.splice(idx, 1)
+          }
+        }
       }
     }
   }
