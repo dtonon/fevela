@@ -16,10 +16,9 @@ export function end() {
 }
 
 export const current: {
-  pubkey: string | null
-  onsync?: () => void
-  onnew?: (event: NostrEvent) => void
-} = { pubkey: null }
+  onsync: Array<() => void>
+  onnew: Array<(event: NostrEvent) => void>
+} = { onsync: [], onnew: [] }
 
 let isReady: () => void
 const _ready = new Promise<void>((resolve) => {
@@ -39,21 +38,20 @@ export async function start(account: string, followings: string[], signal: Abort
     label: 'fevela',
     store,
     onsyncupdate(pubkey) {
-      if (!current.pubkey || current?.pubkey === pubkey) {
-        console.debug(':: synced updating', pubkey)
-        current?.onsync?.()
+      console.debug(':: synced updating', pubkey)
+      for (let i = 0; i < current.onsync.length; i++) {
+        current.onsync[i]()
       }
     },
-    onbeforeupdate(pubkey) {
-      console.debug(':: paginated', pubkey)
-      if (!current.pubkey || current?.pubkey === pubkey) {
-        current?.onsync?.()
+    onbeforeupdate(_pubkey) {
+      for (let i = 0; i < current.onsync.length; i++) {
+        current.onsync[i]()
       }
     },
     onliveupdate(event) {
-      if (!current.pubkey || current?.pubkey === event.pubkey) {
-        console.debug(':: live', event)
-        current.onnew?.(event)
+      console.debug(':: live', event)
+      for (let i = 0; i < current.onnew.length; i++) {
+        current.onnew[i](event)
       }
     },
     defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
@@ -82,7 +80,9 @@ export async function start(account: string, followings: string[], signal: Abort
   isReady()
 
   if (hasNew) {
-    current.onsync?.()
+    for (let i = 0; i < current.onsync.length; i++) {
+      current.onsync[i]()
+    }
   }
 
   outbox.live(targets, { signal: undefined })

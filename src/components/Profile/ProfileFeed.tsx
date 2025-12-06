@@ -12,7 +12,7 @@ import relayInfoService from '@/services/relay-info.service'
 import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
-import { current, outbox, ready } from '@/services/outbox.service'
+import { outbox, ready } from '@/services/outbox.service'
 import { loadPins } from '@nostr/gadgets/lists'
 
 const TABS_THRESHOLD = 20
@@ -83,11 +83,8 @@ export default function ProfileFeed({
         console.warn(`bailing on single-profile sync: ${err}`)
       })
 
-    current.pubkey = pubkey
-
     return () => {
       abort.abort('<cancelled>')
-      current.pubkey = null
     }
   }, [pubkey])
 
