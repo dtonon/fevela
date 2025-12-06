@@ -53,8 +53,8 @@ class BlossomService {
     try {
       oldImageUrl = new URL(originalUrl)
       hash = getHashFromURL(oldImageUrl)
-    } catch (error) {
-      console.error('Invalid image URL:', error)
+    } catch {
+      return null
     }
     if (!pubkey || !hash || !oldImageUrl) {
       resolve(originalUrl)
