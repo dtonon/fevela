@@ -114,6 +114,7 @@ export type TLanguage = 'en' | 'zh' | 'pl'
 export type TImetaInfo = {
   url: string
   blurHash?: string
+  thumbHash?: Uint8Array
   dim?: { width: number; height: number }
   pubkey?: string
 }
