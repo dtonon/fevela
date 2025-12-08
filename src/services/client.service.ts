@@ -856,9 +856,9 @@ class ClientService extends EventTarget {
       profile.metadata.display_name?.trim() ?? '',
       profile.metadata.name?.trim() ?? '',
       profile.metadata.nip05
-        ?.split('@')
-        .map((s: string) => s.trim())
-        .join(' ') ?? ''
+        ?.split?.('@')
+        ?.map?.((s: string) => s.trim())
+        ?.join?.(' ') ?? ''
     ].join(' ')
     if (!text) return
 
