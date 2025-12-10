@@ -234,14 +234,15 @@ class NoteStatsService {
     const likes = old.likes || []
     if (likeIdSet.has(evt.id)) return
 
-    let emoji: TEmoji | string | undefined
+    let emoji: TEmoji | string
     if (evt.content.startsWith(':') && evt.content.endsWith(':')) {
       const emojiTag = evt.tags.find(
         ([t, shortcode]) => t === 'emoji' && shortcode === evt.content.slice(1, -1)
       )
-      if (emojiTag) emoji = { url: emojiTag[2], shortcode: emojiTag[1] }
+      emoji = emojiTag ? { url: emojiTag[2], shortcode: emojiTag[1] } : '+'
+    } else {
+      emoji = evt.content
     }
-    if (!emoji) emoji = '+'
 
     likeIdSet.add(evt.id)
     likes.push({ id: evt.id, pubkey: evt.pubkey, created_at: evt.created_at, emoji })
