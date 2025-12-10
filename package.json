@@ -87,6 +87,7 @@
     "sonner": "^2.0.5",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "thumbhash": "^0.1.1",
     "tippy.js": "^6.3.7",
     "vaul": "^1.1.2",
     "yet-another-react-lightbox": "^3.21.7",
