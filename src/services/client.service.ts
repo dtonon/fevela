@@ -135,7 +135,7 @@ class ClientService extends EventTarget {
   }
 
   async publishEvent(relayUrls: string[], event: NostrEvent) {
-    const uniqueRelayUrls = Array.from(new Set(relayUrls))
+    const uniqueRelayUrls = Array.from(new Set(relayUrls.map(normalizeUrl)))
     await new Promise<void>((resolve, reject) => {
       let successCount = 0
       let finishedCount = 0
