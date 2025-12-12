@@ -18,7 +18,7 @@ setVh()
 initNostrWasm()
   .then((nw) => {
     setNostrWasm(nw)
-    setPool(new AbstractSimplePool({ verifyEvent, enablePing: true, enableReconnect: true }))
+    setPool(new AbstractSimplePool({ verifyEvent, enableReconnect: true }))
     pool.trackRelays = true
 
     createRoot(document.getElementById('root')!).render(
