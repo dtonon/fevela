@@ -57,6 +57,7 @@ class LocalStorageService {
   private primaryColor: TPrimaryColor = 'DEFAULT'
   private enableSingleColumnLayout: boolean = false
   private linkPreviewMode: TLinkPreviewMode = LINK_PREVIEW_MODE.ENABLED
+  private accountLastRelayMap: Record<string, string | undefined> = {}
 
   constructor() {
     if (!LocalStorageService.instance) {
@@ -229,6 +230,10 @@ class LocalStorageService {
     } else {
       this.linkPreviewMode = LINK_PREVIEW_MODE.ENABLED
     }
+
+    const accountLastRelayMapStr =
+      window.localStorage.getItem(StorageKey.ACCOUNT_LAST_RELAY_MAP) ?? '{}'
+    this.accountLastRelayMap = JSON.parse(accountLastRelayMapStr)
   }
 
   getRelaySets() {
@@ -548,6 +553,18 @@ class LocalStorageService {
   setLinkPreviewMode(mode: TLinkPreviewMode) {
     this.linkPreviewMode = mode
     window.localStorage.setItem(StorageKey.SHOW_LINK_PREVIEWS, mode)
+  }
+
+  getLastRelay(pubkey: string) {
+    return this.accountLastRelayMap[pubkey]
+  }
+
+  setLastRelay(relayUrl: string, pubkey?: string | null) {
+    this.accountLastRelayMap[pubkey ?? 'default'] = relayUrl
+    window.localStorage.setItem(
+      StorageKey.ACCOUNT_LAST_RELAY_MAP,
+      JSON.stringify(this.accountLastRelayMap)
+    )
   }
 }
 
