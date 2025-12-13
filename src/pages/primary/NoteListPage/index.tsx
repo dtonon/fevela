@@ -7,9 +7,10 @@ import { toSearch } from '@/lib/link'
 import { useCurrentRelays } from '@/providers/CurrentRelaysProvider'
 import { useFeed } from '@/providers/FeedProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import { useOutboxStatus } from '@/providers/OutboxProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { TPageRef } from '@/types'
-import { Info, PencilLine, Search } from 'lucide-react'
+import { Info, PencilLine, Search, RefreshCcwDot, Radio, Square } from 'lucide-react'
 import {
   Dispatch,
   forwardRef,
@@ -104,10 +105,12 @@ function NoteListPageTitlebar({
   setShowRelayDetails?: Dispatch<SetStateAction<boolean>>
 }) {
   const { isSmallScreen } = useScreenSize()
+  const { feedInfo } = useFeed()
+  const outbox = useOutboxStatus()
 
   return (
     <div className="flex gap-1 items-center h-full justify-between">
-      <FeedButton className="flex-1 max-w-fit w-0" />
+      {feedInfo.feedType !== 'following' && <FeedButton className="flex-1 max-w-fit w-0" />}
       <div className="shrink-0 flex gap-1 items-center">
         {setShowRelayDetails && (
           <Button
@@ -125,6 +128,28 @@ function NoteListPageTitlebar({
           >
             <Info />
           </Button>
+        )}
+        {feedInfo.feedType === 'following' && (
+          <div className="px-2 flex gap-2 items-center">
+            {outbox.syncing ? (
+              <>
+                <RefreshCcwDot />
+                <span>
+                  syncing{outbox.total && ` ${outbox.current}/${outbox.total} profiles`}...
+                </span>
+              </>
+            ) : outbox.syncing === false ? (
+              <>
+                <Radio />
+                <span>listening for new notes...</span>
+              </>
+            ) : (
+              <>
+                <Square />
+                <span>setting up...</span>
+              </>
+            )}
+          </div>
         )}
         {isSmallScreen && (
           <>
