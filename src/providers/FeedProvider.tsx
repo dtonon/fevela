@@ -94,6 +94,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
       feedInfoRef.current = newFeedInfo
       setRelayUrls([normalizedUrl])
       storage.setFeedInfo(newFeedInfo, pubkey)
+      storage.setLastRelay(normalizedUrl, pubkey)
       setIsReady(true)
       return
     }

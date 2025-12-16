@@ -7,7 +7,9 @@ import { NostrEvent } from '@nostr/tools/core'
 export const store = new IDBEventStore()
 export let outbox: OutboxManager
 
-export const status: { syncing: true; pubkey: string } | { syncing: false } = { syncing: false }
+export const status: { syncing: true; pubkey: string } | { syncing: undefined | false } = {
+  syncing: undefined
+}
 
 export function end() {
   if (outbox) {
@@ -28,9 +30,17 @@ export async function ready(): Promise<void> {
   return _ready
 }
 
+let isStarted: (total: number) => void
+const _started = new Promise<number>((resolve) => {
+  isStarted = resolve
+})
+export async function started(): Promise<number> {
+  return _started
+}
+
 export async function start(account: string, followings: string[], signal: AbortSignal) {
   signal.onabort = () => {
-    status.syncing = false
+    status.syncing = undefined
   }
 
   outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], {
@@ -65,6 +75,7 @@ export async function start(account: string, followings: string[], signal: Abort
   ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
 
   const targets = [account, ...followings]
+  isStarted(targets.length)
 
   if (!(await store.queryEvents({}, 1).next()).value) {
     // this means the database has no events.
@@ -77,6 +88,7 @@ export async function start(account: string, followings: string[], signal: Abort
     signal
   })
 
+  status.syncing = false
   isReady()
 
   if (hasNew) {

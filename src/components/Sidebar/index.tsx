@@ -8,7 +8,8 @@ import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import AccountButton from './AccountButton'
 import BookmarkButton from './BookmarkButton'
 import RelaysButton from './ExploreButton'
-import HomeButton from './HomeButton'
+import FollowingButton from './FollowingButton'
+import RelayFeedButton from './RelayFeedButton'
 import ConversationsButton from './ConversationsButton'
 import NotificationsButton from './NotificationButton'
 import PostButton from './PostButton'
@@ -27,7 +28,7 @@ export default function PrimaryPageSidebar() {
     <div
       className={cn(
         'relative flex flex-col pb-2 pt-3 justify-between h-full shrink-0',
-        sidebarCollapse ? 'px-2 w-16' : 'px-4 w-52'
+        sidebarCollapse ? 'px-2 w-16' : 'pl-3 pr-2 w-52'
       )}
     >
       <div className="space-y-2">
@@ -40,7 +41,8 @@ export default function PrimaryPageSidebar() {
             <Logo />
           </div>
         )}
-        <HomeButton collapse={sidebarCollapse} />
+        <FollowingButton collapse={sidebarCollapse} />
+        <RelayFeedButton collapse={sidebarCollapse} />
         <ConversationsButton collapse={sidebarCollapse} />
         <NotificationsButton collapse={sidebarCollapse} />
         {pubkey && <BookmarkButton collapse={sidebarCollapse} />}
