@@ -223,44 +223,48 @@ const NoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew: batchDebounce((newEvents) => {
-            // do everything inside this setter so we get the latest state (because react is incredibly retarded)
-            setEvents((events) => {
-              const pending: Event[] = []
-              const appended: Event[] = []
+          onNew: batchDebounce(
+            (newEvents) => {
+              // do everything inside this setter so we get the latest state (because react is incredibly retarded)
+              setEvents((events) => {
+                const pending: Event[] = []
+                const appended: Event[] = []
 
-              for (let i = 0; i < newEvents.length; i++) {
-                const newEvent = newEvents[i]
+                for (let i = 0; i < newEvents.length; i++) {
+                  const newEvent = newEvents[i]
 
-                // TODO: figure out where exactly the viewport is: for now just assume it's at the top
-                if (events.length < 7 || newEvent.created_at < events[6].created_at) {
-                  // if there are very few events in the viewport or the new events would be inserted below, just append
-                  appended.push(newEvent)
-                } else if (pubkey && newEvent.pubkey === pubkey) {
-                  // our own notes are also inserted regardless of any concern
-                  appended.push(newEvent)
-                } else {
-                  // any other "new" notes that would be inserted above, make them be pending in the modal thingie
-                  pending.push(newEvent)
+                  // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+                  if (events.length < 7 || newEvent.created_at < events[6].created_at) {
+                    // if there are very few events in the viewport or the new events would be inserted below, just append
+                    appended.push(newEvent)
+                  } else if (pubkey && newEvent.pubkey === pubkey) {
+                    // our own notes are also inserted regardless of any concern
+                    appended.push(newEvent)
+                  } else {
+                    // any other "new" notes that would be inserted above, make them be pending in the modal thingie
+                    pending.push(newEvent)
+                  }
                 }
-              }
 
-              if (pending.length) {
-                // sort these as they will not come in order (they will come from different author syncing processes)
-                pending.sort((a, b) => b.created_at - a.created_at)
-                // prepend them to the top
-                setNewEvents((curr) => [...pending, ...curr])
-              }
+                if (pending.length) {
+                  // sort these as they will not come in order (they will come from different author syncing processes)
+                  pending.sort((a, b) => b.created_at - a.created_at)
+                  // prepend them to the top
+                  setNewEvents((curr) => [...pending, ...curr])
+                }
 
-              // we have no idea of the order here, so just sort everything and eliminate duplicates
-              if (appended.length) {
-                const all = [...events, ...appended].sort((a, b) => b.created_at - a.created_at)
-                return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
-              } else {
-                return events
-              }
-            })
-          }, 1800),
+                // we have no idea of the order here, so just sort everything and eliminate duplicates
+                if (appended.length) {
+                  const all = [...events, ...appended].sort((a, b) => b.created_at - a.created_at)
+                  return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
+                } else {
+                  return events
+                }
+              })
+            },
+            1800,
+            3000
+          ),
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools

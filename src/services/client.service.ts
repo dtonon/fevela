@@ -4,7 +4,6 @@ import { tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
 import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
-import debounce from 'debounce'
 import FlexSearch from 'flexsearch'
 import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
 import { Filter, matchFilters } from '@nostr/tools/filter'
@@ -34,6 +33,7 @@ import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch } from '@nostr/tools/utils'
 import { seenOn } from '@nostr/gadgets/store'
 import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
+import { debounce } from '@/lib/utils'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -288,22 +288,26 @@ class ClientService extends EventTarget {
             events.length = f
 
             // a background sync may be happening and we may be interested in it, handle when it ends
-            localSyncCallback = debounce(async () => {
-              for (let i = 0; i < localFilters.length; i++) {
-                const filter = localFilters[i]
-                for await (const event of store.queryEvents(filter, 5_000)) {
-                  // check if this isn't already in the sorted array of events
-                  const [_, exists] = binarySearch(events, (b) => {
-                    if (event.id === b.id) return 0
-                    if (event.created_at === b.created_at) return -1
-                    return b.created_at - event.created_at
-                  })
-                  if (!exists) {
-                    onNew(event)
+            localSyncCallback = debounce(
+              async () => {
+                for (let i = 0; i < localFilters.length; i++) {
+                  const filter = localFilters[i]
+                  for await (const event of store.queryEvents(filter, 5_000)) {
+                    // check if this isn't already in the sorted array of events
+                    const [_, exists] = binarySearch(events, (b) => {
+                      if (event.id === b.id) return 0
+                      if (event.created_at === b.created_at) return -1
+                      return b.created_at - event.created_at
+                    })
+                    if (!exists) {
+                      onNew(event)
+                    }
                   }
                 }
-              }
-            }, 2200)
+              },
+              2000,
+              2800
+            )
             current.onsync.push(localSyncCallback)
 
             // we'll use this for the live query
