@@ -334,13 +334,16 @@ const GroupedNoteList = forwardRef(
           },
           onNew: batchDebounce(
             (newEvents) => {
+              // Filter new events through shouldHideEvent
+              const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
+
               // do everything inside this setter otherwise it's impossible to get the latest state
               setNoteGroups((curr) => {
                 const pending: NostrEvent[] = []
                 const appended: NostrEvent[] = []
 
-                for (let i = 0; i < newEvents.length; i++) {
-                  const newEvent = newEvents[i]
+                for (let i = 0; i < filteredNewEvents.length; i++) {
+                  const newEvent = filteredNewEvents[i]
 
                   // TODO: figure out where exactly the viewport is: for now just assume it's at the top
                   if (
@@ -408,7 +411,7 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, settings])
+    }, [subRequests, refreshCount, showKinds, settings, shouldHideEvent])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
