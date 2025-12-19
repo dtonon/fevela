@@ -332,57 +332,61 @@ const GroupedNoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew: batchDebounce((newEvents) => {
-            // Filter new events through shouldHideEvent
-            const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
+          onNew: batchDebounce(
+            (newEvents) => {
+              // Filter new events through shouldHideEvent
+              const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
 
-            // do everything inside this setter otherwise it's impossible to get the latest state
-            setNoteGroups((curr) => {
-              const pending: NostrEvent[] = []
-              const appended: NostrEvent[] = []
+              // do everything inside this setter otherwise it's impossible to get the latest state
+              setNoteGroups((curr) => {
+                const pending: NostrEvent[] = []
+                const appended: NostrEvent[] = []
 
-              for (let i = 0; i < filteredNewEvents.length; i++) {
-                const newEvent = filteredNewEvents[i]
+                for (let i = 0; i < filteredNewEvents.length; i++) {
+                  const newEvent = filteredNewEvents[i]
 
-                // TODO: figure out where exactly the viewport is: for now just assume it's at the top
-                if (
-                  curr.noteGroups.length < 7 ||
-                  newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
-                  curr.noteGroups
-                    .slice(0, 6)
-                    .some((group) => group.topNote.pubkey === newEvent.pubkey)
-                ) {
-                  // if there are very few events in the viewport or the new events would be inserted below
-                  // or they authored by any of the top authors (but they wouldn't be their top notes), just append
-                  appended.push(newEvent)
-                } else if (pubkey && newEvent.pubkey === pubkey) {
-                  // our own notes are also inserted regardless of any concern
-                  appended.push(newEvent)
-                } else {
-                  // any other "new" notes that would be inserted above, make them be pending in the modal thing
-                  pending.push(newEvent)
+                  // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+                  if (
+                    curr.noteGroups.length < 7 ||
+                    newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
+                    curr.noteGroups
+                      .slice(0, 6)
+                      .some((group) => group.topNote.pubkey === newEvent.pubkey)
+                  ) {
+                    // if there are very few events in the viewport or the new events would be inserted below
+                    // or they authored by any of the top authors (but they wouldn't be their top notes), just append
+                    appended.push(newEvent)
+                  } else if (pubkey && newEvent.pubkey === pubkey) {
+                    // our own notes are also inserted regardless of any concern
+                    appended.push(newEvent)
+                  } else {
+                    // any other "new" notes that would be inserted above, make them be pending in the modal thing
+                    pending.push(newEvent)
+                  }
                 }
-              }
 
-              // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
-              if (pending.length) {
-                setNewEvents((curr) => [...pending, ...curr])
-              }
+                // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
+                if (pending.length) {
+                  setNewEvents((curr) => [...pending, ...curr])
+                }
 
-              if (appended.length) {
-                // merging these will trigger a group recomputation
-                setEvents((oldEvents) => {
-                  // we have no idea of the order here, so just sort everything and eliminate duplicates
-                  const all = [...oldEvents, ...appended].sort(
-                    (a, b) => b.created_at - a.created_at
-                  )
-                  return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
-                })
-              }
+                if (appended.length) {
+                  // merging these will trigger a group recomputation
+                  setEvents((oldEvents) => {
+                    // we have no idea of the order here, so just sort everything and eliminate duplicates
+                    const all = [...oldEvents, ...appended].sort(
+                      (a, b) => b.created_at - a.created_at
+                    )
+                    return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
+                  })
+                }
 
-              return curr
-            })
-          }, 1800),
+                return curr
+              })
+            },
+            1800,
+            3000
+          ),
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools

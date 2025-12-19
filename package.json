@@ -61,7 +61,6 @@
     "cmdk": "^1.0.0",
     "dataloader": "^2.2.3",
     "dayjs": "^1.11.13",
-    "debounce": "^3.0.0",
     "embla-carousel-react": "^8.6.0",
     "embla-carousel-wheel-gestures": "^8.1.0",
     "emoji-picker-react": "^4.12.2",
