@@ -432,6 +432,8 @@ export default {
     GroupedNotesShowPreview: '最後のノートのプレビューを表示',
     GroupedNotesIncludeReplies: '返信を含める',
     GroupedNotesShowOnlyFirstLevelReplies: '第一レベルの返信のみを表示',
+    GroupedNotesHideShortNotes: '短すぎるノートを非表示',
+    GroupedNotesSortByRelevance: 'ユーザーのノートを関連性で並べ替え',
     GroupedNotesFilter: 'ユーザーを検索...',
     GroupedNotesTimeframe: '個々のユーザーの過去の出来事の要約を表示',
     GroupedNotesWordFilter: 'これらの単語を含むノートをフィルタリング（カンマ区切り）：',

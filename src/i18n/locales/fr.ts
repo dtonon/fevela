@@ -440,6 +440,8 @@ export default {
     GroupedNotesShowPreview: "Afficher l'aperçu de la dernière note",
     GroupedNotesIncludeReplies: 'Inclure les réponses',
     GroupedNotesShowOnlyFirstLevelReplies: 'Afficher uniquement les réponses de premier niveau',
+    GroupedNotesHideShortNotes: 'Masquer les notes (trop) courtes',
+    GroupedNotesSortByRelevance: 'Trier les notes des utilisateurs par pertinence',
     GroupedNotesFilter: 'Rechercher des utilisateurs...',
     GroupedNotesTimeframe:
       "Montrez-moi un résumé pour les utilisateurs individuels de ce qui s'est passé dans les derniers",
