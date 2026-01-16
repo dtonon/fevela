@@ -431,6 +431,8 @@ export default {
     GroupedNotesShowPreview: 'نمایش پیش‌نمایش آخرین یادداشت',
     GroupedNotesIncludeReplies: 'شامل پاسخ‌ها',
     GroupedNotesShowOnlyFirstLevelReplies: 'فقط پاسخ‌های سطح اول را نشان دهد',
+    GroupedNotesHideShortNotes: 'پنهان کردن یادداشت‌های (خیلی) کوتاه',
+    GroupedNotesSortByRelevance: 'مرتب‌سازی یادداشت‌های کاربران بر اساس ارتباط',
     GroupedNotesFilter: 'جستجوی کاربران...',
     GroupedNotesTimeframe:
       'برای کاربران مجزا خلاصه‌ای از آنچه در آخرین بار اتفاق افتاده را نشان دهد',

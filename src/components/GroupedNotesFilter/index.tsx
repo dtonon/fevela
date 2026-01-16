@@ -14,7 +14,7 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import { Group } from 'lucide-react'
+import { Group, Sparkles } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -46,7 +46,8 @@ export default function GroupedNotesFilter() {
       includeReplies: false,
       showOnlyFirstLevelReplies: false,
       showPreview: true,
-      hideShortNotes: false
+      hideShortNotes: false,
+      sortByRelevance: false
     })
   }
 
@@ -184,6 +185,20 @@ export default function GroupedNotesFilter() {
               checked={tempSettings.hideShortNotes}
               onCheckedChange={(checked) =>
                 setTempSettings((prev) => ({ ...prev, hideShortNotes: checked }))
+              }
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="sort-by-relevance" className="text-sm font-medium flex items-center gap-1">
+              {t('GroupedNotesSortByRelevance')}
+              <Sparkles size={14} className="text-primary" />
+            </Label>
+            <Switch
+              id="sort-by-relevance"
+              checked={tempSettings.sortByRelevance}
+              onCheckedChange={(checked) =>
+                setTempSettings((prev) => ({ ...prev, sortByRelevance: checked }))
               }
             />
           </div>

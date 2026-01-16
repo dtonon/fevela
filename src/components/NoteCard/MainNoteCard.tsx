@@ -20,7 +20,8 @@ export default function MainNoteCard({
   groupedNotesOldestTimestamp,
   onAllNotesRead,
   areAllNotesRead,
-  pinned = false
+  pinned = false,
+  relevanceScore
 }: {
   event: Event
   className?: string
@@ -32,6 +33,7 @@ export default function MainNoteCard({
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
   pinned?: boolean
+  relevanceScore?: number
 }) {
   const { push } = useSecondaryPage()
 
@@ -52,6 +54,7 @@ export default function MainNoteCard({
             size={embedded ? 'small' : 'normal'}
             event={event}
             originalNoteId={originalNoteId}
+            relevanceScore={relevanceScore}
           />
         </Collapsible>
         {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}

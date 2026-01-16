@@ -21,7 +21,7 @@ import { toNote, toProfile } from '@/lib/link'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
 import { username } from '@/lib/event-metadata'
-import { Repeat2 } from 'lucide-react'
+import { Repeat2, Sparkles } from 'lucide-react'
 import { truncateUrl } from '@/lib/url'
 
 const maxLength = 150
@@ -39,7 +39,8 @@ export default function CompactedEventCard({
   onAllNotesRead,
   onMarkAsUnread,
   isLastNoteRead = false,
-  areAllNotesRead = false
+  areAllNotesRead = false,
+  relevanceScore
 }: {
   event: Event
   className?: string
@@ -54,6 +55,7 @@ export default function CompactedEventCard({
   onMarkAsUnread?: () => void
   isLastNoteRead?: boolean
   areAllNotesRead?: boolean
+  relevanceScore?: number
 }) {
   const { push } = useSecondaryPage()
   const { t } = useTranslation()
@@ -193,6 +195,15 @@ export default function CompactedEventCard({
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
+                      {relevanceScore !== undefined && (
+                        <>
+                          <span>·</span>
+                          <span className="shrink-0 text-primary font-medium flex items-center gap-0.5">
+                            <Sparkles size={14} />
+                            {Math.round(relevanceScore)}
+                          </span>
+                        </>
+                      )}
                       {isReply && (
                         <>
                           <span>·</span>

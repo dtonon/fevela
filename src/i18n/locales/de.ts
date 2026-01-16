@@ -441,6 +441,8 @@ export default {
     GroupedNotesShowPreview: 'Vorschau der letzten Notiz anzeigen',
     GroupedNotesIncludeReplies: 'Antworten einschließen',
     GroupedNotesShowOnlyFirstLevelReplies: 'Nur Antworten der ersten Ebene anzeigen',
+    GroupedNotesHideShortNotes: 'Zu kurze Notizen ausblenden',
+    GroupedNotesSortByRelevance: 'Notizen der Benutzer nach Relevanz sortieren',
     GroupedNotesFilter: 'Benutzer suchen...',
     GroupedNotesTimeframe:
       'Zeige mir eine Zusammenfassung für einzelne Benutzer von dem, was in den letzten passiert ist',

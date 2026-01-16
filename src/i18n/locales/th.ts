@@ -427,6 +427,8 @@ export default {
     GroupedNotesShowPreview: 'แสดงตัวอย่างโน้ตล่าสุด',
     GroupedNotesIncludeReplies: 'รวมการตอบกลับ',
     GroupedNotesShowOnlyFirstLevelReplies: 'แสดงเฉพาะการตอบกลับระดับแรก',
+    GroupedNotesHideShortNotes: 'ซ่อนโน้ตที่สั้น(เกินไป)',
+    GroupedNotesSortByRelevance: 'จัดเรียงโน้ตของผู้ใช้ตามความเกี่ยวข้อง',
     GroupedNotesFilter: 'ค้นหาผู้ใช้...',
     GroupedNotesTimeframe: 'แสดงสรุปสำหรับผู้ใช้แต่ละคนเกี่ยวกับสิ่งที่เกิดขึ้นใน',
     GroupedNotesWordFilter: 'กรองโน้ตที่มีคำเหล่านี้ (คั่นด้วยเครื่องหมายจุลภาค):',
