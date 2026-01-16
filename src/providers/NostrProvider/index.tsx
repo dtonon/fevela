@@ -44,7 +44,8 @@ import {
   loadEmojis,
   loadFavoriteRelays,
   loadFollowsList,
-  loadPins
+  loadPins,
+  loadRelayList
 } from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
 import {
@@ -201,8 +202,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
       const storedNotificationsSeenAt = storage.getLastReadNotificationTime(account.pubkey)
 
-      // current account replaceables
-      const relayList = await client.fetchRelayList(account.pubkey)
+      // Clear relay list cache (both IndexedDB and DataLoader memory cache) before fetching
+      // to ensure we always get fresh data on account switch/login
+      await loadRelayList(account.pubkey, [], null)
+      const relayList = await client.fetchRelayList(account.pubkey, true)
       setRelayList(relayList)
 
       client.fetchProfile(account.pubkey).then(setProfile)
