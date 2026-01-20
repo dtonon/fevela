@@ -205,46 +205,50 @@ const NotificationList = forwardRef((_, ref) => {
     [loading]
   )
 
-  const handleNewEvent = batchDebounce((events: NostrEvent[]) => {
-    events.sort((a, b) => b.created_at - a.created_at)
-    noteStatsService.updateNoteStatsByEvents(events)
+  const handleNewEvent = batchDebounce(
+    (events: NostrEvent[]) => {
+      events.sort((a, b) => b.created_at - a.created_at)
+      noteStatsService.updateNoteStatsByEvents(events)
 
-    setEvents((oldEvents) => {
-      const updated: NostrEvent[] = []
-      let prevIdx = 0
+      setEvents((oldEvents) => {
+        const updated: NostrEvent[] = []
+        let prevIdx = 0
 
-      for (let i = 0; i < events.length; i++) {
-        const event = events[i]
+        for (let i = 0; i < events.length; i++) {
+          const event = events[i]
 
-        const [idx, found] = binarySearch(oldEvents, (b) => {
-          if (event.id === b.id) return 0
-          if (event.created_at === b.created_at) {
-            // Stable tiebreaker when timestamps match
-            return event.id < b.id ? -1 : 1
-          }
-          return b.created_at - event.created_at
-        })
-        if (found) continue
+          const [idx, found] = binarySearch(oldEvents, (b) => {
+            if (event.id === b.id) return 0
+            if (event.created_at === b.created_at) {
+              // Stable tiebreaker when timestamps match
+              return event.id < b.id ? -1 : 1
+            }
+            return b.created_at - event.created_at
+          })
+          if (found) continue
 
-        updated.push(...oldEvents.slice(prevIdx, idx))
-        updated.push(event)
-        prevIdx = idx
-      }
+          updated.push(...oldEvents.slice(prevIdx, idx))
+          updated.push(event)
+          prevIdx = idx
+        }
 
-      if (updated.length > 0) {
-        updated.push(...oldEvents.slice(prevIdx))
-        return updated
-      } else {
-        return oldEvents
-      }
-    })
-  }, 1800)
+        if (updated.length > 0) {
+          updated.push(...oldEvents.slice(prevIdx))
+          return updated
+        } else {
+          return oldEvents
+        }
+      })
+    },
+    1800,
+    3000
+  )
 
   useEffect(() => {
     if (!subRequests || !pubkey) return
     if (current !== 'notifications') return
 
-    // Cancel any pending debounced events from previous subscription
+    // cancel any pending debounced events from previous subscription
     handleNewEvent.cancel()
 
     setLoading(true)

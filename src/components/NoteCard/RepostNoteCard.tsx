@@ -18,7 +18,8 @@ export default function RepostNoteCard({
   groupedNotesTotalCount,
   groupedNotesOldestTimestamp,
   onAllNotesRead,
-  areAllNotesRead
+  areAllNotesRead,
+  relevanceScore
 }: {
   event: Event
   className?: string
@@ -29,6 +30,7 @@ export default function RepostNoteCard({
   groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
+  relevanceScore?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -100,6 +102,7 @@ export default function RepostNoteCard({
       groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
+      relevanceScore={relevanceScore}
     />
   )
 }

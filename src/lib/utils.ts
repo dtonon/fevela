@@ -133,19 +133,77 @@ export function detectLanguage(text?: string): string | null {
   }
 }
 
-export function batchDebounce<T>(func: (args: T[]) => void, delay: number) {
+export function debounce<T extends (...args: any[]) => any>(
+  func: T,
+  wait: number,
+  maxWait?: number
+): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let maxTimeoutId: ReturnType<typeof setTimeout> | null = null
+
+  return function (...args: Parameters<T>) {
+    // clear the regular debounce timer
+    if (timeoutId !== null) {
+      clearTimeout(timeoutId)
+    }
+
+    // start max wait timer on first call
+    if (maxWait !== undefined && maxTimeoutId === null) {
+      maxTimeoutId = setTimeout(() => {
+        if (timeoutId !== null) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        maxTimeoutId = null
+        func(...args)
+      }, maxWait)
+    }
+
+    // set the regular debounce timer
+    timeoutId = setTimeout(() => {
+      if (maxTimeoutId !== null) {
+        clearTimeout(maxTimeoutId)
+        maxTimeoutId = null
+      }
+      timeoutId = null
+      func(...args)
+    }, wait)
+  }
+}
+
+export function batchDebounce<T>(func: (args: T[]) => void, delay: number, maxWait?: number) {
+  let timeoutId: ReturnType<typeof setTimeout> | null = null
+  let maxTimeoutId: ReturnType<typeof setTimeout> | null = null
   let accumulated: T[] = []
 
   const debouncedFunc = (arg: T) => {
     accumulated.push(arg)
+
     if (timeoutId) {
       clearTimeout(timeoutId)
     }
+
+    // Start max wait timer on first call
+    if (maxWait !== undefined && maxTimeoutId === null) {
+      maxTimeoutId = setTimeout(() => {
+        if (timeoutId) {
+          clearTimeout(timeoutId)
+          timeoutId = null
+        }
+        maxTimeoutId = null
+        func(accumulated)
+        accumulated = []
+      }, maxWait)
+    }
+
     timeoutId = setTimeout(() => {
+      if (maxTimeoutId) {
+        clearTimeout(maxTimeoutId)
+        maxTimeoutId = null
+      }
+      timeoutId = null
       func(accumulated)
       accumulated = []
-      timeoutId = null
     }, delay)
   }
 
@@ -153,6 +211,10 @@ export function batchDebounce<T>(func: (args: T[]) => void, delay: number) {
     if (timeoutId) {
       clearTimeout(timeoutId)
       timeoutId = null
+    }
+    if (maxTimeoutId) {
+      clearTimeout(maxTimeoutId)
+      maxTimeoutId = null
     }
     accumulated = []
   }

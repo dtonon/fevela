@@ -1,7 +1,8 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isMentioningMutedUsers, isReplyNoteEvent, isFirstLevelReply } from '@/lib/event'
+import { isMentioningMutedUsers, isReplyNoteEvent, isFirstLevelReply, getEventKey } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
+import { calculateRelevanceScore } from '@/lib/note-relevance'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
@@ -9,7 +10,9 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
+import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
+import noteStatsService from '@/services/note-stats.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
@@ -32,6 +35,7 @@ import { usePinBury } from '@/providers/PinBuryProvider'
 
 type TNoteGroup = {
   topNote: NostrEvent
+  allNotes: NostrEvent[]
   totalNotes: number
   oldestTimestamp: number
   newestTimestamp: number
@@ -72,12 +76,14 @@ const GroupedNoteList = forwardRef(
     const { resetSettings, settings } = useGroupedNotes()
     const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
+    const { repliesMap } = useReply()
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [loading, setLoading] = useState(true)
     const [refreshCount, setRefreshCount] = useState(0)
     const [selectedNoteId, setSelectedNoteId] = useState<string | null>(null)
     const [matchingPubkeys, setMatchingPubkeys] = useState<Set<string> | null>(null)
+    const [statsUpdateTrigger, setStatsUpdateTrigger] = useState(0)
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const topRef = useRef<HTMLDivElement | null>(null)
     const { getPinBuryState } = usePinBury()
@@ -89,6 +95,108 @@ const GroupedNoteList = forwardRef(
       noteGroups: [],
       hasNoResults: false
     })
+
+    // Helper function to calculate reply count for a note
+    const getReplyCount = useCallback(
+      (event: Event): number => {
+        const key = getEventKey(event)
+        let replyCount = 0
+        const replies = [...(repliesMap.get(key)?.events || [])]
+        while (replies.length > 0) {
+          const reply = replies.pop()
+          if (!reply) break
+
+          const replyKey = getEventKey(reply)
+          const nestedReplies = repliesMap.get(replyKey)?.events ?? []
+          replies.push(...nestedReplies)
+
+          if (mutePubkeySet.has(reply.pubkey)) {
+            continue
+          }
+          if (hideContentMentioningMutedUsers && isMentioningMutedUsers(reply, mutePubkeySet)) {
+            continue
+          }
+          replyCount++
+        }
+        return replyCount
+      },
+      [repliesMap, mutePubkeySet, hideContentMentioningMutedUsers]
+    )
+
+    // Progressive stats fetching for relevance sorting
+    useEffect(() => {
+      if (!settings.sortByRelevance || noteGroups.length === 0) return
+
+      const unsubscribers: (() => void)[] = []
+
+      // Collect all note IDs that need stats
+      const noteIdsToFetch = new Set<string>()
+      noteGroups.forEach((group) => {
+        group.allNotes.forEach((note) => {
+          noteIdsToFetch.add(note.id)
+        })
+      })
+
+      // Subscribe to stats updates for all notes
+      noteIdsToFetch.forEach((noteId) => {
+        const unsubscribe = noteStatsService.subscribeNoteStats(noteId, () => {
+          setStatsUpdateTrigger((prev) => prev + 1)
+        })
+        unsubscribers.push(unsubscribe)
+      })
+
+      // Fetch initial stats for all notes in background
+      noteGroups.forEach((group) => {
+        group.allNotes.forEach((note) => {
+          noteStatsService.fetchNoteStats(note, pubkey)
+        })
+      })
+
+      return () => {
+        unsubscribers.forEach((unsubscribe) => unsubscribe())
+      }
+    }, [settings.sortByRelevance, noteGroups.length, pubkey])
+
+    // Subscribe to real-time interaction events (reactions, reposts, zaps)
+    useEffect(() => {
+      if (!settings.sortByRelevance || noteGroups.length === 0 || !subRequests.length) return
+
+      // Collect all note IDs to monitor for interactions
+      const noteIds = new Set<string>()
+      noteGroups.forEach((group) => {
+        group.allNotes.forEach((note) => {
+          noteIds.add(note.id)
+        })
+      })
+
+      if (noteIds.size === 0) return
+
+      const noteIdArray = Array.from(noteIds)
+
+      // Subscribe to interaction events for these notes
+      const subc = client.subscribeTimeline(
+        subRequests,
+        {
+          kinds: [kinds.Reaction, kinds.Repost, kinds.Zap],
+          '#e': noteIdArray
+        },
+        {
+          onEvents(events) {
+            // Update stats service with new interactions
+            noteStatsService.updateNoteStatsByEvents(events)
+          },
+          onNew: batchDebounce((newEvents) => {
+            // Update stats service with new interactions in real-time
+            noteStatsService.updateNoteStatsByEvents(newEvents)
+          }, 1000, 2000)
+        },
+        {
+          startLogin
+        }
+      )
+
+      return () => subc.close()
+    }, [settings.sortByRelevance, noteGroups.length, subRequests, startLogin])
 
     useEffect(() => {
       let filteredEvents = events
@@ -165,12 +273,14 @@ const GroupedNoteList = forwardRef(
         const idx = authorIndexes.get(event.pubkey)
         if (idx !== undefined) {
           const group = noteGroups[idx]
+          group.allNotes.push(event)
           group.allNoteTimestamps.push(event.created_at)
           group.oldestTimestamp = event.created_at
           group.totalNotes++
         } else {
           authorIndexes.set(event.pubkey, noteGroups.length)
           noteGroups.push({
+            allNotes: [event],
             allNoteTimestamps: [event.created_at],
             newestTimestamp: event.created_at,
             oldestTimestamp: event.created_at,
@@ -188,6 +298,29 @@ const GroupedNoteList = forwardRef(
             noteGroups.splice(i, 1)
           }
         }
+      }
+
+      // calculate relevance scores and update topNote if sortByRelevance is enabled
+      if (settings.sortByRelevance) {
+        noteGroups.forEach((group) => {
+          let bestNote = group.allNotes[0]
+          let bestScore = 0
+
+          group.allNotes.forEach((note) => {
+            const stats = noteStatsService.getNoteStats(note.id)
+            const replyCount = getReplyCount(note)
+            const { score } = calculateRelevanceScore(stats, replyCount)
+
+            if (score > bestScore) {
+              bestScore = score
+              bestNote = note
+            }
+          })
+
+          group.topNote = bestNote
+          // Update newestTimestamp to match the topNote for proper sorting
+          group.newestTimestamp = bestNote.created_at
+        })
       }
 
       // sort final notes by pin/bury state (everything is already sorted by created_at descending)
@@ -212,7 +345,7 @@ const GroupedNoteList = forwardRef(
         noteGroups,
         hasNoResults: filteredEvents.length === 0 && events.length > 0
       })
-    }, [events, settings, getPinBuryState])
+    }, [events, settings, getPinBuryState, statsUpdateTrigger, getReplyCount])
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
@@ -332,54 +465,61 @@ const GroupedNoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew: batchDebounce((newEvents) => {
-            // do everything inside this setter otherwise it's impossible to get the latest state
-            setNoteGroups((curr) => {
-              const pending: NostrEvent[] = []
-              const appended: NostrEvent[] = []
+          onNew: batchDebounce(
+            (newEvents) => {
+              // Filter new events through shouldHideEvent
+              const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
 
-              for (let i = 0; i < newEvents.length; i++) {
-                const newEvent = newEvents[i]
+              // do everything inside this setter otherwise it's impossible to get the latest state
+              setNoteGroups((curr) => {
+                const pending: NostrEvent[] = []
+                const appended: NostrEvent[] = []
 
-                // TODO: figure out where exactly the viewport is: for now just assume it's at the top
-                if (
-                  curr.noteGroups.length < 7 ||
-                  newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
-                  curr.noteGroups
-                    .slice(0, 6)
-                    .some((group) => group.topNote.pubkey === newEvent.pubkey)
-                ) {
-                  // if there are very few events in the viewport or the new events would be inserted below
-                  // or they authored by any of the top authors (but they wouldn't be their top notes), just append
-                  appended.push(newEvent)
-                } else if (pubkey && newEvent.pubkey === pubkey) {
-                  // our own notes are also inserted regardless of any concern
-                  appended.push(newEvent)
-                } else {
-                  // any other "new" notes that would be inserted above, make them be pending in the modal thing
-                  pending.push(newEvent)
+                for (let i = 0; i < filteredNewEvents.length; i++) {
+                  const newEvent = filteredNewEvents[i]
+
+                  // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+                  if (
+                    curr.noteGroups.length < 7 ||
+                    newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
+                    curr.noteGroups
+                      .slice(0, 6)
+                      .some((group) => group.topNote.pubkey === newEvent.pubkey)
+                  ) {
+                    // if there are very few events in the viewport or the new events would be inserted below
+                    // or they authored by any of the top authors (but they wouldn't be their top notes), just append
+                    appended.push(newEvent)
+                  } else if (pubkey && newEvent.pubkey === pubkey) {
+                    // our own notes are also inserted regardless of any concern
+                    appended.push(newEvent)
+                  } else {
+                    // any other "new" notes that would be inserted above, make them be pending in the modal thing
+                    pending.push(newEvent)
+                  }
                 }
-              }
 
-              // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
-              if (pending.length) {
-                setNewEvents((curr) => [...pending, ...curr])
-              }
+                // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
+                if (pending.length) {
+                  setNewEvents((curr) => [...pending, ...curr])
+                }
 
-              if (appended.length) {
-                // merging these will trigger a group recomputation
-                setEvents((oldEvents) => {
-                  // we have no idea of the order here, so just sort everything and eliminate duplicates
-                  const all = [...oldEvents, ...appended].sort(
-                    (a, b) => b.created_at - a.created_at
-                  )
-                  return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
-                })
-              }
+                if (appended.length) {
+                  // merging these will trigger a group recomputation
+                  setEvents((oldEvents) => {
+                    // we have no idea of the order here, so just sort everything and eliminate duplicates
+                    const all = [...oldEvents, ...appended].sort(
+                      (a, b) => b.created_at - a.created_at
+                    )
+                    return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
+                  })
+                }
 
-              return curr
-            })
-          }, 1800),
+                return curr
+              })
+            },
+            1800,
+            3000
+          ),
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools
@@ -404,7 +544,7 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, settings])
+    }, [subRequests, refreshCount, showKinds, settings, shouldHideEvent])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
@@ -434,6 +574,14 @@ const GroupedNoteList = forwardRef(
     const list = (
       <div className="min-h-screen" style={{ overflowAnchor: 'none' }}>
         {nameFilteredGroups.map(({ totalNotes, oldestTimestamp, allNoteTimestamps, topNote }) => {
+          // Calculate relevance score if enabled
+          const relevanceScore = settings.sortByRelevance
+            ? calculateRelevanceScore(
+                noteStatsService.getNoteStats(topNote.id),
+                getReplyCount(topNote)
+              ).score
+            : undefined
+
           // use CompactedNoteCard if compacted view is on
           if (settings.compactedView) {
             const readStatus = getReadStatus(topNote.pubkey, topNote.created_at)
@@ -464,6 +612,7 @@ const GroupedNoteList = forwardRef(
                 onMarkAsUnread={() => markAsUnread(topNote.pubkey)}
                 isLastNoteRead={readStatus.isLastNoteRead}
                 areAllNotesRead={readStatus.areAllNotesRead}
+                relevanceScore={relevanceScore}
               />
             )
           }
@@ -488,6 +637,7 @@ const GroupedNoteList = forwardRef(
                 unreadCount && markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
               }
               areAllNotesRead={readStatus.areAllNotesRead}
+              relevanceScore={relevanceScore}
             />
           )
         })}

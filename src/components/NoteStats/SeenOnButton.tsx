@@ -58,8 +58,8 @@ export default function SeenOnButton({ event }: { event: Event }) {
           <DrawerContent hideOverlay>
             <div className="py-2">
               {isLocal(event) && (
-                <span className="bg-slate-100 p-6">
-                  <Save /> local database
+                <span className="inline-flex gap-4 text-lg font-medium h-9 p-6">
+                  <Save className="!w-6 !h-6" /> local database
                 </span>
               )}
               {relays.map((relay) => (
@@ -90,7 +90,7 @@ export default function SeenOnButton({ event }: { event: Event }) {
         <DropdownMenuLabel>{t('Seen on')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
         {isLocal(event) && (
-          <DropdownMenuItem className="min-w-52 bg-slate-100">
+          <DropdownMenuItem className="min-w-52m cursor-default focus:bg-transparent">
             <Save className="!w-6 !h-6" /> local database
           </DropdownMenuItem>
         )}

@@ -436,6 +436,8 @@ export default {
     GroupedNotesShowPreview: 'Pokaż podgląd ostatniej notatki',
     GroupedNotesIncludeReplies: 'Uwzględnij odpowiedzi',
     GroupedNotesShowOnlyFirstLevelReplies: 'Pokaż tylko odpowiedzi pierwszego poziomu',
+    GroupedNotesHideShortNotes: 'Ukryj (zbyt) krótkie notatki',
+    GroupedNotesSortByRelevance: 'Sortuj notatki użytkowników według trafności',
     GroupedNotesFilter: 'Wyszukaj użytkowników...',
     GroupedNotesTimeframe:
       'Pokaż mi podsumowanie dla poszczególnych użytkowników tego, co wydarzyło się w ostatnich',

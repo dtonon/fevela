@@ -429,6 +429,8 @@ export default {
     GroupedNotesShowPreview: 'إظهار معاينة الملاحظة الأخيرة',
     GroupedNotesIncludeReplies: 'تضمين الردود',
     GroupedNotesShowOnlyFirstLevelReplies: 'إظهار الردود من المستوى الأول فقط',
+    GroupedNotesHideShortNotes: 'إخفاء الملاحظات القصيرة (جداً)',
+    GroupedNotesSortByRelevance: 'ترتيب ملاحظات المستخدمين حسب الصلة',
     GroupedNotesFilter: 'البحث عن المستخدمين...',
     GroupedNotesTimeframe: 'أظهر لي ملخصاً للمستخدمين المنفردين عما حدث في آخر',
     GroupedNotesWordFilter: 'تصفية الملاحظات التي تحتوي على هذه الكلمات (مفصولة بفاصلة):',

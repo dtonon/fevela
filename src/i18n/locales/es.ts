@@ -436,6 +436,8 @@ export default {
     GroupedNotesShowPreview: 'Mostrar vista previa de la última nota',
     GroupedNotesIncludeReplies: 'Incluir respuestas',
     GroupedNotesShowOnlyFirstLevelReplies: 'Mostrar solo respuestas de primer nivel',
+    GroupedNotesHideShortNotes: 'Ocultar notas (demasiado) cortas',
+    GroupedNotesSortByRelevance: 'Ordenar notas de usuarios por relevancia',
     GroupedNotesFilter: 'Buscar usuarios...',
     GroupedNotesTimeframe:
       'Muéstrame un resumen para usuarios individuales de lo que pasó en los últimos',

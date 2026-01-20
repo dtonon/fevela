@@ -33,6 +33,7 @@ export type TGroupedNotesSettings = {
   showOnlyFirstLevelReplies: boolean
   showPreview: boolean
   hideShortNotes: boolean
+  sortByRelevance: boolean
 }
 
 export type TStoredTimeFrame = {
@@ -50,6 +51,7 @@ export type TStoredGroupedNotesSettings = {
   showOnlyFirstLevelReplies: boolean
   showPreview: boolean
   hideShortNotes: boolean
+  sortByRelevance: boolean
 }
 
 type TGroupedNotesContext = {
@@ -68,7 +70,8 @@ const createDefaultSettings = (timeFrameOptions: TTimeFrame[]): TGroupedNotesSet
   includeReplies: false,
   showOnlyFirstLevelReplies: false,
   showPreview: true,
-  hideShortNotes: false
+  hideShortNotes: false,
+  sortByRelevance: false
 })
 
 const GroupedNotesContext = createContext<TGroupedNotesContext | undefined>(undefined)
@@ -101,7 +104,8 @@ export function GroupedNotesProvider({ children }: { children: React.ReactNode }
         wordFilter: storedSettings.wordFilter ?? '', // default to empty for existing users
         showPreview: storedSettings.showPreview ?? true, // default to true for existing users
         showOnlyFirstLevelReplies: storedSettings.showOnlyFirstLevelReplies ?? false, // default to false for existing users
-        hideShortNotes: storedSettings.hideShortNotes ?? false // default to false for existing users
+        hideShortNotes: storedSettings.hideShortNotes ?? false, // default to false for existing users
+        sortByRelevance: storedSettings.sortByRelevance ?? false // default to false for existing users
       }
     }
     return createDefaultSettings(timeFrameOptions)

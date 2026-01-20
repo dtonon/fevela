@@ -41,14 +41,17 @@ export function isReplyNoteEvent(event: Event) {
 export function isFirstLevelReply(event: Event) {
   if (!isReplyNoteEvent(event)) return false
 
-  const parentETag = getParentETag(event)
-  const rootETag = getRootETag(event)
+  const parentTag = getParentTag(event)
+  const rootTag = getRootTag(event)
 
-  // If there's no root tag, or root is the same as parent, it's a first-level reply
-  if (!rootETag || !parentETag) return true
+  // If there's no root tag, it's a first-level reply
+  if (!rootTag) return true
+  // If there's no parent tag, consider it first-level
+  if (!parentTag) return true
 
-  // First-level reply: parent and root point to the same event
-  return parentETag[1] === rootETag[1]
+  // First-level reply: parent and root point to the same event/addressable
+  // Compare tag values (index 1 contains event ID or addressable coordinate)
+  return parentTag.tag[1] === rootTag[1]
 }
 
 export function isReplaceableEvent(kind: number) {

@@ -3,11 +3,12 @@ import { cn } from '@/lib/utils'
 import blossomService from '@/services/blossom.service'
 import { TImetaInfo } from '@/types'
 import { decode } from 'blurhash'
+import { thumbHashToDataURL } from 'thumbhash'
 import { ImageOff } from 'lucide-react'
 import { HTMLAttributes, useEffect, useMemo, useRef, useState } from 'react'
 
 export default function Image({
-  image: { url, blurHash, pubkey, dim },
+  image: { url, blurHash, thumbHash, pubkey, dim },
   alt,
   className = '',
   classNames = {},
@@ -53,28 +54,19 @@ export default function Image({
 
   if (hideIfError && hasError) return null
 
-  const handleError = async () => {
-    const nextUrl = await blossomService.tryNextUrl(url)
-    if (nextUrl) {
-      setImageUrl(nextUrl)
-    } else {
-      setIsLoading(false)
-      setHasError(true)
-    }
-  }
-
-  const handleLoad = () => {
-    setIsLoading(false)
-    setHasError(false)
-    setTimeout(() => setDisplaySkeleton(false), 600)
-    blossomService.markAsSuccess(url, imageUrl || url)
-  }
-
   return (
     <div className={cn('relative overflow-hidden', classNames.wrapper)} {...props}>
       {displaySkeleton && (
         <div className="absolute inset-0 z-10">
-          {blurHash ? (
+          {thumbHash ? (
+            <ThumbHashPlaceholder
+              thumbHash={thumbHash}
+              className={cn(
+                'absolute inset-0 transition-opacity rounded-lg',
+                isLoading ? 'opacity-100' : 'opacity-0'
+              )}
+            />
+          ) : blurHash ? (
             <BlurHashCanvas
               blurHash={blurHash}
               className={cn(
@@ -132,6 +124,23 @@ export default function Image({
         ))}
     </div>
   )
+
+  async function handleError() {
+    const nextUrl = await blossomService.tryNextUrl(url)
+    if (nextUrl) {
+      setImageUrl(nextUrl)
+    } else {
+      setIsLoading(false)
+      setHasError(true)
+    }
+  }
+
+  function handleLoad() {
+    setIsLoading(false)
+    setHasError(false)
+    setTimeout(() => setDisplaySkeleton(false), 600)
+    blossomService.markAsSuccess(url, imageUrl || url)
+  }
 }
 
 const blurHashWidth = 32
@@ -172,6 +181,38 @@ function BlurHashCanvas({ blurHash, className = '' }: { blurHash: string; classN
       style={{
         imageRendering: 'auto',
         filter: 'blur(0.5px)'
+      }}
+    />
+  )
+}
+
+function ThumbHashPlaceholder({
+  thumbHash,
+  className = ''
+}: {
+  thumbHash: Uint8Array
+  className?: string
+}) {
+  const dataUrl = useMemo(() => {
+    if (!thumbHash) return null
+    try {
+      return thumbHashToDataURL(thumbHash)
+    } catch (error) {
+      console.warn('failed to decode thumbhash:', error)
+      return null
+    }
+  }, [thumbHash])
+
+  if (!dataUrl) return null
+
+  return (
+    <div
+      className={cn('w-full h-full object-cover rounded-lg', className)}
+      style={{
+        backgroundImage: `url(${dataUrl})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        filter: 'blur(1px)'
       }}
     />
   )

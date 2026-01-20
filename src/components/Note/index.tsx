@@ -7,6 +7,7 @@ import { useMuteList } from '@/providers/MuteListProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
+import { Sparkles } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import AudioPlayer from '../AudioPlayer'
 import ClientTag from '../ClientTag'
@@ -42,12 +43,14 @@ export default function Note({
   className,
   hideParentNotePreview = false,
   showFull = false,
-  hideHeader = false
+  hideHeader = false,
+  relevanceScore
 }: {
   event: Event
   originalNoteId?: string
   size?: 'normal' | 'small'
   className?: string
+  relevanceScore?: number
   hideParentNotePreview?: boolean
   showFull?: boolean
   hideHeader?: boolean
@@ -134,6 +137,15 @@ export default function Note({
                   className="shrink-0"
                   short={isSmallScreen}
                 />
+                {relevanceScore !== undefined && (
+                  <>
+                    <span>·</span>
+                    <span className="shrink-0 text-primary font-medium flex items-center gap-0.5">
+                      <Sparkles size={14} />
+                      {Math.round(relevanceScore)}
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>

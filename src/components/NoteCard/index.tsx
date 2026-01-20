@@ -17,7 +17,8 @@ export default function NoteCard({
   groupedNotesTotalCount,
   groupedNotesOldestTimestamp,
   onAllNotesRead,
-  areAllNotesRead
+  areAllNotesRead,
+  relevanceScore
 }: {
   event: Event
   className?: string
@@ -28,6 +29,7 @@ export default function NoteCard({
   groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
+  relevanceScore?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -53,6 +55,7 @@ export default function NoteCard({
         groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
         onAllNotesRead={onAllNotesRead}
         areAllNotesRead={areAllNotesRead}
+        relevanceScore={relevanceScore}
       />
     )
   }
@@ -66,6 +69,7 @@ export default function NoteCard({
       groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
+      relevanceScore={relevanceScore}
     />
   )
 }
