@@ -10,7 +10,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useOutboxStatus } from '@/providers/OutboxProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { TPageRef } from '@/types'
-import { Info, PencilLine, Search, RefreshCcwDot, Radio, Square } from 'lucide-react'
+import { Info, PencilLine, Search, RefreshCcwDot, MessageSquare } from 'lucide-react'
 import {
   Dispatch,
   forwardRef,
@@ -107,10 +107,29 @@ function NoteListPageTitlebar({
   const { isSmallScreen } = useScreenSize()
   const { feedInfo } = useFeed()
   const outbox = useOutboxStatus()
+  const { t } = useTranslation()
 
   return (
     <div className="flex gap-1 items-center h-full justify-between">
-      {feedInfo.feedType !== 'following' && <FeedButton className="flex-1 max-w-fit w-0" />}
+      {feedInfo.feedType != 'following' && <FeedButton className="flex-1 max-w-fit w-0" />}
+
+      {feedInfo.feedType === 'following' && (
+        <div className="flex gap-2 items-center justify-between h-full w-full pl-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare />
+            <div className="text-lg font-semibold">{t('Following')}</div>
+          </div>
+          <div className="px-2 flex gap-2 items-center">
+            {outbox.syncing && (
+              <>
+                <RefreshCcwDot />
+                <span>Synching{outbox.total && ` ${outbox.current}/${outbox.total} profiles`}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="shrink-0 flex gap-1 items-center">
         {setShowRelayDetails && (
           <Button
@@ -129,28 +148,7 @@ function NoteListPageTitlebar({
             <Info />
           </Button>
         )}
-        {feedInfo.feedType === 'following' && (
-          <div className="px-2 flex gap-2 items-center">
-            {outbox.syncing ? (
-              <>
-                <RefreshCcwDot />
-                <span>
-                  syncing{outbox.total && ` ${outbox.current}/${outbox.total} profiles`}...
-                </span>
-              </>
-            ) : outbox.syncing === false ? (
-              <>
-                <Radio />
-                <span>listening for new notes...</span>
-              </>
-            ) : (
-              <>
-                <Square />
-                <span>setting up...</span>
-              </>
-            )}
-          </div>
-        )}
+
         {isSmallScreen && (
           <>
             <SearchButton />
