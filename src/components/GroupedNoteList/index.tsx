@@ -1,6 +1,11 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isMentioningMutedUsers, isReplyNoteEvent, isFirstLevelReply, getEventKey } from '@/lib/event'
+import {
+  isMentioningMutedUsers,
+  isReplyNoteEvent,
+  isFirstLevelReply,
+  getEventKey
+} from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { calculateRelevanceScore } from '@/lib/note-relevance'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
@@ -87,6 +92,9 @@ const GroupedNoteList = forwardRef(
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const topRef = useRef<HTMLDivElement | null>(null)
     const { getPinBuryState } = usePinBury()
+    const [showNewNotesButton, setShowNewNotesButton] = useState(false)
+    const [lastButtonClickTime, setLastButtonClickTime] = useState<number>(0)
+    const [isFirstRun, setIsFirstRun] = useState(true)
 
     const [{ noteGroups, hasNoResults }, setNoteGroups] = useState<{
       noteGroups: TNoteGroup[]
@@ -185,10 +193,14 @@ const GroupedNoteList = forwardRef(
             // Update stats service with new interactions
             noteStatsService.updateNoteStatsByEvents(events)
           },
-          onNew: batchDebounce((newEvents) => {
-            // Update stats service with new interactions in real-time
-            noteStatsService.updateNoteStatsByEvents(newEvents)
-          }, 1000, 2000)
+          onNew: batchDebounce(
+            (newEvents) => {
+              // Update stats service with new interactions in real-time
+              noteStatsService.updateNoteStatsByEvents(newEvents)
+            },
+            1000,
+            2000
+          )
         },
         {
           startLogin
@@ -405,6 +417,35 @@ const GroupedNoteList = forwardRef(
       return noteGroups.filter((group) => matchingPubkeys.has(group.topNote.pubkey))
     }, [noteGroups, userFilter, matchingPubkeys])
 
+    useEffect(() => {
+      if (newEvents.length === 0) {
+        setShowNewNotesButton(false)
+        return
+      }
+
+      const now = Date.now()
+      const timeSinceLastClick = now - lastButtonClickTime
+
+      // Show immediately if more than 25 events
+      if (newEvents.length > 25) {
+        setShowNewNotesButton(true)
+        return
+      }
+
+      // Don't show within 60 seconds, unless 20+ events
+      if (timeSinceLastClick < 60000 && newEvents.length < 20) {
+        setShowNewNotesButton(false)
+        return
+      }
+
+      // Show after delay (5s first run, 30s next runs)
+      const delay = isFirstRun ? 3000 : 30000
+      const timeoutId = setTimeout(() => {
+        setShowNewNotesButton(true)
+      }, delay)
+      return () => clearTimeout(timeoutId)
+    }, [newEvents.length, lastButtonClickTime, isFirstRun])
+
     // notify parent about notes composition (notes vs replies)
     useEffect(() => {
       if (!onNotesLoaded || loading || events.length === 0) return
@@ -552,6 +593,9 @@ const GroupedNoteList = forwardRef(
         [...newEvents, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
       )
       setNewEvents([])
+      setShowNewNotesButton(false)
+      setLastButtonClickTime(Date.now())
+      setIsFirstRun(false)
       setTimeout(() => {
         scrollToTop('smooth')
       }, 0)
@@ -672,7 +716,9 @@ const GroupedNoteList = forwardRef(
           list
         )}
         <div className="h-40" />
-        {newEvents.length > 0 && <NewNotesButton newEvents={newEvents} onClick={mergeNewEvents} />}
+        {showNewNotesButton && newEvents.length > 0 && (
+          <NewNotesButton newEvents={newEvents} onClick={mergeNewEvents} />
+        )}
       </div>
     )
   }
