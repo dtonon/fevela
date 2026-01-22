@@ -510,6 +510,7 @@ export default {
     Extension: '拡張機能',
     Remote: 'リモート',
     'Encrypted Key': '暗号化キー',
-    'Private Key': '暗号化されたキー'
+    'Private Key': '暗号化されたキー',
+    Synching: '同期中 {{current}}/{{total}} プロフィール'
   }
 }

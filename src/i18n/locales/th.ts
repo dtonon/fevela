@@ -504,6 +504,7 @@ export default {
     Extension: 'ส่วนขยาย',
     Remote: 'ระยะไกล',
     'Encrypted Key': 'คีย์ที่เข้ารหัส',
-    'Private Key': 'คีย์ส่วนตัว'
+    'Private Key': 'คีย์ส่วนตัว',
+    Synching: 'กำลังซิงค์ {{current}}/{{total}} โปรไฟล์'
   }
 }

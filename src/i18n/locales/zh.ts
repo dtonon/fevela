@@ -500,6 +500,7 @@ export default {
     Extension: '扩展',
     Remote: '远程',
     'Encrypted Key': '加密私钥',
-    'Private Key': '私钥'
+    'Private Key': '私钥',
+    Synching: '同步中 {{current}}/{{total}} 个资料'
   }
 }

@@ -123,7 +123,7 @@ function NoteListPageTitlebar({
             {outbox.syncing && (
               <>
                 <RefreshCcwDot />
-                <span>Synching{outbox.total && ` ${outbox.current}/${outbox.total} profiles`}</span>
+                <span>{t('Synching', { current: outbox.current, total: outbox.total })}</span>
               </>
             )}
           </div>
