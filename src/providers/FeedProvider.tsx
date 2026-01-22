@@ -43,10 +43,12 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         return
       }
 
-      let feedInfo: TFeedInfo = {
-        feedType: 'relay',
-        id: relayURLs[0] ?? DEFAULT_FAVORITE_RELAYS[0]
-      }
+      let feedInfo: TFeedInfo = pubkey
+        ? { feedType: 'following' }
+        : {
+            feedType: 'relay',
+            id: relayURLs[0] ?? DEFAULT_FAVORITE_RELAYS[0]
+          }
 
       if (pubkey) {
         const storedFeedInfo = storage.getFeedInfo(pubkey)
