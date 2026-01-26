@@ -585,7 +585,7 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, settings, shouldHideEvent])
+    }, [subRequests, refreshCount, showKinds, settings.timeFrame])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
