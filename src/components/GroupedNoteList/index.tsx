@@ -131,13 +131,23 @@ const GroupedNoteList = forwardRef(
       [repliesMap, mutePubkeySet, hideContentMentioningMutedUsers]
     )
 
-    // Progressive stats fetching for relevance sorting
+    // Track notes we've already fetched stats for
+    const fetchedStatsRef = useRef<Set<string>>(new Set())
+
+    // Clear cache when relevance sorting is disabled
+    useEffect(() => {
+      if (!settings.sortByRelevance) {
+        fetchedStatsRef.current.clear()
+      }
+    }, [settings.sortByRelevance])
+
+    // Subscribe to stats updates and fetch initial stats for displayed notes
     useEffect(() => {
       if (!settings.sortByRelevance || noteGroups.length === 0) return
 
       const unsubscribers: (() => void)[] = []
 
-      // Collect all note IDs that need stats
+      // Collect all note IDs
       const noteIdsToFetch = new Set<string>()
       noteGroups.forEach((group) => {
         group.allNotes.forEach((note) => {
@@ -153,12 +163,26 @@ const GroupedNoteList = forwardRef(
         unsubscribers.push(unsubscribe)
       })
 
-      // Fetch initial stats for all notes in background
-      noteGroups.forEach((group) => {
-        group.allNotes.forEach((note) => {
-          noteStatsService.fetchNoteStats(note, pubkey)
-        })
-      })
+      // Fetch initial stats only for NEW notes (not already fetched)
+      // Limit to first 50 new notes per render to avoid connection burst
+      let count = 0
+      const MAX_STATS_FETCH = 50
+
+      for (const group of noteGroups) {
+        for (const note of group.allNotes) {
+          if (count >= MAX_STATS_FETCH) break
+          if (!fetchedStatsRef.current.has(note.id)) {
+            fetchedStatsRef.current.add(note.id)
+            count++
+            // Stagger requests to avoid burst
+            setTimeout(() => {
+              noteStatsService.fetchNoteStats(note, pubkey)
+            }, count * 100) // 100ms between each request
+          }
+        }
+        if (count >= MAX_STATS_FETCH) break
+      }
+
       if (count > 0) {
         console.log('[GroupedNoteList] Fetching initial stats for', count, 'new notes')
       }
@@ -185,6 +209,7 @@ const GroupedNoteList = forwardRef(
       const noteIdArray = Array.from(noteIds)
 
       console.log('[GroupedNoteList] Creating RELEVANCE subscription for', noteIdArray.length, 'notes')
+
       // Subscribe to interaction events for these notes
       const subc = client.subscribeTimeline(
         subRequests,
