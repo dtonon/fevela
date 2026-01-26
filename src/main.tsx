@@ -24,7 +24,7 @@ initNostrWasm()
 
     // Manage relay connection pool to prevent "Insufficient resources" errors
     // Browsers limit WebSocket connections (usually 200-255 total)
-    const MAX_RELAY_CONNECTIONS = 50 // More conservative limit
+    const MAX_RELAY_CONNECTIONS = 150
 
     setInterval(() => {
       // Access protected relays property and type it properly
@@ -72,7 +72,7 @@ initNostrWasm()
 
       // Warn if we're getting close to browser limits
       // Browser limit ~200-255
-      if (relays.length > 150) {
+      if (relays.length > MAX_RELAY_CONNECTIONS - 5) {
         console.warn(`High relay count: ${relays.length} relays in pool`)
       }
     }, 10_000)
