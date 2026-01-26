@@ -33,9 +33,18 @@ initNostrWasm()
       // Log current state for debugging
       const connected = relays.filter((r) => r.connected).length
       const withSubs = relays.filter((r) => r.openSubs.size > 0).length
+
+      // Log detailed subscription info per relay
+      const subsPerRelay = relays.map((r) => ({
+        url: r.url.substring(0, 30),
+        connected: r.connected,
+        subs: r.openSubs.size
+      }))
+
       console.log(
         `Relay connections: ${connected}/${relays.length} connected, ${withSubs} with active subs`
       )
+      console.table(subsPerRelay)
 
       // Separate idle relays into two categories
       const disconnectedIdle = relays.filter((r) => !r.connected && r.openSubs.size === 0)

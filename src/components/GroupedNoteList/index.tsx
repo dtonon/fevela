@@ -159,6 +159,9 @@ const GroupedNoteList = forwardRef(
           noteStatsService.fetchNoteStats(note, pubkey)
         })
       })
+      if (count > 0) {
+        console.log('[GroupedNoteList] Fetching initial stats for', count, 'new notes')
+      }
 
       return () => {
         unsubscribers.forEach((unsubscribe) => unsubscribe())
@@ -181,6 +184,7 @@ const GroupedNoteList = forwardRef(
 
       const noteIdArray = Array.from(noteIds)
 
+      console.log('[GroupedNoteList] Creating RELEVANCE subscription for', noteIdArray.length, 'notes')
       // Subscribe to interaction events for these notes
       const subc = client.subscribeTimeline(
         subRequests,
@@ -207,7 +211,10 @@ const GroupedNoteList = forwardRef(
         }
       )
 
-      return () => subc.close()
+      return () => {
+        console.log('[GroupedNoteList] Closing RELEVANCE subscription')
+        subc.close()
+      }
     }, [settings.sortByRelevance, noteGroups.length, subRequests, startLogin])
 
     useEffect(() => {
@@ -488,6 +495,8 @@ const GroupedNoteList = forwardRef(
       const timeframeMs = getTimeFrameInMs(settings.timeFrame)
       const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
 
+      console.log('[GroupedNoteList] Creating MAIN subscription, timeframe:', settings.timeFrame)
+
       const subc = client.subscribeTimeline(
         subRequests,
         {
@@ -584,7 +593,10 @@ const GroupedNoteList = forwardRef(
         }
       )
 
-      return () => subc.close()
+      return () => {
+        console.log('[GroupedNoteList] Closing MAIN subscription')
+        subc.close()
+      }
     }, [subRequests, refreshCount, showKinds, settings.timeFrame])
 
     function mergeNewEvents() {
