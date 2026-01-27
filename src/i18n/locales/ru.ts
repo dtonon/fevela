@@ -518,6 +518,7 @@ export default {
     Extension: 'Расширение',
     Remote: 'Удалённый',
     'Encrypted Key': 'Зашифрованный ключ',
-    'Private Key': 'Приватный ключ'
+    'Private Key': 'Приватный ключ',
+    Synching: 'Синхронизация {{current}}/{{total}} профилей'
   }
 }

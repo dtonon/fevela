@@ -513,6 +513,7 @@ export default {
     Extension: 'एक्सटेंशन',
     Remote: 'रिमोट',
     'Encrypted Key': 'एन्क्रिप्टेड की',
-    'Private Key': 'प्राइवेट की'
+    'Private Key': 'प्राइवेट की',
+    Synching: 'सिंक हो रहा है {{current}}/{{total}} प्रोफाइल'
   }
 }

@@ -15,6 +15,7 @@ import { LinkPreviewHoverProvider } from '@/providers/LinkPreviewHoverProvider'
 import { MediaUploadServiceProvider } from '@/providers/MediaUploadServiceProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
+import { OutboxProvider } from '@/providers/OutboxProvider'
 import { PinBuryProvider } from '@/providers/PinBuryProvider'
 import { PinListProvider } from '@/providers/PinListProvider'
 import { ReplyProvider } from '@/providers/ReplyProvider'
@@ -33,41 +34,43 @@ export default function App(): JSX.Element {
         <LinkPreviewHoverProvider>
           <ThemeProvider>
             <ContentPolicyProvider>
-            <DeletedEventProvider>
-              <NostrProvider>
-                <ZapProvider>
-                  <TranslationServiceProvider>
-                    <FavoriteRelaysProvider>
-                      <FollowListProvider>
-                        <PinBuryProvider>
-                          <MuteListProvider>
-                            <UserTrustProvider>
-                            <BookmarksProvider>
-                              <PinListProvider>
-                                <FeedProvider>
-                                  <ReplyProvider>
-                                    <MediaUploadServiceProvider>
-                                      <KindFilterProvider>
-                                        <GroupedNotesProvider>
-                                          <PageManager />
-                                          <Toaster />
-                                          <LinkPreviewHoverUI />
-                                        </GroupedNotesProvider>
-                                      </KindFilterProvider>
-                                    </MediaUploadServiceProvider>
-                                  </ReplyProvider>
-                                </FeedProvider>
-                              </PinListProvider>
-                            </BookmarksProvider>
-                            </UserTrustProvider>
-                          </MuteListProvider>
-                        </PinBuryProvider>
-                      </FollowListProvider>
-                    </FavoriteRelaysProvider>
-                  </TranslationServiceProvider>
-                </ZapProvider>
-              </NostrProvider>
-            </DeletedEventProvider>
+              <DeletedEventProvider>
+                <NostrProvider>
+                  <OutboxProvider>
+                    <ZapProvider>
+                      <TranslationServiceProvider>
+                        <FavoriteRelaysProvider>
+                          <FollowListProvider>
+                            <PinBuryProvider>
+                              <MuteListProvider>
+                                <UserTrustProvider>
+                                  <BookmarksProvider>
+                                    <PinListProvider>
+                                      <FeedProvider>
+                                        <ReplyProvider>
+                                          <MediaUploadServiceProvider>
+                                            <KindFilterProvider>
+                                              <GroupedNotesProvider>
+                                                <PageManager />
+                                                <Toaster />
+                                                <LinkPreviewHoverUI />
+                                              </GroupedNotesProvider>
+                                            </KindFilterProvider>
+                                          </MediaUploadServiceProvider>
+                                        </ReplyProvider>
+                                      </FeedProvider>
+                                    </PinListProvider>
+                                  </BookmarksProvider>
+                                </UserTrustProvider>
+                              </MuteListProvider>
+                            </PinBuryProvider>
+                          </FollowListProvider>
+                        </FavoriteRelaysProvider>
+                      </TranslationServiceProvider>
+                    </ZapProvider>
+                  </OutboxProvider>
+                </NostrProvider>
+              </DeletedEventProvider>
             </ContentPolicyProvider>
           </ThemeProvider>
         </LinkPreviewHoverProvider>

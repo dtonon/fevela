@@ -510,6 +510,7 @@ export default {
     Extension: '확장 프로그램',
     Remote: '원격',
     'Encrypted Key': '암호화된 키',
-    'Private Key': '개인 키'
+    'Private Key': '개인 키',
+    Synching: '동기화 중 {{current}}/{{total}} 프로필'
   }
 }

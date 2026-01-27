@@ -7,9 +7,10 @@ import { toSearch } from '@/lib/link'
 import { useCurrentRelays } from '@/providers/CurrentRelaysProvider'
 import { useFeed } from '@/providers/FeedProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import { useOutboxStatus } from '@/providers/OutboxProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { TPageRef } from '@/types'
-import { Info, PencilLine, Search } from 'lucide-react'
+import { Info, PencilLine, Search, RefreshCcwDot, MessageSquare } from 'lucide-react'
 import {
   Dispatch,
   forwardRef,
@@ -104,10 +105,31 @@ function NoteListPageTitlebar({
   setShowRelayDetails?: Dispatch<SetStateAction<boolean>>
 }) {
   const { isSmallScreen } = useScreenSize()
+  const { feedInfo } = useFeed()
+  const outbox = useOutboxStatus()
+  const { t } = useTranslation()
 
   return (
     <div className="flex gap-1 items-center h-full justify-between">
-      <FeedButton className="flex-1 max-w-fit w-0" />
+      {feedInfo.feedType != 'following' && <FeedButton className="flex-1 max-w-fit w-0" />}
+
+      {feedInfo.feedType === 'following' && (
+        <div className="flex gap-2 items-center justify-between h-full w-full pl-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare />
+            <div className="text-lg font-semibold">{t('Following')}</div>
+          </div>
+          <div className="px-2 flex gap-2 items-center">
+            {outbox.syncing && (
+              <>
+                <RefreshCcwDot />
+                <span>{t('Synching', { current: outbox.current, total: outbox.total })}</span>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="shrink-0 flex gap-1 items-center">
         {setShowRelayDetails && (
           <Button
@@ -126,6 +148,7 @@ function NoteListPageTitlebar({
             <Info />
           </Button>
         )}
+
         {isSmallScreen && (
           <>
             <SearchButton />

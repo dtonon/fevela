@@ -25,7 +25,7 @@ const SidebarItem = forwardRef<
       {...props}
     >
       {children}
-      {!collapse && <div>{t(description ?? title)}</div>}
+      {!collapse && <div className="truncate">{t(description ?? title)}</div>}
     </Button>
   )
 })

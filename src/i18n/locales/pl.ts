@@ -516,6 +516,7 @@ export default {
     Extension: 'Rozszerzenie',
     Remote: 'Zdalne',
     'Encrypted Key': 'Zaszyfrowany Klucz',
-    'Private Key': 'Zaszyfrowany Klucz'
+    'Private Key': 'Zaszyfrowany Klucz',
+    Synching: 'Synchronizacja {{current}}/{{total}} profile'
   }
 }

@@ -516,6 +516,7 @@ export default {
     Extension: 'Extensión',
     Remote: 'Remoto',
     'Encrypted Key': 'Clave privada cifrada',
-    'Private Key': 'Clave privada'
+    'Private Key': 'Clave privada',
+    Synching: 'Sincronizando {{current}}/{{total}} perfiles'
   }
 }

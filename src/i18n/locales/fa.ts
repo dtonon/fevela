@@ -510,6 +510,7 @@ export default {
     Extension: 'افزونه',
     Remote: 'از راه دور',
     'Encrypted Key': 'رمزگذاری شده کلید',
-    'Private Key': 'کلید خصوصی'
+    'Private Key': 'کلید خصوصی',
+    Synching: 'همگام‌سازی {{current}}/{{total}} نمایه'
   }
 }

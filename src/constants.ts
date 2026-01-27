@@ -53,6 +53,7 @@ export const StorageKey = {
   PRIMARY_COLOR: 'primaryColor',
   ENABLE_SINGLE_COLUMN_LAYOUT: 'enableSingleColumnLayout',
   SHOW_LINK_PREVIEWS: 'showLinkPreviews',
+  ACCOUNT_LAST_RELAY_MAP: 'accountLastRelayMap',
   HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents' // deprecated
 }
 
