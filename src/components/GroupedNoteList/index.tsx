@@ -458,8 +458,8 @@ const GroupedNoteList = forwardRef(
       const now = Date.now()
       const timeSinceLastClick = now - lastButtonClickTime
 
-      // Show immediately if more than 25 events
-      if (newEvents.length > 25) {
+      // Show immediately if more than 50 events
+      if (newEvents.length > 50) {
         setShowNewNotesButton(true)
         return
       }
@@ -470,8 +470,8 @@ const GroupedNoteList = forwardRef(
         return
       }
 
-      // Show after delay (5s first run, 30s next runs)
-      const delay = isFirstRun ? 3000 : 30000
+      // Show after delay (5s first run, 45s next runs)
+      const delay = isFirstRun ? 3000 : 45000
       const timeoutId = setTimeout(() => {
         setShowNewNotesButton(true)
       }, delay)
