@@ -95,6 +95,7 @@ const GroupedNoteList = forwardRef(
     const [showNewNotesButton, setShowNewNotesButton] = useState(false)
     const [lastButtonClickTime, setLastButtonClickTime] = useState<number>(0)
     const [isFirstRun, setIsFirstRun] = useState(true)
+    const eventsToPreserveOnRefresh = useRef<Event[]>([]) // Events to merge after refresh
 
     const [{ noteGroups, hasNoResults }, setNoteGroups] = useState<{
       noteGroups: TNoteGroup[]
@@ -497,6 +498,16 @@ const GroupedNoteList = forwardRef(
     }
 
     const refresh = () => {
+      // Save current events to preserve them across refresh (will be filtered by timeframe after merge)
+      eventsToPreserveOnRefresh.current = [...newEvents, ...events].sort(
+        (a, b) => b.created_at - a.created_at
+      )
+
+      // Reset throttling state so new events from refresh can appear quickly
+      setShowNewNotesButton(false)
+      setLastButtonClickTime(Date.now())
+      setIsFirstRun(true)
+
       scrollToTop()
       setTimeout(() => {
         setRefreshCount((count) => count + 1)
@@ -534,6 +545,21 @@ const GroupedNoteList = forwardRef(
 
             if (isFinal) {
               setLoading(false)
+
+              // Merge with preserved events from refresh and filter by timeframe
+              if (eventsToPreserveOnRefresh.current.length > 0) {
+                const combined = [...events, ...eventsToPreserveOnRefresh.current]
+                // Remove duplicates by event id
+                const uniqueEvents = Array.from(
+                  new Map(combined.map((evt) => [evt.id, evt])).values()
+                )
+                // Filter by timeframe and sort
+                events = uniqueEvents
+                  .filter((evt) => evt.created_at >= groupedNotesSince)
+                  .sort((a, b) => b.created_at - a.created_at)
+
+                eventsToPreserveOnRefresh.current = []
+              }
             }
 
             if (events.length > 0) {
