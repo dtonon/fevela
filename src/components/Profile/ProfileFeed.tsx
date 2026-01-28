@@ -30,19 +30,23 @@ export default function ProfileFeed({
   const { showKinds } = useKindFilter()
   const { settings: groupedNotesSettings } = useGroupedNotes()
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
-  const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
-  const [hasForceSet, setHasForceSet] = useState<boolean>(false)
-  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
-  const [pinnedEventIds, setPinnedEventIds] = useState<string[]>([])
 
   // when coming from the grouped notes view this will be maximum timestamp threshold
   const groupedSince = parseInt(new URLSearchParams(window.location.search).get('gs') || '0')
+
+  const [listMode, setListMode] = useState<TNoteListMode>(() =>
+    groupedSince > 0 ? 'postsAndReplies' : storage.getNoteListMode()
+  )
+  const [hasForceSet, setHasForceSet] = useState<boolean>(false)
+  const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
+  const [pinnedEventIds, setPinnedEventIds] = useState<string[]>([])
 
   // threshold for showing tabs - only show tabs in grouped notes view if total items > 20
   const [displayTabs, setDisplayTabs] = useState(groupedSince > 0)
 
   const tabs: TTabDefinition[] = groupedSince
     ? [
+        { value: 'postsAndReplies', label: 'All' },
         { value: 'posts', label: 'Notes' },
         { value: 'replies', label: 'Replies' }
       ]
@@ -185,7 +189,7 @@ export default function ProfileFeed({
     setDisplayTabs(displayOnGrouped || !groupedSince)
 
     if (displayOnGrouped && !hasForceSet) {
-      setListMode('posts')
+      setListMode('postsAndReplies')
       setHasForceSet(true)
     }
   }

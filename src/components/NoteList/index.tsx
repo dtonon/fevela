@@ -112,7 +112,10 @@ const NoteList = forwardRef(
       const repostersMap = new Map<string, string[]>()
       const filteredEvents: { event: NostrEvent; reposters: string[] }[] = []
 
-      for (let i = 0; i < Math.min(events.length, showCount); i++) {
+      // When in filtered view, show all loaded events; otherwise use showCount limit
+      const displayLimit = isFilteredView ? events.length : Math.min(events.length, showCount)
+
+      for (let i = 0; i < displayLimit; i++) {
         const event = events[i]
 
         if (shouldHideEvent(event)) continue
@@ -159,7 +162,7 @@ const NoteList = forwardRef(
       }
 
       return filteredEvents
-    }, [events, showCount, shouldHideEvent])
+    }, [events, showCount, shouldHideEvent, isFilteredView])
 
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
@@ -386,17 +389,15 @@ const NoteList = forwardRef(
             reposters={reposters}
           />
         ))}
-        {hasMore || loading ? (
-          <div ref={bottomRef}>
-            <NoteCardLoadingSkeleton />
-          </div>
-        ) : isFilteredView && events.length > 0 ? (
+        {isFilteredView && events.length > 0 && !loading ? (
           <div className="flex justify-center items-center mt-4 p-4">
             <Button
               size="lg"
               onClick={async () => {
                 setIsFilteredView(false)
                 setHasMore(true)
+                // Give React a moment to update state, then trigger load
+                setTimeout(() => loadMore(), 0)
               }}
             >
               {t('Load more notes')}
