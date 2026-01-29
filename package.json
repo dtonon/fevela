@@ -1,7 +1,7 @@
 {
   "name": "fevela",
   "version": "0.1.0",
-  "description": "A user-friendly Nostr client for exploring relay feeds",
+  "description": "A Nostr social client that give you back full control of your attention and time with an innovative interface",
   "private": true,
   "type": "module",
   "author": "codytseng",
