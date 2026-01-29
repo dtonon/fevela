@@ -11,6 +11,7 @@ import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool, setPool } from '@nostr/gadgets/global'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
+import { store } from './services/outbox.service.ts'
 
 window.addEventListener('resize', setVh)
 window.addEventListener('orientationchange', setVh)
@@ -21,6 +22,7 @@ initNostrWasm()
     setNostrWasm(nw)
     setPool(new AbstractSimplePool({ verifyEvent, enableReconnect: true }))
     pool.trackRelays = true
+    ;(window as any).fevelaStore = store
 
     // Manage relay connection pool to prevent "Insufficient resources" errors
     // Browsers limit WebSocket connections (usually 200-255 total)

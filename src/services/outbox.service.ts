@@ -1,10 +1,11 @@
 import { BIG_RELAY_URLS, SUPPORTED_KINDS } from '@/constants'
 import { pool } from '@nostr/gadgets/global'
 import { OutboxManager } from '@nostr/gadgets/outbox'
-import { IDBEventStore } from '@nostr/gadgets/store'
+import { RedEventStore } from '@nostr/gadgets/redstore'
+import RedStoreWorker from '@nostr/gadgets/redstore/redstore-worker?worker'
 import { NostrEvent } from '@nostr/tools/core'
 
-export const store = new IDBEventStore()
+export const store = new RedEventStore(new RedStoreWorker())
 export let outbox: OutboxManager
 
 export const status: { syncing: true; pubkey: string } | { syncing: undefined | false } = {
@@ -43,10 +44,9 @@ export async function start(account: string, followings: string[], signal: Abort
     status.syncing = undefined
   }
 
-  outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], {
+  outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], store, {
     pool,
     label: 'fevela',
-    store,
     onsyncupdate(pubkey) {
       console.debug(':: synced updating', pubkey)
       for (let i = 0; i < current.onsync.length; i++) {
@@ -77,7 +77,7 @@ export async function start(account: string, followings: string[], signal: Abort
   const targets = [account, ...followings]
   isStarted(targets.length)
 
-  if (!(await store.queryEvents({}, 1).next()).value) {
+  if (!(await store.queryEvents({}, 1)).length) {
     // this means the database has no events.
     // let's wait some time to do our first sync, as the user right now is likely to
     // be doing the preliminary fallback query and we don't want to interfere with it
@@ -121,7 +121,6 @@ export function applyDiffFollowedEventsIndex(account: string, previous: string[]
 }
 
 export async function rebuildFollowedEventsIndex(account: string, list: string[]) {
-  const follows = new Set(list)
-  await store.cleanFollowed(account, (event: NostrEvent) => !follows.has(event.pubkey))
+  await store.cleanFollowed(account, list)
   Promise.all(list.map((target) => store.markFollow(account, target)))
 }

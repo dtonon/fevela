@@ -19,7 +19,7 @@ import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelayIcon from '../RelayIcon'
 import { Save } from 'lucide-react'
-import { isLocal } from '@nostr/gadgets/store'
+import { isLocal } from '@nostr/gadgets/redstore'
 
 export default function SeenOnButton({ event }: { event: Event }) {
   const { t } = useTranslation()

@@ -31,7 +31,7 @@ import { verifyEvent } from '@nostr/tools/wasm'
 import { current, outbox, ready, store } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch } from '@nostr/tools/utils'
-import { seenOn } from '@nostr/gadgets/store'
+import { seenOn } from '@nostr/gadgets/redstore'
 import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { debounce } from '@/lib/utils'
 
@@ -273,36 +273,24 @@ class ClientService extends EventTarget {
             let newestEvent: NostrEvent | undefined
 
             // query from local db
-            const events: NostrEvent[] = new Array(200)
-            let f = 0
+            let events: NostrEvent[] = []
             for (let i = 0; i < localFilters.length; i++) {
-              const iter = store.queryEvents(localFilters[i], 5_000)
-              const first = await iter.next()
+              events = await store.queryEvents(localFilters[i], 5_000)
+              const first = events[0]
 
-              if (first.value) {
-                events[f] = first.value
-                f++
-
-                if (!newestEvent || newestEvent.created_at < first.value.created_at) {
-                  newestEvent = first.value
-                }
-
-                if (!first.done) {
-                  for await (const event of iter) {
-                    events[f] = event
-                    f++
-                  }
+              if (first) {
+                if (!newestEvent || newestEvent.created_at < first.created_at) {
+                  newestEvent = first
                 }
               }
             }
-            events.length = f
 
             // a background sync may be happening and we may be interested in it, handle when it ends
             localSyncCallback = debounce(
               async () => {
                 for (let i = 0; i < localFilters.length; i++) {
                   const filter = localFilters[i]
-                  for await (const event of store.queryEvents(filter, 5_000)) {
+                  for (const event of await store.queryEvents(filter, 5_000)) {
                     // check if this isn't already in the sorted array of events
                     const [_, exists] = binarySearch(events, (b) => {
                       if (event.id === b.id) return 0
@@ -464,7 +452,7 @@ class ClientService extends EventTarget {
             const events: NostrEvent[] = new Array(200)
             let f = 0
             for (let i = 0; i < localFilters.length; i++) {
-              for await (const event of store.queryEvents(localFilters[i], 5_000)) {
+              for (const event of await store.queryEvents(localFilters[i], 5_000)) {
                 events[f] = event
                 f++
               }
@@ -601,7 +589,7 @@ class ClientService extends EventTarget {
             let f = 0
             for (let i = 0; i < localFilters.length; i++) {
               const filter = localFilters[i]
-              for await (const event of store.queryEvents(filter, 5_000)) {
+              for (const event of await store.queryEvents(filter, 5_000)) {
                 events[f] = event
                 f++
               }
@@ -785,7 +773,7 @@ class ClientService extends EventTarget {
     }
 
     // before we try any network fetch try to load this from our local database
-    for await (const event of store.queryEvents(filter, 1)) {
+    for (const event of await store.queryEvents(filter, 1)) {
       // if we get anything we just return it
       return event
     }
