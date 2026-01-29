@@ -537,6 +537,6 @@ export default {
     'Failed to get invite code from relay': 'Failed to get invite code from relay',
     'Failed to get invite code': 'Failed to get invite code',
     'Invite code copied to clipboard': 'Invite code copied to clipboard',
-    Synching: 'Synching {{current}}/{{total}} profiles'
+    Synching: 'Syncing {{current}}/{{total}} profiles'
   }
 }

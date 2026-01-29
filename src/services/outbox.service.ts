@@ -1,11 +1,10 @@
 import { BIG_RELAY_URLS, SUPPORTED_KINDS } from '@/constants'
 import { pool } from '@nostr/gadgets/global'
 import { OutboxManager } from '@nostr/gadgets/outbox'
-import { RedEventStore } from '@nostr/gadgets/redstore'
-import RedStoreWorker from '@nostr/gadgets/redstore/redstore-worker?worker'
 import { NostrEvent } from '@nostr/tools/core'
+import { store } from './store.service'
+import { loadNostrUser } from '@nostr/gadgets/metadata'
 
-export const store = new RedEventStore(new RedStoreWorker())
 export let outbox: OutboxManager
 
 export const status: { syncing: true; pubkey: string } | { syncing: undefined | false } = {
@@ -40,6 +39,42 @@ export async function started(): Promise<number> {
 }
 
 export async function start(account: string, followings: string[], signal: AbortSignal) {
+  ;(window as any).fevelaOutbox = async () => {
+    console.log('current outbox syncing status')
+
+    if (!outbox) {
+      console.log('outbox not initialized')
+      return
+    }
+
+    const currentPubkeys = [account, ...followings]
+    const tableData: any[] = []
+
+    const bounds = await store.getOutboxBounds()
+
+    await Promise.all(
+      currentPubkeys.map(async (pubkey) => {
+        const latestEvent = await store.queryEvents({ authors: [pubkey], kinds: [1] }, 1)
+        const meta = await loadNostrUser(pubkey)
+        const row = {
+          name: meta.shortName,
+          date:
+            latestEvent.length > 0
+              ? new Date(latestEvent[0].created_at * 1000).toISOString()
+              : 'none',
+          timestamp: latestEvent[0]?.created_at || 0,
+          boundStart: bounds[pubkey]?.[0],
+          boundEnd: bounds[pubkey]?.[1]
+        }
+        tableData.push(row)
+      })
+    )
+
+    tableData.sort((a, b) => b.timestamp - a.timestamp)
+
+    console.table(tableData)
+  }
+
   signal.onabort = () => {
     status.syncing = undefined
   }
@@ -66,9 +101,6 @@ export async function start(account: string, followings: string[], signal: Abort
     },
     defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
     storeRelaysSeenOn: true,
-    authorIsFollowedBy(author: string): string[] | undefined {
-      if (author === account || followings.includes(author)) return [account]
-    }
   })
 
   status.syncing = true
@@ -98,29 +130,4 @@ export async function start(account: string, followings: string[], signal: Abort
   }
 
   outbox.live(targets, { signal: undefined })
-}
-
-export function applyDiffFollowedEventsIndex(account: string, previous: string[], next: string[]) {
-  // see what changed in our follows so we can update the store indexes
-  for (let i = 0; i < next.length; i++) {
-    const follow = next[i]
-
-    const previousIdx = previous.indexOf(follow)
-    if (previousIdx === -1 && follow !== account) {
-      // if it's in the new list but wasn't in the old that means it's a new follow
-      store.markFollow(account, follow)
-    } else {
-      // if it's in the new list but also on the previous list, just swap-delete it from there
-      previous[previousIdx] = previous[previous.length - 1]
-      previous.length = previous.length - 1
-    }
-  }
-
-  // what remained in previous list is what we unfollowed
-  previous.forEach((target) => store.markUnfollow(account, target))
-}
-
-export async function rebuildFollowedEventsIndex(account: string, list: string[]) {
-  await store.cleanFollowed(account, list)
-  Promise.all(list.map((target) => store.markFollow(account, target)))
 }

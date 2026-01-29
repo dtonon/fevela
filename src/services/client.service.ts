@@ -28,12 +28,13 @@ import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { verifyEvent } from '@nostr/tools/wasm'
-import { current, outbox, ready, store } from './outbox.service'
+import { current, outbox, ready } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch } from '@nostr/tools/utils'
 import { seenOn } from '@nostr/gadgets/redstore'
 import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { debounce } from '@/lib/utils'
+import { store } from './store.service'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -313,7 +314,6 @@ class ClientService extends EventTarget {
               await Promise.all(
                 localFilters.map(async (f) => {
                   if (f.authors) return f.authors
-                  if (f.followedBy) return (await loadFollowsList(f.followedBy)).items
                   return []
                 })
               )
@@ -417,7 +417,7 @@ class ClientService extends EventTarget {
     if (
       relayRequests.length === 0 &&
       localFilters.length === 1 &&
-      (localFilters[0].followedBy || localFilters[0].authors?.length === 1)
+      (localFilters[0]!.authors?.length || 0) >= 1
     ) {
       // edge case: used mainly on the first time the app is used
       // in case we're fetching a _following feed_ or _profile feed_ solely from the local db but we have nothing
@@ -425,15 +425,8 @@ class ClientService extends EventTarget {
       local.then(async ([_, newestEvent, allAuthors]) => {
         if (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7) {
           const events: NostrEvent[] = []
-          const temporaryFilter = { ...localFilters[0], limit: 10 }
-          if (temporaryFilter.followedBy) {
-            temporaryFilter.authors = (await loadFollowsList(temporaryFilter.followedBy)).items
-            if (!temporaryFilter.authors.includes(temporaryFilter.followedBy))
-              temporaryFilter.authors.push(temporaryFilter.followedBy)
-            delete temporaryFilter.followedBy
-          }
           preliminarySub = pool.subscribeMap(
-            await outboxFilterRelayBatch(allAuthors, temporaryFilter),
+            await outboxFilterRelayBatch(allAuthors, { ...localFilters[0], limit: 10 }),
             {
               label: `f-temporary`,
               onevent(event) {
@@ -675,7 +668,7 @@ class ClientService extends EventTarget {
             return evt as VerifiedEvent
           }
 
-          throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
+          throw new Error("<not logged in, can't auth to relay during this.fetchEvents>")
         }) as (event: EventTemplate) => Promise<VerifiedEvent>,
         onevent: (event: NostrEvent) => {
           events.push(event)
@@ -730,10 +723,6 @@ class ClientService extends EventTarget {
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
       seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
-      followedBy:
-        this.pubkey && (this.pubkey === event.pubkey || this.followings?.has(event.pubkey))
-          ? [this.pubkey]
-          : undefined
     })
   }
 

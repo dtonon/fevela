@@ -48,13 +48,7 @@ import {
   loadRelayList
 } from '@nostr/gadgets/lists'
 import { AddressPointer } from '@nostr/tools/nip19'
-import {
-  start,
-  end,
-  status,
-  applyDiffFollowedEventsIndex,
-  rebuildFollowedEventsIndex
-} from '@/services/outbox.service'
+import { start, end, status } from '@/services/outbox.service'
 
 type TNostrContext = {
   isInitialized: boolean
@@ -146,12 +140,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       const accounts = storage.getAccounts()
       const act = storage.getCurrentAccount()
       if (act) {
-        await loginWithAccountPointer(act, true)
+        await loginWithAccountPointer(act)
         return
       }
       if (accounts[0]) {
         // auto login the first account
-        await loginWithAccountPointer(accounts[0], false)
+        await loginWithAccountPointer(accounts[0])
         return
       }
     }
@@ -215,44 +209,23 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
-      // first fetch with no network
-      loadFollowsList(account.pubkey, [], false).then(({ items: previous }) => {
-        // then fetch with network and a force update
-        loadFollowsList(account.pubkey, [], true).then(async (list) => {
-          // if the lists changed under us we'll have to rebuild the followedBy index
-          let listsAreTheSame = previous.length === list.items.length
-          if (listsAreTheSame) {
-            previous.sort()
-            list.items.sort()
-            listsAreTheSame = previous.every((p, i) => p === list.items[i])
-          }
+      loadFollowsList(account.pubkey, [], true).then(async (list) => {
+        setFollowList(list.items)
 
-          if (!listsAreTheSame) {
-            try {
-              console.debug(':: rebuilding followedBy indexes for', account.pubkey, list.items)
-              await rebuildFollowedEventsIndex(account.pubkey, list.items)
-            } catch (err) {
-              console.error('failed to rebuild followed index:', err)
-              throw err
-            }
-          }
-          setFollowList(list.items)
+        // initialize outbox manager for this user
+        if (status.syncing && status.pubkey === account.pubkey) {
+          // we're already logged with this same pubkey, so don't stop it only to start again
+          // (react shouldn't have called this twice)
+          return
+        }
 
-          // initialize outbox manager for this user
-          if (status.syncing && status.pubkey === account.pubkey) {
-            // we're already logged with this same pubkey, so don't stop it only to start again
-            // (react shouldn't have called this twice)
-            return
-          }
+        // stop the previous sync (if any) and start again on the new key
+        start(account.pubkey, list.items, globalSyncAbort.signal)
 
-          // stop the previous sync (if any) and start again on the new key
-          start(account.pubkey, list.items, globalSyncAbort.signal)
+        // user index thing for @-mentions
+        client.initUserIndexFromFollowings(account.pubkey)
 
-          // user index thing for @-mentions
-          client.initUserIndexFromFollowings(account.pubkey)
-
-          setIsReady(true)
-        })
+        setIsReady(true)
       })
 
       // load application settings
@@ -344,13 +317,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const login = async (signer: ISigner, act: TAccount, shouldWipeFollowedByIndexes: boolean) => {
+  const login = async (signer: ISigner, act: TAccount) => {
     setIsReady(false)
-
-    if (shouldWipeFollowedByIndexes) {
-      // this will force a followedBy index rebuild later
-      await loadFollowsList(act.pubkey, [], null)
-    }
 
     const newAccounts = storage.addAccount(act)
     setAccounts(newAccounts)
@@ -377,7 +345,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       setSigner(null)
       return
     }
-    await loginWithAccountPointer(act, false)
+    await loginWithAccountPointer(act)
   }
 
   const nsecLogin = async (nsecOrHex: string, password?: string, needSetup?: boolean) => {
@@ -397,9 +365,9 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const pubkey = nsecSigner.login(privkey)!
     if (password) {
       const ncryptsec = nip49.encrypt(privkey, password)
-      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
+      login(nsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
     } else {
-      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) }, true)
+      login(nsecSigner, { pubkey, signerType: 'nsec', nsec: nip19.nsecEncode(privkey) })
     }
     if (needSetup) {
       setupNewUser(nsecSigner)
@@ -415,13 +383,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     const privkey = nip49.decrypt(ncryptsec, password)
     const browserNsecSigner = new NsecSigner()
     const pubkey = browserNsecSigner.login(privkey)!
-    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec }, true)
+    return login(browserNsecSigner, { pubkey, signerType: 'ncryptsec', ncryptsec })
   }
 
   const npubLogin = async (npub: string) => {
     const npubSigner = new NpubSigner()
     const pubkey = npubSigner.login(npub)
-    return login(npubSigner, { pubkey, signerType: 'npub', npub }, true)
+    return login(npubSigner, { pubkey, signerType: 'npub', npub })
   }
 
   const nip07Login = async () => {
@@ -432,7 +400,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       if (!pubkey) {
         throw new Error('You did not allow to access your pubkey')
       }
-      return login(nip07Signer, { pubkey, signerType: 'nip-07' }, true)
+      return login(nip07Signer, { pubkey, signerType: 'nip-07' })
     } catch (err) {
       toast.error(t('Login failed') + ': ' + (err as Error).message)
       throw err
@@ -447,16 +415,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(bunker)
     bunkerUrl.searchParams.delete('secret')
-    return login(
-      bunkerSigner,
-      {
-        pubkey,
-        signerType: 'bunker',
-        bunker: bunkerUrl.toString(),
-        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-      },
-      true
-    )
+    return login(bunkerSigner, {
+      pubkey,
+      signerType: 'bunker',
+      bunker: bunkerUrl.toString(),
+      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+    })
   }
 
   const nostrConnectionLogin = async (clientSecretKey: Uint8Array, connectionString: string) => {
@@ -467,22 +431,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     }
     const bunkerUrl = new URL(loginResult.bunkerString!)
     bunkerUrl.searchParams.delete('secret')
-    return login(
-      bunkerSigner,
-      {
-        pubkey: loginResult.pubkey,
-        signerType: 'bunker',
-        bunker: bunkerUrl.toString(),
-        bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
-      },
-      true
-    )
+    return login(bunkerSigner, {
+      pubkey: loginResult.pubkey,
+      signerType: 'bunker',
+      bunker: bunkerUrl.toString(),
+      bunkerClientSecretKey: bunkerSigner.getClientSecretKey()
+    })
   }
 
-  const loginWithAccountPointer = async (
-    act: TAccountPointer,
-    wasCurrent: boolean // when this is true that means we don't have to wipe the followedBy indexes
-  ): Promise<string | null> => {
+  const loginWithAccountPointer = async (act: TAccountPointer): Promise<string | null> => {
     let account = storage.findAccount(act)
     if (!account) {
       return null
@@ -497,7 +454,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, signerType: 'nsec' }
           storage.addAccount(account)
         }
-        return login(browserNsecSigner, account, !wasCurrent)
+        return login(browserNsecSigner, account)
       }
     } else if (account.signerType === 'ncryptsec') {
       if (account.ncryptsec) {
@@ -508,12 +465,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         const privkey = nip49.decrypt(account.ncryptsec, password)
         const browserNsecSigner = new NsecSigner()
         browserNsecSigner.login(privkey)
-        return login(browserNsecSigner, account, !wasCurrent)
+        return login(browserNsecSigner, account)
       }
     } else if (account.signerType === 'nip-07') {
       const nip07Signer = new Nip07Signer()
       await nip07Signer.init()
-      return login(nip07Signer, account, !wasCurrent)
+      return login(nip07Signer, account)
     } else if (account.signerType === 'bunker') {
       if (account.bunker && account.bunkerClientSecretKey) {
         const bunkerSigner = new BunkerSigner(account.bunkerClientSecretKey)
@@ -527,7 +484,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
           account = { ...account, pubkey }
           storage.addAccount(account)
         }
-        return login(bunkerSigner, account, !wasCurrent)
+        return login(bunkerSigner, account)
       }
     } else if (account.signerType === 'npub' && account.npub) {
       const npubSigner = new NpubSigner()
@@ -541,7 +498,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         account = { ...account, pubkey }
         storage.addAccount(account)
       }
-      return login(npubSigner, account, !wasCurrent)
+      return login(npubSigner, account)
     }
     storage.removeAccount(account)
     return null
@@ -665,10 +622,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateFollowListEvent = async (followListEvent: Event) => {
-    const previous = followList
     const { items } = await loadFollowsList(followListEvent.pubkey, [], followListEvent)
     setFollowList(items)
-    applyDiffFollowedEventsIndex(account!.pubkey, previous, items)
   }
 
   const updateMuteListEvent = async (muteListEvent: Event) => {
