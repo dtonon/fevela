@@ -102,13 +102,18 @@ function HighlightSource({ event }: { event: Event }) {
   }
 
   if (sourceTag[0] === 'r') {
+    const isUrl = /^https?:\/\//i.test(sourceTag[1])
     return (
       <div className="truncate text-muted-foreground">
         {t('From')}{' '}
-        <ExternalLink
-          url={sourceTag[1]}
-          className="underline italic text-muted-foreground hover:text-foreground"
-        />
+        {isUrl ? (
+          <ExternalLink
+            url={sourceTag[1]}
+            className="underline italic text-muted-foreground hover:text-foreground"
+          />
+        ) : (
+          <span className="italic">{sourceTag[1]}</span>
+        )}
       </div>
     )
   }
