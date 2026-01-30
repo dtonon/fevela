@@ -168,6 +168,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   useEffect(() => {
+    if (!account) return
+
     const globalSyncAbort = new AbortController()
 
     // initialize current account
@@ -326,6 +328,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
     setAccount({ pubkey: act.pubkey, signerType: act.signerType })
     setSigner(signer)
+    ;(window as any).fevela.account = act.pubkey
     return act.pubkey
   }
 
@@ -335,6 +338,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     if (account?.pubkey === act.pubkey) {
       setAccount(null)
       setSigner(null)
+      ;(window as any).fevela.account = null
     }
   }
 
@@ -343,6 +347,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       storage.switchAccount(null)
       setAccount(null)
       setSigner(null)
+      ;(window as any).fevela.account = null
       return
     }
     await loginWithAccountPointer(act)

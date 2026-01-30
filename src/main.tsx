@@ -2,6 +2,7 @@ import './i18n'
 import './index.css'
 import './polyfill'
 import './services/lightning.service'
+import './window'
 
 import { createRoot } from 'react-dom/client'
 import { initNostrWasm } from 'nostr-wasm/gzipped'
@@ -22,7 +23,6 @@ initNostrWasm()
     setNostrWasm(nw)
     setPool(new AbstractSimplePool({ verifyEvent, enableReconnect: true }))
     pool.trackRelays = true
-    ;(window as any).fevelaStore = store
     setReplaceableStore(store)
 
     // Manage relay connection pool to prevent "Insufficient resources" errors
@@ -30,37 +30,20 @@ initNostrWasm()
     const MAX_RELAY_CONNECTIONS = 150
 
     setInterval(() => {
-      // Access protected relays property and type it properly
       const relays = Array.from((pool as any).relays.values()) as AbstractRelay[]
 
-      // Log current state for debugging
-      const connected = relays.filter((r) => r.connected).length
-      const withSubs = relays.filter((r) => r.openSubs.size > 0).length
-
-      // Log detailed subscription info per relay
-      const subsPerRelay = relays.map((r) => ({
-        url: r.url.substring(0, 30),
-        connected: r.connected,
-        subs: r.openSubs.size
-      }))
-
-      console.log(
-        `Relay connections: ${connected}/${relays.length} connected, ${withSubs} with active subs`
-      )
-      console.table(subsPerRelay)
-
-      // Separate idle relays into two categories
+      // separate idle relays into two categories
       const disconnectedIdle = relays.filter((r) => !r.connected && r.openSubs.size === 0)
       const connectedIdle = relays.filter((r) => r.connected && r.openSubs.size === 0)
 
-      // Always close disconnected relays with no subscriptions (they're just wasting space)
+      // always close disconnected relays with no subscriptions (they're just wasting space)
       if (disconnectedIdle.length > 0) {
         const urlsToClose = disconnectedIdle.map((r) => r.url)
         pool.close(urlsToClose)
-        console.log(`Closed ${urlsToClose.length} disconnected idle relays`)
+        console.log(':: closed disconnected relays', urlsToClose)
       }
 
-      // If still over limit, close connected but idle relays
+      // if still over limit, close connected but idle relays
       const currentCount = relays.length - disconnectedIdle.length
       if (currentCount > MAX_RELAY_CONNECTIONS) {
         const urlsToClose = connectedIdle
@@ -69,14 +52,14 @@ initNostrWasm()
         pool.close(urlsToClose)
 
         if (urlsToClose.length > 0) {
-          console.log(`Closed ${urlsToClose.length} connected idle relays`)
+          console.log(':: closed connected idle relays', urlsToClose)
         }
       }
 
-      // Warn if we're getting close to browser limits
-      // Browser limit ~200-255
-      if (relays.length > MAX_RELAY_CONNECTIONS - 5) {
-        console.warn(`High relay count: ${relays.length} relays in pool`)
+      // warn if we're getting close to browser limits
+      // browser limit ~200-255
+      if (relays.length > MAX_RELAY_CONNECTIONS) {
+        console.warn(`:: high relay count: ${relays.length} relays in pool`)
       }
     }, 10_000)
 

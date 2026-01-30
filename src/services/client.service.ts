@@ -254,16 +254,6 @@ class ClientService extends EventTarget {
         }
       }))
 
-    // Log subscription details
-    const allRelayUrls = relayRequests.flatMap((req) => req.urls)
-    const uniqueRelayUrls = Array.from(new Set(allRelayUrls))
-    console.log(
-      `[subscribeTimeline] Connecting to ${uniqueRelayUrls.length} unique relays (${allRelayUrls.length} total), kinds:`,
-      filterModification.kinds,
-      '\nRelays:',
-      uniqueRelayUrls
-    )
-
     // do local db requests
     let localSyncCallback: () => void
     let localNewCallback: (_: NostrEvent) => void
@@ -722,7 +712,7 @@ class ClientService extends EventTarget {
 
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
-      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
+      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
     })
   }
 
@@ -995,8 +985,5 @@ class ClientService extends EventTarget {
 }
 
 const instance = ClientService.getInstance()
-
-;(window as any).fevela = (window as any).fevela || {}
-;(window as any).fevela.client = instance
 
 export default instance

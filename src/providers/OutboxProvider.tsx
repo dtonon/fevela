@@ -29,6 +29,10 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     started().then(setSyncedTotal)
 
+    started().then(() => {
+      setSyncingStatus(status.syncing)
+    })
+
     ready().then(() => {
       setSyncingStatus(status.syncing)
     })
