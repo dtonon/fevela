@@ -5,7 +5,6 @@ const STORAGE_KEY = 'groupedNotesReadStatus'
 type ReadStatus = {
   timestamp: number
   onlyLast: boolean
-  countAtRead: number
 }
 
 type ReadStatusMap = Record<string, ReadStatus>
@@ -21,24 +20,22 @@ export function useGroupedNotesReadStatus() {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(readStatusMap))
   }, [readStatusMap])
 
-  const markLastNoteRead = useCallback((pubkey: string, newestNoteTimestamp: number, currentCount: number) => {
+  const markLastNoteRead = useCallback((pubkey: string, newestNoteTimestamp: number) => {
     setReadStatusMap(prev => ({
       ...prev,
       [pubkey]: {
         timestamp: newestNoteTimestamp,
-        onlyLast: true,
-        countAtRead: currentCount
+        onlyLast: true
       }
     }))
   }, [])
 
-  const markAllNotesRead = useCallback((pubkey: string, newestNoteTimestamp: number, currentCount: number) => {
+  const markAllNotesRead = useCallback((pubkey: string, newestNoteTimestamp: number) => {
     setReadStatusMap(prev => ({
       ...prev,
       [pubkey]: {
         timestamp: newestNoteTimestamp,
-        onlyLast: false,
-        countAtRead: currentCount
+        onlyLast: false
       }
     }))
   }, [])
@@ -61,23 +58,10 @@ export function useGroupedNotesReadStatus() {
     }
   }, [readStatusMap])
 
-  const getUnreadCount = useCallback((pubkey: string, allNoteTimestamps: number[]) => {
-    const status = readStatusMap[pubkey]
-    if (!status) {
-      return allNoteTimestamps.length
-    }
-
-    // Count notes newer than the read timestamp
-    const newUnreadCount = allNoteTimestamps.filter(timestamp => timestamp > status.timestamp).length
-
-    // If there are new unread notes, return that count
-    if (newUnreadCount > 0) {
-      return newUnreadCount
-    }
-
-    // Otherwise, return the frozen count from when it was marked as read
-    return status.countAtRead
-  }, [readStatusMap])
+  const getUnreadCount = useCallback((_pubkey: string, allNoteTimestamps: number[]) => {
+    // Always return the actual current count of notes within the timeframe
+    return allNoteTimestamps.length
+  }, [])
 
   const markAsUnread = useCallback((pubkey: string) => {
     setReadStatusMap(prev => {

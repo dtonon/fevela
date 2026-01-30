@@ -17,7 +17,7 @@ import { FormattedTimestamp } from '../FormattedTimestamp'
 import UserAvatar from '../UserAvatar'
 import Username, { SimpleUsername } from '../Username'
 import { useSecondaryPage } from '@/PageManager'
-import { toNote, toProfile } from '@/lib/link'
+import { toNote, toGroupedProfile } from '@/lib/link'
 import PinBuryBadge from '../PinBuryBadge'
 import CompactModeMenu from '../CompactModeMenu'
 import { username } from '@/lib/event-metadata'
@@ -30,7 +30,6 @@ export default function CompactedEventCard({
   event,
   className,
   totalNotesInTimeframe,
-  oldestTimestamp,
   variant = 'note',
   filterMutedNotes = true,
   isSelected = false,
@@ -45,7 +44,6 @@ export default function CompactedEventCard({
   event: Event
   className?: string
   totalNotesInTimeframe: number
-  oldestTimestamp?: number
   variant?: 'note' | 'repost'
   filterMutedNotes?: boolean
   isSelected?: boolean
@@ -155,7 +153,7 @@ export default function CompactedEventCard({
   const showAllNotes = (e: React.MouseEvent) => {
     e.stopPropagation()
     onAllNotesRead?.()
-    push(toProfile(event.pubkey, { groupedSince: oldestTimestamp }))
+    push(toGroupedProfile(event.pubkey))
   }
 
   const showLastNote = (e: React.MouseEvent) => {

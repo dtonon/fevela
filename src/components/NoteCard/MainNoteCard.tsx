@@ -17,7 +17,6 @@ export default function MainNoteCard({
   embedded,
   originalNoteId,
   groupedNotesTotalCount,
-  groupedNotesOldestTimestamp,
   onAllNotesRead,
   areAllNotesRead,
   pinned = false,
@@ -29,7 +28,6 @@ export default function MainNoteCard({
   embedded?: boolean
   originalNoteId?: string
   groupedNotesTotalCount?: number
-  groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
   pinned?: boolean
@@ -62,7 +60,6 @@ export default function MainNoteCard({
           <GroupedNotesIndicator
             event={event}
             totalNotesInTimeframe={groupedNotesTotalCount}
-            oldestTimestamp={groupedNotesOldestTimestamp}
             onAllNotesRead={onAllNotesRead}
             areAllNotesRead={areAllNotesRead}
           />

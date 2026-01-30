@@ -16,7 +16,6 @@ export default function RepostNoteCard({
   pinned = false,
   onTargetEventLoaded,
   groupedNotesTotalCount,
-  groupedNotesOldestTimestamp,
   onAllNotesRead,
   areAllNotesRead,
   relevanceScore
@@ -27,7 +26,6 @@ export default function RepostNoteCard({
   pinned?: boolean
   onTargetEventLoaded?: (event: Event) => void
   groupedNotesTotalCount?: number
-  groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
   relevanceScore?: number
@@ -99,7 +97,6 @@ export default function RepostNoteCard({
       event={targetEvent}
       pinned={pinned}
       groupedNotesTotalCount={groupedNotesTotalCount}
-      groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
       relevanceScore={relevanceScore}

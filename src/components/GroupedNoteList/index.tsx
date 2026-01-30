@@ -680,7 +680,7 @@ const GroupedNoteList = forwardRef(
 
     const list = (
       <div className="min-h-screen" style={{ overflowAnchor: 'none' }}>
-        {nameFilteredGroups.map(({ totalNotes, oldestTimestamp, allNoteTimestamps, topNote }) => {
+        {nameFilteredGroups.map(({ totalNotes, allNoteTimestamps, topNote }) => {
           // Calculate relevance score if enabled
           const relevanceScore = settings.sortByRelevance
             ? calculateRelevanceScore(
@@ -701,20 +701,19 @@ const GroupedNoteList = forwardRef(
                 event={topNote}
                 variant={topNote.kind === kinds.Repost ? 'repost' : 'note'}
                 totalNotesInTimeframe={unreadCount}
-                oldestTimestamp={oldestTimestamp}
                 filterMutedNotes={filterMutedNotes}
                 isSelected={selectedNoteId === topNote.id}
                 onSelect={() => setSelectedNoteId(topNote.id)}
                 onLastNoteRead={() => {
                   // If there's only one note, mark all as read instead of just last
                   if (totalNotes === 1) {
-                    markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
+                    markAllNotesRead(topNote.pubkey, topNote.created_at)
                   } else {
-                    markLastNoteRead(topNote.pubkey, topNote.created_at, unreadCount)
+                    markLastNoteRead(topNote.pubkey, topNote.created_at)
                   }
                 }}
                 onAllNotesRead={() =>
-                  markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
+                  markAllNotesRead(topNote.pubkey, topNote.created_at)
                 }
                 onMarkAsUnread={() => markAsUnread(topNote.pubkey)}
                 isLastNoteRead={readStatus.isLastNoteRead}
@@ -739,9 +738,8 @@ const GroupedNoteList = forwardRef(
               event={topNote}
               filterMutedNotes={filterMutedNotes}
               groupedNotesTotalCount={unreadCount}
-              groupedNotesOldestTimestamp={oldestTimestamp}
               onAllNotesRead={() =>
-                unreadCount && markAllNotesRead(topNote.pubkey, topNote.created_at, unreadCount)
+                unreadCount && markAllNotesRead(topNote.pubkey, topNote.created_at)
               }
               areAllNotesRead={readStatus.areAllNotesRead}
               relevanceScore={relevanceScore}

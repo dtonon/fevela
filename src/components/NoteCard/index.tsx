@@ -15,7 +15,6 @@ export default function NoteCard({
   pinned = false,
   reposters,
   groupedNotesTotalCount,
-  groupedNotesOldestTimestamp,
   onAllNotesRead,
   areAllNotesRead,
   relevanceScore
@@ -26,7 +25,6 @@ export default function NoteCard({
   pinned?: boolean
   reposters?: string[]
   groupedNotesTotalCount?: number
-  groupedNotesOldestTimestamp?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
   relevanceScore?: number
@@ -52,7 +50,6 @@ export default function NoteCard({
         filterMutedNotes={filterMutedNotes}
         pinned={pinned}
         groupedNotesTotalCount={groupedNotesTotalCount}
-        groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
         onAllNotesRead={onAllNotesRead}
         areAllNotesRead={areAllNotesRead}
         relevanceScore={relevanceScore}
@@ -66,7 +63,6 @@ export default function NoteCard({
       pinned={pinned}
       reposters={reposters}
       groupedNotesTotalCount={groupedNotesTotalCount}
-      groupedNotesOldestTimestamp={groupedNotesOldestTimestamp}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
       relevanceScore={relevanceScore}

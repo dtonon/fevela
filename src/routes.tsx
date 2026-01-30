@@ -4,6 +4,7 @@ import AppearanceSettingsPage from './pages/secondary/AppearanceSettingsPage'
 import BookmarkPage from './pages/secondary/BookmarkPage'
 import FollowingListPage from './pages/secondary/FollowingListPage'
 import GeneralSettingsPage from './pages/secondary/GeneralSettingsPage'
+import GroupedProfilePage from './pages/secondary/GroupedProfilePage'
 import MuteListPage from './pages/secondary/MuteListPage'
 import NoteListPage from './pages/secondary/NoteListPage'
 import NotePage from './pages/secondary/NotePage'
@@ -26,6 +27,7 @@ const ROUTES = [
   { path: '/notes/:id', element: <NotePage /> },
   { path: '/users', element: <ProfileListPage /> },
   { path: '/users/:id', element: <ProfilePage /> },
+  { path: '/users/:id/grouped', element: <GroupedProfilePage /> },
   { path: '/users/:id/following', element: <FollowingListPage /> },
   { path: '/users/:id/relays', element: <OthersRelaySettingsPage /> },
   { path: '/relays/:url', element: <RelayPage /> },

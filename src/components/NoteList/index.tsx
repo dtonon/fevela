@@ -43,7 +43,8 @@ const NoteList = forwardRef(
       sinceTimestamp,
       onNotesLoaded,
       pinnedEventIds,
-      filterFn
+      filterFn,
+      customFilteredFooter
     }: {
       subRequests: TFeedSubRequest[]
       showKinds: number[]
@@ -56,6 +57,7 @@ const NoteList = forwardRef(
       onNotesLoaded?: (count: number, hasPosts: boolean, hasReplies: boolean) => void
       pinnedEventIds?: string[]
       filterFn?: (event: Event) => boolean
+      customFilteredFooter?: React.ReactNode
     },
     ref
   ) => {
@@ -390,19 +392,23 @@ const NoteList = forwardRef(
           />
         ))}
         {isFilteredView && events.length > 0 && !loading ? (
-          <div className="flex justify-center items-center mt-4 p-4">
-            <Button
-              size="lg"
-              onClick={async () => {
-                setIsFilteredView(false)
-                setHasMore(true)
-                // Give React a moment to update state, then trigger load
-                setTimeout(() => loadMore(), 0)
-              }}
-            >
-              {t('Load more notes')}
-            </Button>
-          </div>
+          customFilteredFooter ? (
+            customFilteredFooter
+          ) : (
+            <div className="flex justify-center items-center mt-4 p-4">
+              <Button
+                size="lg"
+                onClick={async () => {
+                  setIsFilteredView(false)
+                  setHasMore(true)
+                  // Give React a moment to update state, then trigger load
+                  setTimeout(() => loadMore(), 0)
+                }}
+              >
+                {t('Load more notes')}
+              </Button>
+            </div>
+          )
         ) : hasMore || loading ? (
           <div ref={bottomRef}>
             <NoteCardLoadingSkeleton />

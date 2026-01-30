@@ -54,6 +54,16 @@ export const toProfile = (userId: string, options?: { groupedSince?: number }) =
 
   return path
 }
+export const toGroupedProfile = (userId: string) => {
+  let path: string
+  if (userId.startsWith('npub') || userId.startsWith('nprofile')) {
+    path = `/users/${userId}/grouped`
+  } else {
+    const npub = nip19.npubEncode(userId)
+    path = `/users/${npub}/grouped`
+  }
+  return path
+}
 export const toProfileList = ({ search, domain }: { search?: string; domain?: string }) => {
   const path = '/users'
   const query = new URLSearchParams()
