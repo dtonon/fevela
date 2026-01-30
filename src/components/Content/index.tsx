@@ -38,7 +38,8 @@ export default function Content({
     for (const block of parse(translatedEvent ?? event ?? content ?? '')) {
       switch (block.type) {
         case 'text': {
-          if (block.text.trim() === '') continue
+          // Preserve newlines even in otherwise-empty text blocks
+          if (block.text.trim() === '' && !block.text.includes('\n')) continue
 
           nodes.push(<span key={nodes.length}>{block.text}</span>)
           break
