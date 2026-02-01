@@ -4,7 +4,6 @@ import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import noteStatsService from '@/services/note-stats.service'
 import { Event } from '@nostr/tools/wasm'
 import { useEffect, useState } from 'react'
-import BookmarkButton from '../BookmarkButton'
 import LikeButton from './LikeButton'
 import Likes from './Likes'
 import ReplyButton from './ReplyButton'
@@ -59,7 +58,6 @@ export default function NoteStats({
           <RepostButton event={event} />
           <LikeButton event={event} />
           <ZapButton event={event} />
-          <BookmarkButton event={event} />
           <SeenOnButton event={event} />
         </div>
       </div>
@@ -85,7 +83,6 @@ export default function NoteStats({
           <ZapButton event={event} />
         </div>
         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
-          <BookmarkButton event={event} />
           <SeenOnButton event={event} />
         </div>
       </div>
