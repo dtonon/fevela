@@ -1,10 +1,11 @@
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { loadNostrUser } from '@nostr/gadgets/metadata'
-import { loadFollowsList } from '@nostr/gadgets/lists'
+import { loadFollowsList, loadRelayList } from '@nostr/gadgets/lists'
 import { pool } from '@nostr/gadgets/global'
 import { store } from './services/store.service'
 import { current, outbox } from './services/outbox.service'
 import client from './services/client.service'
+import { Filter } from '@nostr/tools/filter'
 
 const lastSyncTimes = new Map<string, string>()
 current.onsync.push((pubkey?: string) => {
@@ -31,7 +32,7 @@ current.onsync.push((pubkey?: string) => {
     )
     console.table(subsPerRelay)
   },
-  async outbox() {
+  async timestamps() {
     if (!this.account) {
       console.log('no account connected')
       return
@@ -49,24 +50,21 @@ current.onsync.push((pubkey?: string) => {
         const meta = await loadNostrUser(pubkey)
         const row = {
           name: meta.shortName,
-          date:
+          latestEvent:
             latestEvent.length > 0
               ? new Date(latestEvent[0].created_at * 1000).toISOString()
-              : 'none',
-          timestamp: latestEvent[0]?.created_at || 0,
-          boundStart: bounds ? new Date(bounds[pubkey]?.[0]).toISOString() : 'none',
-          boundEnd: bounds ? new Date(bounds[pubkey]?.[1]).toISOString() : 'none'
+              : null,
+          boundStart: bounds[pubkey] ? new Date(bounds[pubkey]?.[0] * 1000).toISOString() : null,
+          boundEnd: bounds[pubkey] ? new Date(bounds[pubkey]?.[1] * 1000).toISOString() : null
         }
         tableData.push(row)
       })
     )
 
-    tableData.sort((a, b) => b.timestamp - a.timestamp)
-
     console.log('current outbox database timestamps')
     console.table(tableData)
   },
-  async sync() {
+  async state() {
     if (!this.account) {
       console.log('no account connected')
       return
@@ -78,27 +76,30 @@ current.onsync.push((pubkey?: string) => {
     const currentlySyncing = (outbox as any).currentlySyncing as Map<string, () => void>
     const permanentlyLive = (outbox as any).permanentlyLive as Set<string>
 
-    const liveSubs = (outbox as any).liveSubscriptions as Map<string, any>
+    const liveSubs = (outbox as any).liveSubscriptions as { url: string; filter: Filter }[]
+    console.log('liveSubs', liveSubs)
 
     const tableData: any[] = []
 
     await Promise.all(
       currentPubkeys.map(async (pubkey) => {
         const meta = await loadNostrUser(pubkey)
-        let relays: string[] = []
-        for (const [pk, subscription] of liveSubs) {
-          if (pk === pubkey) {
-            relays = subscription.filters?.flatMap((f: any) => f.relays || []) || []
-            break
+        const relays: string[] = []
+        for (const { url, filter } of liveSubs) {
+          for (const pk of filter.authors || []) {
+            if (pk === pubkey) {
+              relays.push(url)
+              break
+            }
           }
         }
 
         const row = {
           name: meta.shortName,
           syncing: currentlySyncing.has(pubkey),
-          lastSync: lastSyncTimes.get(pubkey) || 'none',
-          live: permanentlyLive.has(pubkey),
-          relays: relays.length > 0 ? relays.join(', ') : 'none'
+          lastSync: lastSyncTimes.get(pubkey) || null,
+          relays: relays.join(' '),
+          live: permanentlyLive.has(pubkey)
         }
         tableData.push(row)
       })
@@ -106,5 +107,8 @@ current.onsync.push((pubkey?: string) => {
 
     console.log('current outbox syncing status')
     console.table(tableData)
-  }
+  },
+  loadNostrUser,
+  loadRelayList,
+  loadFollowsList
 }

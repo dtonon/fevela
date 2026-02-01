@@ -58,7 +58,7 @@ export default function NewNotesButton({
               </div>
             )}
             <div className="text-md font-medium">
-              {t('Show n new notes', { n: newEvents.length > 99 ? '99+' : newEvents.length })}
+              {t('Show n new notes', { n: newEvents.length > 299 ? '299+' : newEvents.length })}
             </div>
             <ArrowUp />
           </Button>
