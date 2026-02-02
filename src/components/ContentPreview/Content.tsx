@@ -53,10 +53,12 @@ export default function Content({ event, className }: { event: NostrEvent; class
               />
             )
           }
+          nodes.push(<span key={nodes.length}> </span>)
           break
         }
         case 'hashtag': {
           nodes.push(<EmbeddedHashtag key={nodes.length} hashtag={block.value} />)
+          nodes.push(<span key={nodes.length}> </span>)
           break
         }
         case 'emoji': {

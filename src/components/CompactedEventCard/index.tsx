@@ -307,6 +307,7 @@ async function getPreviewText(event: Event): Promise<string> {
             plainText += `@${npubEncode(block.pointer.pubkey).slice(0, 12)}...`
           }
         }
+        plainText += ' '
         break
       }
       case 'relay': {
@@ -318,7 +319,7 @@ async function getPreviewText(event: Event): Promise<string> {
         break
       }
       case 'hashtag': {
-        plainText += '#' + block.value
+        plainText += '#' + block.value + ' '
         break
       }
       case 'emoji': {
