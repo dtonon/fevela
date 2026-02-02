@@ -27,7 +27,7 @@ const getAppVersion = () => {
 export default defineConfig({
   server: {
     fs: {
-      allow: ['.', '/home/fiatjaf/comp/nostr-gadgets/redstore/']
+      allow: ['.', '../nostr-gadgets/redstore/']
     }
   },
   define: {

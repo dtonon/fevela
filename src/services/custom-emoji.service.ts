@@ -1,6 +1,6 @@
 import { parseEmojiPickerUnified } from '@/lib/utils'
 import { TEmoji } from '@/types'
-import { sha256 } from '@noble/hashes/sha2'
+import { sha256 } from '@noble/hashes/sha2.js'
 import { loadEmojiSets } from '@nostr/gadgets/sets'
 import { AddressPointer } from '@nostr/tools/nip19'
 import { SkinTones } from 'emoji-picker-react'
