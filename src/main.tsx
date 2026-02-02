@@ -8,7 +8,6 @@ import { createRoot } from 'react-dom/client'
 import { initNostrWasm } from 'nostr-wasm/gzipped'
 import { setNostrWasm, verifyEvent } from '@nostr/tools/wasm'
 import { AbstractSimplePool } from '@nostr/tools/abstract-pool'
-import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool, setPool, setReplaceableStore } from '@nostr/gadgets/global'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
@@ -25,43 +24,11 @@ initNostrWasm()
     pool.trackRelays = true
     setReplaceableStore(store)
 
-    // Manage relay connection pool to prevent "Insufficient resources" errors
-    // Browsers limit WebSocket connections (usually 200-255 total)
-    const MAX_RELAY_CONNECTIONS = 150
-
+    // try to prevent "Insufficient resources" errors
     setInterval(() => {
-      const relays = Array.from((pool as any).relays.values()) as AbstractRelay[]
-
-      // separate idle relays into two categories
-      const disconnectedIdle = relays.filter((r) => !r.connected && r.openSubs.size === 0)
-      const connectedIdle = relays.filter((r) => r.connected && r.openSubs.size === 0)
-
-      // always close disconnected relays with no subscriptions (they're just wasting space)
-      if (disconnectedIdle.length > 0) {
-        const urlsToClose = disconnectedIdle.map((r) => r.url)
-        pool.close(urlsToClose)
-        console.log(':: closed disconnected relays', urlsToClose)
-      }
-
-      // if still over limit, close connected but idle relays
-      const currentCount = relays.length - disconnectedIdle.length
-      if (currentCount > MAX_RELAY_CONNECTIONS) {
-        const urlsToClose = connectedIdle
-          .slice(0, currentCount - MAX_RELAY_CONNECTIONS)
-          .map((r) => r.url)
-        pool.close(urlsToClose)
-
-        if (urlsToClose.length > 0) {
-          console.log(':: closed connected idle relays', urlsToClose)
-        }
-      }
-
-      // warn if we're getting close to browser limits
-      // browser limit ~200-255
-      if (relays.length > MAX_RELAY_CONNECTIONS) {
-        console.warn(`:: high relay count: ${relays.length} relays in pool`)
-      }
-    }, 10_000)
+      const urls = pool.pruneIdleRelays()
+      if (urls.length > 0) console.log(':: closed idle relays', urls)
+    }, 25_000)
 
     createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
