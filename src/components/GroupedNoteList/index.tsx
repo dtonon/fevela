@@ -613,7 +613,10 @@ const GroupedNoteList = forwardRef(
                   // merging these will trigger a group recomputation
                   setEvents((oldEvents) =>
                     // insert each appended event using binary search to maintain sort order and deduplicate
-                    mergeReverseSortedLists(oldEvents, appended)
+                    mergeReverseSortedLists(
+                      oldEvents,
+                      appended.sort((a, b) => b.created_at - a.created_at)
+                    )
                   )
                 }
 
@@ -655,7 +658,10 @@ const GroupedNoteList = forwardRef(
     function mergeNewEvents() {
       setEvents((oldEvents) =>
         // insert each new event using binary search to maintain sort order and deduplicate
-        mergeReverseSortedLists(oldEvents, newEvents)
+        mergeReverseSortedLists(
+          oldEvents,
+          newEvents.sort((a, b) => b.created_at - a.created_at)
+        )
       )
       setNewEvents([])
       setShowNewNotesButton(false)

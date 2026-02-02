@@ -256,12 +256,17 @@ const NoteList = forwardRef(
                   // sort these as they will not come in order (they will come from different author syncing processes)
                   pending.sort((a, b) => b.created_at - a.created_at)
                   // prepend them to the top
-                  setNewEvents((curr) => [...pending, ...curr])
+                  setNewEvents((curr) =>
+                    [...pending, ...curr].sort((a, b) => b.created_at - a.created_at)
+                  )
                 }
 
                 // insert each appended event using binary search to maintain sort order and deduplicate
                 if (appended.length) {
-                  return mergeReverseSortedLists(events, appended)
+                  return mergeReverseSortedLists(
+                    events,
+                    appended.sort((a, b) => b.created_at - a.created_at)
+                  )
                 } else {
                   return events
                 }
@@ -364,7 +369,12 @@ const NoteList = forwardRef(
     }, [hasMore, loading, isFilteredView, loadMore])
 
     function mergeNewEvents() {
-      setEvents((oldEvents) => mergeReverseSortedLists(oldEvents, newEvents))
+      setEvents((oldEvents) =>
+        mergeReverseSortedLists(
+          oldEvents,
+          newEvents.sort((a, b) => b.created_at - a.created_at)
+        )
+      )
       setNewEvents([])
       setTimeout(() => {
         scrollToTop('smooth')
