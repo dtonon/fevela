@@ -11,6 +11,7 @@ import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, NostrEvent, verifyEvent } from '@nostr/tools/wasm'
+import { mergeReverseSortedLists } from '@nostr/tools/utils'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -258,10 +259,9 @@ const NoteList = forwardRef(
                   setNewEvents((curr) => [...pending, ...curr])
                 }
 
-                // we have no idea of the order here, so just sort everything and eliminate duplicates
+                // insert each appended event using binary search to maintain sort order and deduplicate
                 if (appended.length) {
-                  const all = [...events, ...appended].sort((a, b) => b.created_at - a.created_at)
-                  return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
+                  return mergeReverseSortedLists(events, appended)
                 } else {
                   return events
                 }
@@ -364,7 +364,7 @@ const NoteList = forwardRef(
     }, [hasMore, loading, isFilteredView, loadMore])
 
     function mergeNewEvents() {
-      setEvents((oldEvents) => [...newEvents, ...oldEvents])
+      setEvents((oldEvents) => mergeReverseSortedLists(oldEvents, newEvents))
       setNewEvents([])
       setTimeout(() => {
         scrollToTop('smooth')

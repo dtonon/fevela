@@ -20,6 +20,7 @@ import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
+import { mergeReverseSortedLists } from '@nostr/tools/utils'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -209,7 +210,11 @@ const GroupedNoteList = forwardRef(
 
       const noteIdArray = Array.from(noteIds)
 
-      console.log('[GroupedNoteList] Creating RELEVANCE subscription for', noteIdArray.length, 'notes')
+      console.log(
+        '[GroupedNoteList] Creating RELEVANCE subscription for',
+        noteIdArray.length,
+        'notes'
+      )
 
       // Subscribe to interaction events for these notes
       const subc = client.subscribeTimeline(
@@ -606,13 +611,10 @@ const GroupedNoteList = forwardRef(
 
                 if (appended.length) {
                   // merging these will trigger a group recomputation
-                  setEvents((oldEvents) => {
-                    // we have no idea of the order here, so just sort everything and eliminate duplicates
-                    const all = [...oldEvents, ...appended].sort(
-                      (a, b) => b.created_at - a.created_at
-                    )
-                    return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
-                  })
+                  setEvents((oldEvents) =>
+                    // insert each appended event using binary search to maintain sort order and deduplicate
+                    mergeReverseSortedLists(oldEvents, appended)
+                  )
                 }
 
                 return curr
@@ -652,8 +654,8 @@ const GroupedNoteList = forwardRef(
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
-        // we must sort here because the group calculation assumes everything is sorted
-        [...newEvents, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
+        // insert each new event using binary search to maintain sort order and deduplicate
+        mergeReverseSortedLists(oldEvents, newEvents)
       )
       setNewEvents([])
       setShowNewNotesButton(false)
