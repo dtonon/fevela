@@ -30,7 +30,7 @@ import { isHex32 } from '@nostr/gadgets/utils'
 import { verifyEvent } from '@nostr/tools/wasm'
 import { current, outbox, ready } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
-import { binarySearch } from '@nostr/tools/utils'
+import { binarySearch, mergeReverseSortedLists } from '@nostr/tools/utils'
 import { seenOn } from '@nostr/gadgets/redstore'
 import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { debounce } from '@/lib/utils'
@@ -266,14 +266,17 @@ class ClientService extends EventTarget {
             // query from local db
             let events: NostrEvent[] = []
             for (let i = 0; i < localFilters.length; i++) {
-              events = await store.queryEvents(localFilters[i], 5_000)
-              const first = events[0]
+              const queryEvents = await store.queryEvents(localFilters[i], 5_000)
+              const first = queryEvents[0]
 
               if (first) {
                 if (!newestEvent || newestEvent.created_at < first.created_at) {
                   newestEvent = first
                 }
               }
+
+              if (events.length === 0) events = queryEvents
+              else events = mergeReverseSortedLists(events, queryEvents)
             }
 
             // a background sync may be happening and we may be interested in it, handle when it ends
@@ -448,25 +451,35 @@ class ClientService extends EventTarget {
       })
     }
 
-    Promise.all([local, network]).then(([[eventsL], eventsN]) => {
-      if (eventsL.length > 0 && eventsN.length > 0) {
-        eventsL.push(...eventsN)
-        eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(
-          eventsL.filter((item, i) => i === 0 || item.id !== eventsL[i - 1].id),
-          true
-        )
-      } else if (eventsL.length) {
-        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsL, true)
-      } else if (eventsN.length) {
-        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+    // handle local results immediately
+    local.then(([eventsL]) => {
+      if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
+      onEvents(eventsL, false) // not final: will be called again with merged results later
+
+      // handle network results and merge
+      network.then((eventsN) => {
+        if (eventsL.length > 0 && eventsN.length > 0) {
+          // we have results both from relays and from local
           eventsN.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsN, true)
-      } else {
-        // No events found, but still need to signal completion
-        onEvents([], true)
-      }
+          const merged = mergeReverseSortedLists(eventsL, eventsN)
+          onEvents(merged, true)
+        } else if (eventsN.length) {
+          // we only have results from relays
+          if (relayRequests.length > 1 || relayRequests[0].urls.length > 1) {
+            // sort results from relays -- but don't sort if we're querying a single relay,
+            // as it will already send things sorted
+            // (or in its own custom order that we'll respect because why not)
+            eventsN.sort((a, b) => b.created_at - a.created_at)
+          }
+          onEvents(eventsN, true)
+        } else if (eventsL.length) {
+          // only local results, no results from relays, just call again as before, but signal completion
+          onEvents(eventsL, true)
+        } else {
+          // no events found, but still need to signal completion
+          onEvents([], true)
+        }
+      })
     })
 
     return {
