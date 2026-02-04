@@ -43,8 +43,8 @@ export default function PrimaryPageSidebar() {
         )}
         <FollowingButton collapse={sidebarCollapse} />
         <RelayFeedButton collapse={sidebarCollapse} />
-        <ConversationsButton collapse={sidebarCollapse} />
-        <NotificationsButton collapse={sidebarCollapse} />
+        {pubkey && <ConversationsButton collapse={sidebarCollapse} />}
+        {pubkey && <NotificationsButton collapse={sidebarCollapse} />}
         {pubkey && <BookmarkButton collapse={sidebarCollapse} />}
         <SearchButton collapse={sidebarCollapse} />
         <RelaysButton collapse={sidebarCollapse} />

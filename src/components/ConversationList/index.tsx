@@ -1,6 +1,6 @@
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { parse } from '@nostr/tools/nip27'
-import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
+import { NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -10,7 +10,6 @@ import noteStatsService from '@/services/note-stats.service'
 import dayjs from 'dayjs'
 import { NostrEvent } from '@nostr/tools/wasm'
 import { matchFilter } from '@nostr/tools/filter'
-import * as kinds from '@nostr/tools/kinds'
 import { forwardRef, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
@@ -20,6 +19,8 @@ import { isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
 import { Input } from '@/components/ui/input'
 import { TFeedSubRequest } from '@/types'
+import { useNotification } from '@/providers/NotificationProvider'
+import { replyKinds } from '@/lib/notification'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -29,10 +30,12 @@ const ConversationList = forwardRef((_, ref) => {
   const { current, display } = usePrimaryPage()
   const active = useMemo(() => current === 'conversations' && display, [current, display])
   const { pubkey } = useNostr()
+  const { getNotificationsSeenAt } = useNotification()
   const { notificationListStyle } = useUserPreferences()
   const [refreshCount, setRefreshCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [conversations, setConversations] = useState<NostrEvent[]>([])
+  const [lastReadTime, setLastReadTime] = useState(0)
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const [showCount, setShowCount] = useState(SHOW_COUNT)
   const [until, setUntil] = useState<number | undefined>(dayjs().unix())
@@ -41,16 +44,6 @@ const ConversationList = forwardRef((_, ref) => {
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const topRef = useRef<HTMLDivElement | null>(null)
   const bottomRef = useRef<HTMLDivElement | null>(null)
-
-  const filterKinds = useMemo(
-    () => [
-      kinds.ShortTextNote,
-      ExtendedKind.COMMENT,
-      ExtendedKind.VOICE_COMMENT,
-      ExtendedKind.POLL
-    ],
-    []
-  )
 
   // Search for matching pubkeys when user filter changes
   useEffect(() => {
@@ -117,6 +110,7 @@ const ConversationList = forwardRef((_, ref) => {
       setLoading(true)
       setConversations([])
       setShowCount(SHOW_COUNT)
+      setLastReadTime(getNotificationsSeenAt())
 
       const relayList = await client.fetchRelayList(pubkey)
 
@@ -126,21 +120,21 @@ const ConversationList = forwardRef((_, ref) => {
           urls: relayList.read,
           filter: {
             '#p': [pubkey],
-            kinds: filterKinds
+            kinds: replyKinds
           }
         },
         {
           source: 'local',
           filter: {
             '#p': [pubkey],
-            kinds: filterKinds
+            kinds: replyKinds
           }
         },
         {
           source: 'local',
           filter: {
             authors: [pubkey],
-            kinds: filterKinds
+            kinds: replyKinds
           }
         }
       ]
@@ -175,7 +169,7 @@ const ConversationList = forwardRef((_, ref) => {
     })()
 
     return () => subc?.close?.()
-  }, [pubkey, refreshCount, filterKinds, current])
+  }, [pubkey, refreshCount, current])
 
   useEffect(() => {
     if (!active || !pubkey) return
@@ -186,14 +180,14 @@ const ConversationList = forwardRef((_, ref) => {
       if (
         matchFilter(
           {
-            kinds: filterKinds,
+            kinds: replyKinds,
             '#p': [pubkey]
           },
           evt
         ) ||
         matchFilter(
           {
-            kinds: filterKinds,
+            kinds: replyKinds,
             authors: [pubkey]
           },
           evt
@@ -207,7 +201,7 @@ const ConversationList = forwardRef((_, ref) => {
     return () => {
       client.removeEventListener('newEvent', handler)
     }
-  }, [pubkey, active, filterKinds])
+  }, [pubkey, active])
 
   useEffect(() => {
     const options = {
@@ -274,7 +268,11 @@ const ConversationList = forwardRef((_, ref) => {
   const list = (
     <div className={notificationListStyle === NOTIFICATION_LIST_STYLE.COMPACT ? 'pt-2' : ''}>
       {filteredConversations.slice(0, showCount).map((conversation) => (
-        <NotificationItem key={conversation.id} notification={conversation} isNew={false} />
+        <NotificationItem
+          key={conversation.id}
+          notification={conversation}
+          isNew={conversation.created_at > lastReadTime}
+        />
       ))}
       <div className="text-center text-sm text-muted-foreground">
         {until || loading ? (
