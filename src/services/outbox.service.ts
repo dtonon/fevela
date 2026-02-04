@@ -13,11 +13,7 @@ export const outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], store, {
       current.onsync[i](pubkey)
     }
   },
-  onbeforeupdate(pubkey) {
-    for (let i = 0; i < current.onsync.length; i++) {
-      current.onsync[i](pubkey)
-    }
-  },
+  onbeforeupdate(_pubkey) {},
   onliveupdate(event) {
     console.debug(':: live', event)
     for (let i = 0; i < current.onnew.length; i++) {
@@ -42,22 +38,29 @@ export const current: {
 } = { onsync: [], onnew: [] }
 
 let isReady: () => void
-const _ready = new Promise<void>((resolve) => {
-  isReady = resolve
-})
+let _ready: Promise<void>
+
+function resetPromises() {
+  _ready = new Promise<void>((resolve) => {
+    isReady = resolve
+  })
+}
+
+resetPromises()
+
 export async function ready(): Promise<void> {
   return _ready
 }
 
-let isStarted: (total: number) => void
-const _started = new Promise<number>((resolve) => {
-  isStarted = resolve
-})
-export async function started(): Promise<number> {
-  return _started
+const startedListeners: ((len: number) => void)[] = []
+export function onStarted(cb: (len: number) => void) {
+  startedListeners.push(cb)
 }
 
 export async function start(account: string, followings: string[], signal: AbortSignal) {
+  // reset promises for new sync session
+  resetPromises()
+
   signal.onabort = () => {
     status.syncing = undefined
   }
@@ -66,7 +69,7 @@ export async function start(account: string, followings: string[], signal: Abort
   ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
 
   const targets = [account, ...followings]
-  isStarted(targets.length)
+  startedListeners.forEach((cb) => cb(targets.length))
 
   if (0 === (await store.queryEvents({}, 1)).length) {
     // this means the database has no events.
