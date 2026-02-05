@@ -39,7 +39,7 @@ export default function CompactedEventCard({
   onMarkAsUnread,
   isLastNoteRead = false,
   areAllNotesRead = false,
-  relevanceScore
+  displayScore
 }: {
   event: Event
   className?: string
@@ -53,7 +53,7 @@ export default function CompactedEventCard({
   onMarkAsUnread?: () => void
   isLastNoteRead?: boolean
   areAllNotesRead?: boolean
-  relevanceScore?: number
+  displayScore?: number
 }) {
   const { push } = useSecondaryPage()
   const { t } = useTranslation()
@@ -193,12 +193,12 @@ export default function CompactedEventCard({
                     </div>
                     <div className="flex items-center gap-1 text-sm">
                       <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
-                      {relevanceScore !== undefined && (
+                      {typeof displayScore === 'number' && (
                         <>
                           <span>·</span>
                           <span className="shrink-0 text-primary font-medium flex items-center gap-0.5">
                             <Sparkles size={14} />
-                            {Math.round(relevanceScore)}
+                            {Math.round(displayScore)}
                           </span>
                         </>
                       )}

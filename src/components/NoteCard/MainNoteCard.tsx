@@ -20,7 +20,7 @@ export default function MainNoteCard({
   onAllNotesRead,
   areAllNotesRead,
   pinned = false,
-  relevanceScore
+  displayScore
 }: {
   event: Event
   className?: string
@@ -31,7 +31,7 @@ export default function MainNoteCard({
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
   pinned?: boolean
-  relevanceScore?: number
+  displayScore?: number
 }) {
   const { push } = useSecondaryPage()
 
@@ -43,7 +43,12 @@ export default function MainNoteCard({
         push(toNote(originalNoteId ?? event))
       }}
     >
-      <div className={cn('clickable overflow-visible', embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3')}>
+      <div
+        className={cn(
+          'clickable overflow-visible',
+          embedded ? 'p-2 sm:p-3 border rounded-lg' : 'py-3'
+        )}
+      >
         <Collapsible alwaysExpand={embedded}>
           {pinned && <PinnedButton event={event} />}
           <RepostDescription className={embedded ? '' : 'px-4'} reposters={reposters} />
@@ -52,7 +57,7 @@ export default function MainNoteCard({
             size={embedded ? 'small' : 'normal'}
             event={event}
             originalNoteId={originalNoteId}
-            relevanceScore={relevanceScore}
+            displayScore={displayScore}
           />
         </Collapsible>
         {!embedded && <NoteStats className="mt-3 px-4 pb-4" event={event} />}

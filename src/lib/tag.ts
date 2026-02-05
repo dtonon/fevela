@@ -1,8 +1,10 @@
 import { base64 } from '@scure/base'
+import * as kinds from '@nostr/tools/kinds'
 import { isBlurhashValid } from 'blurhash'
 import { TImetaInfo } from '@/types'
 import * as nip19 from '@nostr/tools/nip19'
 import { isValidPubkey } from './pubkey'
+import { NostrEvent } from '@nostr/tools/core'
 
 export function isSameTag(tag1: string[], tag2: string[]) {
   if (tag1.length !== tag2.length) return false
@@ -82,4 +84,11 @@ export function getImetaInfoFromImetaTag(tag: string[], pubkey?: string): TImeta
 
   if (!imeta.url) return null
   return imeta as TImetaInfo
+}
+
+// getActualId returns the id of the inner event in case of a repost, otherwise the event id normally
+export function getActualId(event: NostrEvent): string {
+  return event.kind === kinds.Repost || kinds.GenericRepost
+    ? event.tags.find((t) => t[0] === 'e')?.[1] || event.id
+    : event.id
 }
