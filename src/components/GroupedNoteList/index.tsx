@@ -35,7 +35,7 @@ import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
-import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
+import GroupedNotesEmptyState from './EmptyState'
 import { usePinBury } from '@/providers/PinBuryProvider'
 import { getActualId } from '@/lib/tag'
 
@@ -432,12 +432,10 @@ const GroupedNoteList = forwardRef(
 
     // apply author name filter
     const nameFilteredGroups = useMemo(() => {
-      if (!userFilter.trim() || matchingPubkeys === null) {
-        return noteGroups
-      }
+      if (matchingPubkeys === null) return noteGroups
 
       return noteGroups.filter((group) => matchingPubkeys.has(group.topNote.pubkey))
-    }, [noteGroups, userFilter, matchingPubkeys])
+    }, [noteGroups, matchingPubkeys])
 
     useEffect(() => {
       if (newEvents.length === 0) {

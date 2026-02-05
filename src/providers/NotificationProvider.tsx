@@ -204,9 +204,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [pubkey])
 
   useEffect(() => {
-    // Update title
     if (filteredNewNotifications > 0) {
-      document.title = `(${filteredNewConversations > 99 ? '99+' : filteredNewConversations}) Fevela`
+      document.title = `(${filteredNewNotifications > 99 ? '99+' : filteredNewNotifications}) Fevela`
     } else {
       document.title = 'Fevela'
     }

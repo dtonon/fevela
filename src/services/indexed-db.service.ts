@@ -1,5 +1,4 @@
 import { TRelayInfo } from '@/types'
-import { NostrUser } from '@nostr/gadgets/metadata'
 
 type TValue<T = any> = {
   key: string
@@ -49,58 +48,6 @@ class IndexedDbService {
       setTimeout(() => this.cleanUp(), 1000 * 60) // 1 minute
     }
     return this.initPromise
-  }
-
-  async getAllProfiles(): Promise<NostrUser[]> {
-    const databases = await window.indexedDB.databases()
-    if (!databases.find((idb) => idb.name === '@nostr/gadgets/metadata')) {
-      // do not try to create this database if it doesn't exist, or idb-keyval breaks
-      return []
-    }
-
-    return new Promise<NostrUser[]>((resolve, reject) => {
-      const request = window.indexedDB.open('@nostr/gadgets/metadata')
-
-      request.onerror = (event) => {
-        reject(event)
-      }
-
-      request.onsuccess = () => {
-        const db = request.result
-
-        let transaction: IDBTransaction | undefined
-        let getAllRequest: IDBRequest<any> | undefined
-        try {
-          transaction = db.transaction('cache', 'readonly')
-          const store = transaction.objectStore('cache')
-          getAllRequest = store.getAll()
-        } catch (error) {
-          transaction?.commit?.()
-          db.close()
-          reject(error)
-          return
-        }
-
-        getAllRequest!.onsuccess = async (event) => {
-          const values = (event.target as IDBRequest).result as NostrUser[]
-          try {
-            transaction!.commit()
-            db.close()
-            resolve(values)
-          } catch (error) {
-            transaction!.commit()
-            db.close()
-            reject(error)
-          }
-        }
-
-        getAllRequest!.onerror = (event) => {
-          transaction!.commit()
-          db.close()
-          reject(event)
-        }
-      }
-    })
   }
 
   async putRelayInfo(relayInfo: TRelayInfo): Promise<void> {
