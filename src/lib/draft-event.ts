@@ -10,7 +10,7 @@ import {
   TPollCreateData,
   TRelaySet
 } from '@/types'
-import { sha256 } from '@noble/hashes/sha2'
+import { sha256 } from '@noble/hashes/sha2.js'
 import dayjs from 'dayjs'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'

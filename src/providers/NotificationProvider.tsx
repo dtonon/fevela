@@ -1,11 +1,10 @@
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { BIG_RELAY_URLS } from '@/constants'
 import { compareEvents } from '@/lib/event'
-import { notificationFilter } from '@/lib/notification'
+import { isMention, notificationFilter, replyKinds, reactionKinds } from '@/lib/notification'
 import { usePrimaryPage } from '@/PageManager'
 import client from '@/services/client.service'
 import storage from '@/services/local-storage.service'
 import { NostrEvent } from '@nostr/tools/wasm'
-import * as kinds from '@nostr/tools/kinds'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { useContentPolicy } from './ContentPolicyProvider'
@@ -19,6 +18,7 @@ type TNotificationContext = {
   getNotificationsSeenAt: () => number
   isNotificationRead: (id: string) => boolean
   markNotificationAsRead: (id: string) => void
+  hasNewConversation: boolean
 }
 
 const NotificationContext = createContext<TNotificationContext | undefined>(undefined)
@@ -40,29 +40,54 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const [newNotifications, setNewNotifications] = useState<NostrEvent[]>([])
   const [readNotificationIdSet, setReadNotificationIdSet] = useState<Set<string>>(new Set())
-  const filteredNewNotifications = useMemo(() => {
-    if (active || notificationsSeenAt < 0) {
-      return []
+  const [filteredNewNotifications, setFilteredNewNotifications] = useState<number>(0)
+  const [filteredNewConversations, setFilteredNewConversations] = useState<number>(0)
+
+  useEffect(() => {
+    if (active || notificationsSeenAt < 0 || !pubkey) {
+      setFilteredNewNotifications(0)
+      setFilteredNewConversations(0)
+      return
     }
-    const filtered: NostrEvent[] = []
-    for (const notification of newNotifications) {
-      if (notification.created_at <= notificationsSeenAt || filtered.length >= 10) {
-        break
+
+    ;(async () => {
+      let filteredNotifications = 0
+      let filteredConversations = 0
+
+      for (const notification of newNotifications) {
+        if (notification.created_at <= notificationsSeenAt) {
+          break
+        }
+        if (
+          !notificationFilter(notification, {
+            pubkey,
+            mutePubkeySet,
+            hideContentMentioningMutedUsers,
+            hideUntrustedNotifications,
+            isUserTrusted
+          })
+        ) {
+          continue
+        }
+
+        // for text-based kinds, check if it's a mention
+        if (replyKinds.includes(notification.kind)) {
+          // any conversation-style any-level reply goes here
+          // reactions don't
+          filteredConversations++
+
+          // but they only show up as notifications if they are direct
+          const isMentionResult = await isMention(notification, pubkey)
+          if (isMentionResult) filteredNotifications++
+        } else {
+          // all other kinds get a free pass as notifications
+          filteredNotifications++
+        }
       }
-      if (
-        !notificationFilter(notification, {
-          pubkey,
-          mutePubkeySet,
-          hideContentMentioningMutedUsers,
-          hideUntrustedNotifications,
-          isUserTrusted
-        })
-      ) {
-        continue
-      }
-      filtered.push(notification)
-    }
-    return filtered
+
+      setFilteredNewNotifications(filteredNotifications)
+      setFilteredNewConversations(filteredConversations)
+    })()
   }, [
     newNotifications,
     notificationsSeenAt,
@@ -70,7 +95,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     hideContentMentioningMutedUsers,
     hideUntrustedNotifications,
     isUserTrusted,
-    active
+    active,
+    pubkey
   ])
 
   useEffect(() => {
@@ -103,16 +129,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const subCloser = pool.subscribe(
           relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
           {
-            kinds: [
-              kinds.ShortTextNote,
-              kinds.Repost,
-              kinds.Reaction,
-              kinds.Zap,
-              ExtendedKind.COMMENT,
-              ExtendedKind.POLL_RESPONSE,
-              ExtendedKind.VOICE_COMMENT,
-              ExtendedKind.POLL
-            ],
+            kinds: [...replyKinds, ...reactionKinds],
             '#p': [pubkey],
             limit: 20
           },
@@ -187,11 +204,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   }, [pubkey])
 
   useEffect(() => {
-    const newNotificationCount = filteredNewNotifications.length
-
     // Update title
-    if (newNotificationCount > 0) {
-      document.title = `(${newNotificationCount >= 10 ? '9+' : newNotificationCount}) Fevela`
+    if (filteredNewNotifications > 0) {
+      document.title = `(${filteredNewConversations > 99 ? '99+' : filteredNewConversations}) Fevela`
     } else {
       document.title = 'Fevela'
     }
@@ -200,7 +215,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     const favicons = document.querySelectorAll<HTMLLinkElement>("link[rel*='icon']")
     if (!favicons.length) return
 
-    if (newNotificationCount === 0) {
+    if (filteredNewNotifications === 0) {
       favicons.forEach((favicon) => {
         favicon.href = '/favicon.ico'
       })
@@ -227,7 +242,21 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     }
   }, [filteredNewNotifications])
 
-  const getNotificationsSeenAt = () => {
+  return (
+    <NotificationContext.Provider
+      value={{
+        hasNewNotification: filteredNewNotifications > 0,
+        getNotificationsSeenAt,
+        isNotificationRead,
+        markNotificationAsRead,
+        hasNewConversation: filteredNewConversations > 0
+      }}
+    >
+      {children}
+    </NotificationContext.Provider>
+  )
+
+  function getNotificationsSeenAt() {
     if (notificationsSeenAt >= 0) {
       return notificationsSeenAt
     }
@@ -237,24 +266,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     return 0
   }
 
-  const isNotificationRead = (notificationId: string): boolean => {
+  function isNotificationRead(notificationId: string): boolean {
     return readNotificationIdSet.has(notificationId)
   }
 
-  const markNotificationAsRead = (notificationId: string): void => {
+  function markNotificationAsRead(notificationId: string): void {
     setReadNotificationIdSet((prev) => new Set([...prev, notificationId]))
   }
-
-  return (
-    <NotificationContext.Provider
-      value={{
-        hasNewNotification: filteredNewNotifications.length > 0,
-        getNotificationsSeenAt,
-        isNotificationRead,
-        markNotificationAsRead
-      }}
-    >
-      {children}
-    </NotificationContext.Provider>
-  )
 }

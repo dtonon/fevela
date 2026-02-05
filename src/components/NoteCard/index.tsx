@@ -17,7 +17,7 @@ export default function NoteCard({
   groupedNotesTotalCount,
   onAllNotesRead,
   areAllNotesRead,
-  relevanceScore
+  displayScore
 }: {
   event: Event
   className?: string
@@ -27,7 +27,7 @@ export default function NoteCard({
   groupedNotesTotalCount?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
-  relevanceScore?: number
+  displayScore?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -52,7 +52,7 @@ export default function NoteCard({
         groupedNotesTotalCount={groupedNotesTotalCount}
         onAllNotesRead={onAllNotesRead}
         areAllNotesRead={areAllNotesRead}
-        relevanceScore={relevanceScore}
+        displayScore={displayScore}
       />
     )
   }
@@ -65,7 +65,7 @@ export default function NoteCard({
       groupedNotesTotalCount={groupedNotesTotalCount}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
-      relevanceScore={relevanceScore}
+      displayScore={displayScore}
     />
   )
 }

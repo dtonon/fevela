@@ -2,6 +2,7 @@ import NormalFeed from '@/components/NormalFeed'
 import { useFeed } from '@/providers/FeedProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { TFeedSubRequest } from '@/types'
+import { loadFollowsList } from '@nostr/gadgets/lists'
 import { useEffect, useState } from 'react'
 
 export default function FollowingFeed() {
@@ -23,7 +24,7 @@ export default function FollowingFeed() {
         {
           source: 'local',
           filter: {
-            followedBy: pubkey
+            authors: (await loadFollowsList(pubkey)).items
           }
         }
       ])

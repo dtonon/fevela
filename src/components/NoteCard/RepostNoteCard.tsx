@@ -18,7 +18,7 @@ export default function RepostNoteCard({
   groupedNotesTotalCount,
   onAllNotesRead,
   areAllNotesRead,
-  relevanceScore
+  displayScore
 }: {
   event: Event
   className?: string
@@ -28,7 +28,7 @@ export default function RepostNoteCard({
   groupedNotesTotalCount?: number
   onAllNotesRead?: () => void
   areAllNotesRead?: boolean
-  relevanceScore?: number
+  displayScore?: number
 }) {
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
@@ -99,7 +99,7 @@ export default function RepostNoteCard({
       groupedNotesTotalCount={groupedNotesTotalCount}
       onAllNotesRead={onAllNotesRead}
       areAllNotesRead={areAllNotesRead}
-      relevanceScore={relevanceScore}
+      displayScore={displayScore}
     />
   )
 }

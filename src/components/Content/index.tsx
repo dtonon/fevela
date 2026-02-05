@@ -141,10 +141,12 @@ export default function Content({
               <EmbeddedMention key={nodes.length} userId={nprofileEncode(block.pointer)} />
             )
           }
+          nodes.push(<span key={nodes.length}> </span>)
           break
         }
         case 'hashtag': {
           nodes.push(<EmbeddedHashtag key={nodes.length} hashtag={block.value} />)
+          nodes.push(<span key={nodes.length}> </span>)
           break
         }
         case 'emoji': {

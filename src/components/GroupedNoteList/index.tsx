@@ -7,7 +7,6 @@ import {
   getEventKey
 } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
-import { calculateRelevanceScore } from '@/lib/note-relevance'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
@@ -17,9 +16,10 @@ import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
-import noteStatsService from '@/services/note-stats.service'
+import noteStatsService, { TNoteStats } from '@/services/note-stats.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
+import { mergeReverseSortedLists } from '@nostr/tools/utils'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -37,6 +37,7 @@ import NoteCard from '../NoteCard'
 import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from '../GroupedNotesEmptyState'
 import { usePinBury } from '@/providers/PinBuryProvider'
+import { getActualId } from '@/lib/tag'
 
 type TNoteGroup = {
   topNote: NostrEvent
@@ -148,44 +149,35 @@ const GroupedNoteList = forwardRef(
 
       const unsubscribers: (() => void)[] = []
 
-      // Collect all note IDs
-      const noteIdsToFetch = new Set<string>()
-      noteGroups.forEach((group) => {
-        group.allNotes.forEach((note) => {
-          noteIdsToFetch.add(note.id)
-        })
-      })
-
       // Subscribe to stats updates for all notes
-      noteIdsToFetch.forEach((noteId) => {
-        const unsubscribe = noteStatsService.subscribeNoteStats(noteId, () => {
-          setStatsUpdateTrigger((prev) => prev + 1)
-        })
-        unsubscribers.push(unsubscribe)
-      })
+      for (const group of noteGroups) {
+        for (const note of group.allNotes) {
+          const unsubscribe = noteStatsService.subscribeNoteStats(getActualId(note), () => {
+            setStatsUpdateTrigger((prev) => prev + 1)
+          })
+          unsubscribers.push(unsubscribe)
+        }
+      }
 
       // Fetch initial stats only for NEW notes (not already fetched)
       // Limit to first 50 new notes per render to avoid connection burst
       let count = 0
-      const MAX_STATS_FETCH = 50
 
       for (const group of noteGroups) {
         for (const note of group.allNotes) {
-          if (count >= MAX_STATS_FETCH) break
           if (!fetchedStatsRef.current.has(note.id)) {
             fetchedStatsRef.current.add(note.id)
             count++
             // Stagger requests to avoid burst
             setTimeout(() => {
-              noteStatsService.fetchNoteStats(note, pubkey)
+              noteStatsService.fetchNoteStats(note)
             }, count * 100) // 100ms between each request
           }
         }
-        if (count >= MAX_STATS_FETCH) break
       }
 
       if (count > 0) {
-        console.log('[GroupedNoteList] Fetching initial stats for', count, 'new notes')
+        console.log('[GroupedNoteList] fetching initial stats for', count, 'new notes')
       }
 
       return () => {
@@ -208,8 +200,6 @@ const GroupedNoteList = forwardRef(
       if (noteIds.size === 0) return
 
       const noteIdArray = Array.from(noteIds)
-
-      console.log('[GroupedNoteList] Creating RELEVANCE subscription for', noteIdArray.length, 'notes')
 
       // Subscribe to interaction events for these notes
       const subc = client.subscribeTimeline(
@@ -238,7 +228,6 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => {
-        console.log('[GroupedNoteList] Closing RELEVANCE subscription')
         subc.close()
       }
     }, [settings.sortByRelevance, noteGroups.length, subRequests, startLogin])
@@ -354,7 +343,7 @@ const GroupedNoteList = forwardRef(
           group.allNotes.forEach((note) => {
             const stats = noteStatsService.getNoteStats(note.id)
             const replyCount = getReplyCount(note)
-            const { score } = calculateRelevanceScore(stats, replyCount)
+            const score = calculateRelevanceScore(stats, replyCount) + note.created_at / 3600
 
             if (score > bestScore) {
               bestScore = score
@@ -531,8 +520,6 @@ const GroupedNoteList = forwardRef(
       const timeframeMs = getTimeFrameInMs(settings.timeFrame)
       const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
 
-      console.log('[GroupedNoteList] Creating MAIN subscription, timeframe:', settings.timeFrame)
-
       const subc = client.subscribeTimeline(
         subRequests,
         {
@@ -606,13 +593,13 @@ const GroupedNoteList = forwardRef(
 
                 if (appended.length) {
                   // merging these will trigger a group recomputation
-                  setEvents((oldEvents) => {
-                    // we have no idea of the order here, so just sort everything and eliminate duplicates
-                    const all = [...oldEvents, ...appended].sort(
-                      (a, b) => b.created_at - a.created_at
+                  setEvents((oldEvents) =>
+                    // insert each appended event using binary search to maintain sort order and deduplicate
+                    mergeReverseSortedLists(
+                      oldEvents,
+                      appended.sort((a, b) => b.created_at - a.created_at)
                     )
-                    return all.filter((evt, i) => i === 0 || evt.id !== all[i - 1].id)
-                  })
+                  )
                 }
 
                 return curr
@@ -645,15 +632,17 @@ const GroupedNoteList = forwardRef(
       )
 
       return () => {
-        console.log('[GroupedNoteList] Closing MAIN subscription')
         subc.close()
       }
     }, [subRequests, refreshCount, showKinds, settings.timeFrame])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
-        // we must sort here because the group calculation assumes everything is sorted
-        [...newEvents, ...oldEvents].sort((a, b) => b.created_at - a.created_at)
+        // insert each new event using binary search to maintain sort order and deduplicate
+        mergeReverseSortedLists(
+          oldEvents,
+          newEvents.sort((a, b) => b.created_at - a.created_at)
+        )
       )
       setNewEvents([])
       setShowNewNotesButton(false)
@@ -681,12 +670,11 @@ const GroupedNoteList = forwardRef(
     const list = (
       <div className="min-h-screen" style={{ overflowAnchor: 'none' }}>
         {nameFilteredGroups.map(({ totalNotes, allNoteTimestamps, topNote }) => {
-          // Calculate relevance score if enabled
-          const relevanceScore = settings.sortByRelevance
+          const displayScore = settings.sortByRelevance
             ? calculateRelevanceScore(
                 noteStatsService.getNoteStats(topNote.id),
                 getReplyCount(topNote)
-              ).score
+              )
             : undefined
 
           // use CompactedNoteCard if compacted view is on
@@ -712,13 +700,11 @@ const GroupedNoteList = forwardRef(
                     markLastNoteRead(topNote.pubkey, topNote.created_at)
                   }
                 }}
-                onAllNotesRead={() =>
-                  markAllNotesRead(topNote.pubkey, topNote.created_at)
-                }
+                onAllNotesRead={() => markAllNotesRead(topNote.pubkey, topNote.created_at)}
                 onMarkAsUnread={() => markAsUnread(topNote.pubkey)}
                 isLastNoteRead={readStatus.isLastNoteRead}
                 areAllNotesRead={readStatus.areAllNotesRead}
-                relevanceScore={relevanceScore}
+                displayScore={displayScore}
               />
             )
           }
@@ -742,7 +728,7 @@ const GroupedNoteList = forwardRef(
                 unreadCount && markAllNotesRead(topNote.pubkey, topNote.created_at)
               }
               areAllNotesRead={readStatus.areAllNotesRead}
-              relevanceScore={relevanceScore}
+              displayScore={displayScore}
             />
           )
         })}
@@ -790,4 +776,14 @@ export default GroupedNoteList
 export type TGroupedNoteListRef = {
   scrollToTop: (behavior?: ScrollBehavior) => void
   refresh: () => void
+}
+
+export function calculateRelevanceScore(
+  stats: Partial<TNoteStats> | undefined,
+  repliesCount: number = 0
+): number {
+  const reactionsCount = stats?.likes?.length ?? 0
+  const repostsCount = stats?.reposts?.length ?? 0
+  const zappedSats = stats?.zaps?.reduce((sum, zap) => sum + zap.amount, 0) ?? 0
+  return reactionsCount + repostsCount * 3 + zappedSats / 10 + repliesCount * 4
 }

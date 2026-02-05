@@ -1,5 +1,4 @@
 import { ExtendedKind, NOTIFICATION_LIST_STYLE } from '@/constants'
-import { getEmbeddedPubkeys, getParentETag } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { binarySearch } from '@nostr/tools/utils'
 import { useNostr } from '@/providers/NostrProvider'
@@ -20,6 +19,7 @@ import { NotificationItem } from './NotificationItem'
 import { NotificationSkeleton } from './NotificationItem/Notification'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { RefreshButton } from '../RefreshButton'
+import { isMention, replyKinds } from '@/lib/notification'
 
 const LIMIT = 100
 const SHOW_COUNT = 30
@@ -100,56 +100,14 @@ const NotificationList = forwardRef((_, ref) => {
     filterGeneration.current += 1
     const currentGeneration = filterGeneration.current
 
-    // Text-based kinds that need mention filtering
-    const textKinds = [
-      kinds.ShortTextNote,
-      ExtendedKind.COMMENT,
-      ExtendedKind.VOICE_COMMENT,
-      ExtendedKind.POLL
-    ]
-
-    // Check if an event is a mention (explicit mention or direct reply)
-    const isMention = async (event: NostrEvent): Promise<boolean> => {
-      // Check explicit mentions in content
-      const embeddedPubkeys = getEmbeddedPubkeys(event)
-      if (embeddedPubkeys.includes(pubkey)) {
-        return true
-      }
-
-      // Check if this is a direct reply to user's note
-      const parentETag = getParentETag(event)
-      if (parentETag) {
-        // Try to get author from e-tag hint (5th element)
-        const parentAuthorFromTag = parentETag[4]
-        if (parentAuthorFromTag === pubkey) {
-          return true
-        }
-
-        // If no hint or hint doesn't match, fetch the parent event
-        if (!parentAuthorFromTag) {
-          try {
-            const parentEventHexId = parentETag[1]
-            const parentEvent = await client.fetchEvent(parentEventHexId)
-            if (parentEvent && parentEvent.pubkey === pubkey) {
-              return true
-            }
-          } catch (e) {
-            console.debug('Could not fetch parent event for filtering:', e)
-          }
-        }
-      }
-
-      return false
-    }
-
     const filterEvents = async () => {
       const filtered: (NostrEvent | Promise<NostrEvent | undefined>)[] = []
 
       for (const event of events) {
         // For text-based kinds, check if it's a mention
-        if (textKinds.includes(event.kind)) {
+        if (replyKinds.includes(event.kind)) {
           filtered.push(
-            isMention(event).then((is) => {
+            isMention(event, pubkey).then((is) => {
               if (is) return event
             })
           )

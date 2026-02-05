@@ -25,6 +25,11 @@ const getAppVersion = () => {
 
 // https://vite.dev/config/
 export default defineConfig({
+  server: {
+    fs: {
+      allow: ['.', '../nostr-gadgets/redstore/']
+    }
+  },
   define: {
     'import.meta.env.GIT_COMMIT': getGitHash(),
     'import.meta.env.APP_VERSION': getAppVersion()
@@ -32,7 +37,8 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src')
-    }
+    },
+    conditions: ['source', 'import', 'module', 'browser', 'default', 'require']
   },
   plugins: [
     react(),

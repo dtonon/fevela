@@ -2,14 +2,14 @@ import { BIG_RELAY_URLS } from '@/constants'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
-import { tagNameEquals } from '@/lib/tag'
+import { getActualId, tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
 import { TEmoji } from '@/types'
 import dayjs from 'dayjs'
 import { Event } from '@nostr/tools/wasm'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
-import { pool } from '@nostr/gadgets/global'
+import { pool, purgatory } from '@nostr/gadgets/global'
 
 export type TNoteStats = {
   likeIdSet: Set<string>
@@ -34,7 +34,9 @@ class NoteStatsService {
   }
 
   async fetchNoteStats(event: Event, pubkey?: string | null) {
-    const oldStats = this.noteStatsMap.get(event.id)
+    const id = getActualId(event)
+
+    const oldStats = this.noteStatsMap.get(id)
     let since: number | undefined
     if (oldStats?.updatedAt) {
       since = oldStats.updatedAt
@@ -50,14 +52,16 @@ class NoteStatsService {
 
     const filters: Filter[] = [
       {
-        '#e': [event.id],
+        '#e': [id],
         kinds: [kinds.Reaction],
-        limit: 500
+        limit: 500,
+        since
       },
       {
-        '#e': [event.id],
+        '#e': [id],
         kinds: [kinds.Repost],
-        limit: 100
+        limit: 100,
+        since
       }
     ]
 
@@ -66,68 +70,70 @@ class NoteStatsService {
         {
           '#a': [replaceableCoordinate],
           kinds: [kinds.Reaction],
-          limit: 500
+          limit: 500,
+          since
         },
         {
           '#a': [replaceableCoordinate],
           kinds: [kinds.Repost],
-          limit: 100
+          limit: 100,
+          since
         }
       )
     }
 
     if (getLightningAddressFromProfile(authorProfile)) {
       filters.push({
-        '#e': [event.id],
+        '#e': [id],
         kinds: [kinds.Zap],
-        limit: 500
+        limit: 500,
+        since
       })
 
       if (replaceableCoordinate) {
         filters.push({
           '#a': [replaceableCoordinate],
           kinds: [kinds.Zap],
-          limit: 500
+          limit: 500,
+          since
         })
       }
     }
 
     if (pubkey) {
       filters.push({
-        '#e': [event.id],
+        '#e': [id],
         authors: [pubkey],
-        kinds: [kinds.Reaction, kinds.Repost]
+        kinds: [kinds.Reaction, kinds.Repost],
+        since
       })
 
       if (replaceableCoordinate) {
         filters.push({
           '#a': [replaceableCoordinate],
           authors: [pubkey],
-          kinds: [kinds.Reaction, kinds.Repost]
+          kinds: [kinds.Reaction, kinds.Repost],
+          since
         })
       }
 
       if (getLightningAddressFromProfile(authorProfile)) {
         filters.push({
-          '#e': [event.id],
+          '#e': [id],
           '#P': [pubkey],
-          kinds: [kinds.Zap]
+          kinds: [kinds.Zap],
+          since
         })
 
         if (replaceableCoordinate) {
           filters.push({
             '#a': [replaceableCoordinate],
             '#P': [pubkey],
-            kinds: [kinds.Zap]
+            kinds: [kinds.Zap],
+            since
           })
         }
       }
-    }
-
-    if (since) {
-      filters.forEach((filter) => {
-        filter.since = since
-      })
     }
 
     const reactions: Event[] = []
@@ -135,7 +141,8 @@ class NoteStatsService {
       const subc = pool.subscribeMap(
         relayList.read
           .concat(BIG_RELAY_URLS)
-          .slice(0, 5)
+          .filter((r) => purgatory.allowConnectingToRelay(r, ['read', filters]))
+          .slice(0, 3)
           .flatMap((url) => filters.map((filter) => ({ url, filter }))),
         {
           label: 'f-stats',
@@ -151,11 +158,13 @@ class NoteStatsService {
     })
     this.updateNoteStatsByEvents(reactions)
 
-    this.noteStatsMap.set(event.id, {
-      ...(this.noteStatsMap.get(event.id) ?? {}),
+    const updated = {
+      ...(this.noteStatsMap.get(id) ?? {}),
       updatedAt: dayjs().unix()
-    })
-    return this.noteStatsMap.get(event.id) ?? {}
+    }
+    this.noteStatsMap.set(id, updated)
+
+    return updated
   }
 
   subscribeNoteStats(noteId: string, callback: () => void) {

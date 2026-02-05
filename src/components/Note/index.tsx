@@ -44,13 +44,13 @@ export default function Note({
   hideParentNotePreview = false,
   showFull = false,
   hideHeader = false,
-  relevanceScore
+  displayScore
 }: {
   event: Event
   originalNoteId?: string
   size?: 'normal' | 'small'
   className?: string
-  relevanceScore?: number
+  displayScore?: number
   hideParentNotePreview?: boolean
   showFull?: boolean
   hideHeader?: boolean
@@ -137,12 +137,12 @@ export default function Note({
                   className="shrink-0"
                   short={isSmallScreen}
                 />
-                {relevanceScore !== undefined && (
+                {typeof displayScore === 'number' && (
                   <>
                     <span>·</span>
                     <span className="shrink-0 text-primary font-medium flex items-center gap-0.5">
                       <Sparkles size={14} />
-                      {Math.round(relevanceScore)}
+                      {Math.round(displayScore)}
                     </span>
                   </>
                 )}

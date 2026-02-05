@@ -1,4 +1,4 @@
-import { status, current, ready, started } from '@/services/outbox.service'
+import { status, current, ready, onStarted } from '@/services/outbox.service'
 import { createContext, useContext, useEffect, useState } from 'react'
 
 type TOutboxContext = {
@@ -27,14 +27,17 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
   const [syncedCurrent, setSyncedCurrent] = useState(0)
 
   useEffect(() => {
-    started().then(setSyncedTotal)
+    onStarted(async (total) => {
+      setSyncedCurrent(0)
+      setSyncedTotal(total)
+      setSyncingStatus(status.syncing)
 
-    ready().then(() => {
+      await ready()
       setSyncingStatus(status.syncing)
     })
 
-    const handleStatusUpdate = () => {
-      setSyncedCurrent((n) => n + 1)
+    const handleStatusUpdate = (pubkey?: string) => {
+      if (pubkey) setSyncedCurrent((n) => n + 1)
       setSyncingStatus(status.syncing)
     }
 

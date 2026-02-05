@@ -28,12 +28,13 @@ import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { verifyEvent } from '@nostr/tools/wasm'
-import { current, outbox, ready, store } from './outbox.service'
+import { current, outbox, ready } from './outbox.service'
 import { SubCloser } from '@nostr/tools/abstract-pool'
-import { binarySearch } from '@nostr/tools/utils'
-import { seenOn } from '@nostr/gadgets/store'
+import { binarySearch, mergeReverseSortedLists } from '@nostr/tools/utils'
+import { seenOn } from '@nostr/gadgets/redstore'
 import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { debounce } from '@/lib/utils'
+import { store } from './store.service'
 
 class ClientService extends EventTarget {
   static instance: ClientService
@@ -253,16 +254,6 @@ class ClientService extends EventTarget {
         }
       }))
 
-    // Log subscription details
-    const allRelayUrls = relayRequests.flatMap((req) => req.urls)
-    const uniqueRelayUrls = Array.from(new Set(allRelayUrls))
-    console.log(
-      `[subscribeTimeline] Connecting to ${uniqueRelayUrls.length} unique relays (${allRelayUrls.length} total), kinds:`,
-      filterModification.kinds,
-      '\nRelays:',
-      uniqueRelayUrls
-    )
-
     // do local db requests
     let localSyncCallback: () => void
     let localNewCallback: (_: NostrEvent) => void
@@ -273,36 +264,27 @@ class ClientService extends EventTarget {
             let newestEvent: NostrEvent | undefined
 
             // query from local db
-            const events: NostrEvent[] = new Array(200)
-            let f = 0
+            let events: NostrEvent[] = []
             for (let i = 0; i < localFilters.length; i++) {
-              const iter = store.queryEvents(localFilters[i], 5_000)
-              const first = await iter.next()
+              const queryEvents = await store.queryEvents(localFilters[i], 5_000)
+              const first = queryEvents[0]
 
-              if (first.value) {
-                events[f] = first.value
-                f++
-
-                if (!newestEvent || newestEvent.created_at < first.value.created_at) {
-                  newestEvent = first.value
-                }
-
-                if (!first.done) {
-                  for await (const event of iter) {
-                    events[f] = event
-                    f++
-                  }
+              if (first) {
+                if (!newestEvent || newestEvent.created_at < first.created_at) {
+                  newestEvent = first
                 }
               }
+
+              if (events.length === 0) events = queryEvents
+              else events = mergeReverseSortedLists(events, queryEvents)
             }
-            events.length = f
 
             // a background sync may be happening and we may be interested in it, handle when it ends
             localSyncCallback = debounce(
               async () => {
                 for (let i = 0; i < localFilters.length; i++) {
                   const filter = localFilters[i]
-                  for await (const event of store.queryEvents(filter, 5_000)) {
+                  for (const event of await store.queryEvents(filter, 5_000)) {
                     // check if this isn't already in the sorted array of events
                     const [_, exists] = binarySearch(events, (b) => {
                       if (event.id === b.id) return 0
@@ -325,7 +307,6 @@ class ClientService extends EventTarget {
               await Promise.all(
                 localFilters.map(async (f) => {
                   if (f.authors) return f.authors
-                  if (f.followedBy) return (await loadFollowsList(f.followedBy)).items
                   return []
                 })
               )
@@ -429,7 +410,7 @@ class ClientService extends EventTarget {
     if (
       relayRequests.length === 0 &&
       localFilters.length === 1 &&
-      (localFilters[0].followedBy || localFilters[0].authors?.length === 1)
+      (localFilters[0]!.authors?.length || 0) >= 1
     ) {
       // edge case: used mainly on the first time the app is used
       // in case we're fetching a _following feed_ or _profile feed_ solely from the local db but we have nothing
@@ -437,15 +418,8 @@ class ClientService extends EventTarget {
       local.then(async ([_, newestEvent, allAuthors]) => {
         if (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7) {
           const events: NostrEvent[] = []
-          const temporaryFilter = { ...localFilters[0], limit: 10 }
-          if (temporaryFilter.followedBy) {
-            temporaryFilter.authors = (await loadFollowsList(temporaryFilter.followedBy)).items
-            if (!temporaryFilter.authors.includes(temporaryFilter.followedBy))
-              temporaryFilter.authors.push(temporaryFilter.followedBy)
-            delete temporaryFilter.followedBy
-          }
           preliminarySub = pool.subscribeMap(
-            await outboxFilterRelayBatch(allAuthors, temporaryFilter),
+            await outboxFilterRelayBatch(allAuthors, { ...localFilters[0], limit: 10 }),
             {
               label: `f-temporary`,
               onevent(event) {
@@ -464,7 +438,7 @@ class ClientService extends EventTarget {
             const events: NostrEvent[] = new Array(200)
             let f = 0
             for (let i = 0; i < localFilters.length; i++) {
-              for await (const event of store.queryEvents(localFilters[i], 5_000)) {
+              for (const event of await store.queryEvents(localFilters[i], 5_000)) {
                 events[f] = event
                 f++
               }
@@ -477,25 +451,35 @@ class ClientService extends EventTarget {
       })
     }
 
-    Promise.all([local, network]).then(([[eventsL], eventsN]) => {
-      if (eventsL.length > 0 && eventsN.length > 0) {
-        eventsL.push(...eventsN)
-        eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(
-          eventsL.filter((item, i) => i === 0 || item.id !== eventsL[i - 1].id),
-          true
-        )
-      } else if (eventsL.length) {
-        if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsL, true)
-      } else if (eventsN.length) {
-        if (relayRequests.length > 1 || relayRequests[0].urls.length > 1)
+    // handle local results immediately
+    local.then(([eventsL]) => {
+      if (localFilters.length > 1) eventsL.sort((a, b) => b.created_at - a.created_at)
+      onEvents(eventsL, false) // not final: will be called again with merged results later
+
+      // handle network results and merge
+      network.then((eventsN) => {
+        if (eventsL.length > 0 && eventsN.length > 0) {
+          // we have results both from relays and from local
           eventsN.sort((a, b) => b.created_at - a.created_at)
-        onEvents(eventsN, true)
-      } else {
-        // No events found, but still need to signal completion
-        onEvents([], true)
-      }
+          const merged = mergeReverseSortedLists(eventsL, eventsN)
+          onEvents(merged, true)
+        } else if (eventsN.length) {
+          // we only have results from relays
+          if (relayRequests.length > 1 || relayRequests[0].urls.length > 1) {
+            // sort results from relays -- but don't sort if we're querying a single relay,
+            // as it will already send things sorted
+            // (or in its own custom order that we'll respect because why not)
+            eventsN.sort((a, b) => b.created_at - a.created_at)
+          }
+          onEvents(eventsN, true)
+        } else if (eventsL.length) {
+          // only local results, no results from relays, just call again as before, but signal completion
+          onEvents(eventsL, true)
+        } else {
+          // no events found, but still need to signal completion
+          onEvents([], true)
+        }
+      })
     })
 
     return {
@@ -601,7 +585,7 @@ class ClientService extends EventTarget {
             let f = 0
             for (let i = 0; i < localFilters.length; i++) {
               const filter = localFilters[i]
-              for await (const event of store.queryEvents(filter, 5_000)) {
+              for (const event of await store.queryEvents(filter, 5_000)) {
                 events[f] = event
                 f++
               }
@@ -687,7 +671,7 @@ class ClientService extends EventTarget {
             return evt as VerifiedEvent
           }
 
-          throw new Error("<not logged in, can't auth to relay during this.subscribeTimeline>")
+          throw new Error("<not logged in, can't auth to relay during this.fetchEvents>")
         }) as (event: EventTemplate) => Promise<VerifiedEvent>,
         onevent: (event: NostrEvent) => {
           events.push(event)
@@ -741,11 +725,7 @@ class ClientService extends EventTarget {
 
   addEventToCache(event: NostrEvent) {
     store.saveEvent(event, {
-      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url),
-      followedBy:
-        this.pubkey && (this.pubkey === event.pubkey || this.followings?.has(event.pubkey))
-          ? [this.pubkey]
-          : undefined
+      seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
     })
   }
 
@@ -785,7 +765,7 @@ class ClientService extends EventTarget {
     }
 
     // before we try any network fetch try to load this from our local database
-    for await (const event of store.queryEvents(filter, 1)) {
+    for (const event of await store.queryEvents(filter, 1)) {
       // if we get anything we just return it
       return event
     }
@@ -1018,8 +998,5 @@ class ClientService extends EventTarget {
 }
 
 const instance = ClientService.getInstance()
-
-;(window as any).fevela = (window as any).fevela || {}
-;(window as any).fevela.client = instance
 
 export default instance
