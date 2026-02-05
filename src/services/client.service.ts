@@ -1,17 +1,16 @@
-import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
-import { isValidPubkey } from '@/lib/pubkey'
-import { tagNameEquals } from '@/lib/tag'
-import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
 import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
 import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
+import { SubCloser } from '@nostr/tools/abstract-pool'
+import { binarySearch, mergeReverseSortedLists } from '@nostr/tools/utils'
+import { seenOn } from '@nostr/gadgets/redstore'
+import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
 import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool } from '@nostr/gadgets/global'
-import indexedDb from './indexed-db.service'
 import {
   loadNostrUser,
   NostrUser,
@@ -28,11 +27,12 @@ import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { verifyEvent } from '@nostr/tools/wasm'
+
+import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
+import { isValidPubkey } from '@/lib/pubkey'
+import { tagNameEquals } from '@/lib/tag'
+import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
 import { current, outbox, ready } from './outbox.service'
-import { SubCloser } from '@nostr/tools/abstract-pool'
-import { binarySearch, mergeReverseSortedLists } from '@nostr/tools/utils'
-import { seenOn } from '@nostr/gadgets/redstore'
-import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { debounce } from '@/lib/utils'
 import { store } from './store.service'
 
@@ -63,11 +63,11 @@ class ClientService extends EventTarget {
 
   async init() {
     try {
-      ;(await indexedDb.getAllProfiles()).forEach((profile) => {
-        this.addUsernameToIndex(profile)
-      })
+      for (const event of await store.queryEvents({ kinds: [0] })) {
+        this.addUsernameToIndex(nostrUserFromEvent(event))
+      }
     } catch (err) {
-      console.debug('no profiles to index?', err)
+      console.warn('no profiles to index?', err)
     }
   }
 
@@ -883,8 +883,13 @@ class ClientService extends EventTarget {
       req!.refreshStyle = true
     }
     const profile = await loadNostrUser(req!)
-    // Emit event for profile updates
+
+    // emit event for profile updates
     this.dispatchEvent(new CustomEvent('profileFetched:' + profile.pubkey, { detail: profile }))
+
+    // index for autocomplete and search
+    this.addUsernameToIndex(profile)
+
     return profile
   }
 

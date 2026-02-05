@@ -11,7 +11,7 @@ import { TFeedSubRequest, TNoteListMode } from '@/types'
 import { useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import KindFilter from '../KindFilter'
-import GroupedNotesFilter from '../GroupedNotesFilter'
+import GroupedNotesFilter from '../GroupedNoteList/Filter'
 import { RefreshButton } from '../RefreshButton'
 
 export default function NormalFeed({
