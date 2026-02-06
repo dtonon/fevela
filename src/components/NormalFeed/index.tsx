@@ -1,121 +1,247 @@
+import { useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
+import { Group, Settings } from 'lucide-react'
+
 import NoteList, { TNoteListRef } from '@/components/NoteList'
 import GroupedNoteList, { TGroupedNoteListRef } from '@/components/GroupedNoteList'
-import Tabs, { TTabDefinition } from '@/components/Tabs'
+import Tabs from '@/components/Tabs'
 import { Input } from '@/components/ui/input'
+import { Button } from '@/components/ui/button'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Switch } from '@/components/ui/switch'
+import { Label } from '@/components/ui/label'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select'
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
-import storage from '@/services/local-storage.service'
-import { TFeedSubRequest, TNoteListMode } from '@/types'
-import { useMemo, useRef, useState } from 'react'
-import { useTranslation } from 'react-i18next'
+import { TFeedSubRequest } from '@/types'
 import KindFilter from '../KindFilter'
-import GroupedNotesFilter from '../GroupedNoteList/Filter'
 import { RefreshButton } from '../RefreshButton'
+import storage from '@/services/local-storage.service'
 
 export default function NormalFeed({
   subRequests,
-  isMainFeed = false,
   showRelayCloseReason = false
 }: {
   subRequests: TFeedSubRequest[]
-  isMainFeed?: boolean
   showRelayCloseReason?: boolean
 }) {
   const { t } = useTranslation()
   const { hideUntrustedNotes } = useUserTrust()
   const { showKinds } = useKindFilter()
   const { settings: groupedNotesSettings } = useGroupedNotes()
+
   const [temporaryShowKinds, setTemporaryShowKinds] = useState(showKinds)
-  const [listMode, setListMode] = useState<TNoteListMode>(() => storage.getNoteListMode())
+
   const [userFilter, setUserFilter] = useState('')
+  const [includeReplies, setIncludeReplies] = useState(
+    storage.getNoteListMode() === 'postsAndReplies'
+  )
+  const [settingsMenuOpen, setSettingsMenuOpen] = useState(false)
   const supportTouch = useMemo(() => isTouchDevice(), [])
   const noteListRef = useRef<TNoteListRef | TGroupedNoteListRef>(null)
 
-  const handleListModeChange = (mode: TNoteListMode) => {
-    setListMode(mode)
-    if (isMainFeed) {
-      storage.setNoteListMode(mode)
-    }
-    noteListRef.current?.scrollToTop('smooth')
-  }
+  const { updateSettings } = useGroupedNotes()
 
-  const handleShowKindsChange = (newShowKinds: number[]) => {
-    setTemporaryShowKinds(newShowKinds)
-    noteListRef.current?.scrollToTop()
-  }
+  const SettingsButton = () => {
+    const { settings, timeFrameOptions } = useGroupedNotes()
 
-  // In grouped mode, force 'posts' mode and disable replies tab
-  const effectiveListMode = groupedNotesSettings.enabled ? 'posts' : listMode
-  const availableTabs: TTabDefinition[] = groupedNotesSettings.enabled
-    ? [{ value: 'posts', label: 'Notes' }]
-    : [
-        { value: 'posts', label: 'Notes' },
-        { value: 'postsAndReplies', label: 'Replies' }
-      ]
+    const content = groupedNotesSettings.enabled ? (
+      <div className="space-y-4">
+        <div className="space-y-2">
+          <Label className="text-sm font-medium leading-4">{t('GroupedNotesTimeframe')}</Label>
+          <Select
+            value={`${settings.timeFrame.value}-${settings.timeFrame.unit}`}
+            onValueChange={(value) => {
+              const [val, unit] = value.split('-')
+              const timeFrame = timeFrameOptions.find(
+                (tf) => tf.value === parseInt(val) && tf.unit === unit
+              )
+              if (timeFrame) {
+                updateSettings({ ...settings, timeFrame })
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="max-h-60">
+              {timeFrameOptions.map((tf) => (
+                <SelectItem key={`${tf.value}-${tf.unit}`} value={`${tf.value}-${tf.unit}`}>
+                  {tf.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="compacted-view" className="text-sm font-medium">
+            {t('GroupedNotesCompact')}
+          </Label>
+          <Switch
+            id="compacted-view"
+            checked={settings.compactedView}
+            onCheckedChange={(checked) => {
+              updateSettings({ ...settings, compactedView: checked })
+            }}
+          />
+        </div>
+
+        {settings.compactedView && (
+          <div className="flex items-center justify-between gap-4">
+            <Label htmlFor="show-preview" className="text-sm font-medium">
+              {t('GroupedNotesShowPreview')}
+            </Label>
+            <Switch
+              id="show-preview"
+              checked={settings.showPreview}
+              onCheckedChange={(checked) => updateSettings({ ...settings, showPreview: checked })}
+            />
+          </div>
+        )}
+
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="include-replies" className="text-sm font-medium">
+            {t('GroupedNotesIncludeReplies')}
+          </Label>
+          <Switch
+            id="include-replies"
+            checked={settings.includeReplies}
+            onCheckedChange={(checked) => {
+              storage.setNoteListMode(checked ? 'postsAndReplies' : 'posts')
+              setIncludeReplies(checked)
+              updateSettings({ ...settings, includeReplies: checked })
+            }}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="word-filter" className="text-sm font-medium leading-4">
+            {t('GroupedNotesWordFilter')}
+          </Label>
+          <div className="relative">
+            <Input
+              id="word-filter"
+              type="text"
+              placeholder={t('GroupedNotesWordFilterPlaceholder')}
+              className="text-[#e03f8c]"
+              value={settings.wordFilter}
+              onChange={(e) => updateSettings({ ...settings, wordFilter: e.target.value })}
+              showClearButton
+              onClear={() => updateSettings({ ...settings, wordFilter: '' })}
+            />
+          </div>
+        </div>
+      </div>
+    ) : (
+      <div className="space-y-4">
+        <div className="flex items-center justify-between gap-4">
+          <Label htmlFor="include-replies" className="text-sm font-medium">
+            {t('GroupedNotesIncludeReplies')}
+          </Label>
+          <Switch
+            id="include-replies"
+            checked={includeReplies}
+            onCheckedChange={(checked: boolean) => {
+              storage.setNoteListMode(checked ? 'postsAndReplies' : 'posts')
+              setIncludeReplies(checked)
+              updateSettings({ ...settings, includeReplies: checked })
+              noteListRef.current?.scrollToTop()
+            }}
+          />
+        </div>
+      </div>
+    )
+
+    return (
+      <Popover open={settingsMenuOpen} onOpenChange={setSettingsMenuOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="ghost"
+            size="titlebar-icon"
+            className="relative w-fit px-3 focus:text-foreground text-muted-foreground"
+          >
+            {groupedNotesSettings.enabled ? <Group size={16} /> : <Settings size={16} />}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80" collisionPadding={16} sideOffset={0}>
+          {content}
+        </PopoverContent>
+      </Popover>
+    )
+  }
 
   return (
     <>
-      {groupedNotesSettings.enabled ? (
-        /* Custom header for grouped mode with filter input */
-        <div className="sticky flex items-center justify-between top-12 bg-background z-30 px-4 py-2 w-full border-b gap-3">
-          <div
-            tabIndex={0}
-            className="relative flex w-full items-center rounded-md border border-input px-3 py-1 text-base transition-colors md:text-sm [&:has(:focus-visible)]:ring-ring [&:has(:focus-visible)]:ring-1 [&:has(:focus-visible)]:outline-none bg-surface-background shadow-inner h-full border-none"
-          >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="24"
-              height="24"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              className="lucide lucide-search size-4 shrink-0 opacity-50"
-            >
-              <circle cx="11" cy="11" r="8"></circle>
-              <path d="m21 21-4.3-4.3"></path>
-            </svg>
-
-            <Input
-              type="text"
-              placeholder={t('GroupedNotesFilter')}
-              value={userFilter}
-              onChange={(e) => setUserFilter(e.target.value)}
-              showClearButton={true}
-              onClear={() => setUserFilter('')}
-              className="flex-1 h-9 size-full shadow-none border-none bg-transparent focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
-            />
-          </div>
-          <div className="flex items-center gap-1">
-            {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
-            <KindFilter showKinds={temporaryShowKinds} onShowKindsChange={handleShowKindsChange} />
-            <GroupedNotesFilter />
-          </div>
-        </div>
-      ) : (
-        /* Standard tabs for non-grouped mode */
-        <Tabs
-          value={effectiveListMode}
-          tabs={availableTabs}
-          onTabChange={(listMode) => {
-            handleListModeChange(listMode as TNoteListMode)
-          }}
-          options={
-            <>
-              {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
-              <KindFilter
-                showKinds={temporaryShowKinds}
-                onShowKindsChange={handleShowKindsChange}
-              />
-              <GroupedNotesFilter />
-            </>
+      <Tabs
+        value={groupedNotesSettings.enabled ? 'grouped' : 'feed'}
+        tabs={[
+          { value: 'grouped', label: 'Grouped' },
+          { value: 'feed', label: 'Feed' }
+        ]}
+        onTabChange={(tabValue: string) => {
+          if (tabValue === 'grouped') {
+            // enable grouped mode
+            updateSettings({ ...groupedNotesSettings, enabled: true })
+          } else {
+            // disable grouped mode, switch to feed
+            updateSettings({ ...groupedNotesSettings, enabled: false })
           }
-        />
-      )}
+          noteListRef.current?.scrollToTop('smooth')
+        }}
+        options={
+          <>
+            {groupedNotesSettings.enabled && (
+              <>
+                <span className="hidden lg:block pl-2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="24"
+                    height="24"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="lucide lucide-search size-4 shrink-0 opacity-50"
+                  >
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="m21 21-4.3-4.3"></path>
+                  </svg>
+                </span>
+
+                <Input
+                  type="text"
+                  placeholder={t('GroupedNotesFilter')}
+                  value={userFilter}
+                  onChange={(e) => setUserFilter(e.target.value)}
+                  showClearButton={true}
+                  onClear={() => setUserFilter('')}
+                  className="h-9 shadow-none max-w-36 border-none bg-transparent focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
+                />
+              </>
+            )}
+            {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
+            <KindFilter
+              showKinds={temporaryShowKinds}
+              onShowKindsChange={(newShowKinds: number[]) => {
+                setTemporaryShowKinds(newShowKinds)
+                noteListRef.current?.scrollToTop()
+              }}
+            />
+            <SettingsButton />
+          </>
+        }
+      />
       {groupedNotesSettings.enabled ? (
         <GroupedNoteList
           ref={noteListRef as React.Ref<TGroupedNoteListRef>}
@@ -129,7 +255,7 @@ export default function NormalFeed({
           ref={noteListRef as React.Ref<TNoteListRef>}
           showKinds={temporaryShowKinds}
           subRequests={subRequests}
-          hideReplies={effectiveListMode === 'posts'}
+          hideReplies={!includeReplies}
           hideUntrustedNotes={hideUntrustedNotes}
           showRelayCloseReason={showRelayCloseReason}
         />

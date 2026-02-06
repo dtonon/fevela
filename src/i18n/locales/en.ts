@@ -430,8 +430,8 @@ export default {
     GroupedNotesShowOnlyFirstLevelReplies: 'Show only first level replies',
     GroupedNotesHideShortNotes: 'Hide (too) short notes',
     GroupedNotesSortByRelevance: "Sort user's notes by relevance",
-    GroupedNotesFilter: 'Search users...',
-    GroupedNotesTimeframe: 'Show me a summary for single users of what happened in the last',
+    GroupedNotesFilter: 'Filter by author...',
+    GroupedNotesTimeframe: 'Timeframe:',
     GroupedNotesWordFilter: 'Filter out notes with these words (comma separated):',
     GroupedNotesWordFilterPlaceholder: 'e.g. nostr, bitcoin, gm',
     GroupedNotesFilterMore:

@@ -168,46 +168,28 @@ export default function ProfileFeed({
     })()
   }, [pubkey, isReady])
 
-  const handleListModeChange = (mode: TNoteListMode) => {
-    setListMode(mode)
-    noteListRef.current?.scrollToTop('smooth')
-  }
-
-  const handleShowKindsChange = (newShowKinds: number[]) => {
-    setTemporaryShowKinds(newShowKinds)
-    noteListRef.current?.scrollToTop('instant')
-  }
-
-  const handleNotesLoaded = (count: number, hasPosts: boolean, hasReplies: boolean) => {
-    const displayOnGrouped =
-      groupedSince &&
-      groupedNotesSettings.includeReplies &&
-      count > TABS_THRESHOLD &&
-      hasPosts &&
-      hasReplies
-
-    setDisplayTabs(displayOnGrouped || !groupedSince)
-
-    if (displayOnGrouped && !hasForceSet) {
-      setListMode('postsAndReplies')
-      setHasForceSet(true)
-    }
-  }
-
   return (
     <>
       <Tabs
         value={listMode}
         tabs={tabs}
-        onTabChange={(listMode) => {
-          handleListModeChange(listMode as TNoteListMode)
+        onTabChange={(mode) => {
+          setListMode(mode as TNoteListMode)
+          storage.setNoteListMode(mode as TNoteListMode)
+          noteListRef.current?.scrollToTop('smooth')
         }}
         threshold={Math.max(800, topSpace)}
         hideTabs={!displayTabs}
         options={
           <>
             {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
-            <KindFilter showKinds={temporaryShowKinds} onShowKindsChange={handleShowKindsChange} />
+            <KindFilter
+              showKinds={temporaryShowKinds}
+              onShowKindsChange={(newShowKinds: number[]) => {
+                setTemporaryShowKinds(newShowKinds)
+                noteListRef.current?.scrollToTop('instant')
+              }}
+            />
           </>
         }
       />
@@ -219,7 +201,21 @@ export default function ProfileFeed({
         showOnlyReplies={listMode === 'replies'}
         filterMutedNotes={false}
         sinceTimestamp={groupedSince}
-        onNotesLoaded={handleNotesLoaded}
+        onNotesLoaded={(count: number, hasPosts: boolean, hasReplies: boolean) => {
+          const displayOnGrouped =
+            groupedSince &&
+            groupedNotesSettings.includeReplies &&
+            count > TABS_THRESHOLD &&
+            hasPosts &&
+            hasReplies
+
+          setDisplayTabs(displayOnGrouped || !groupedSince)
+
+          if (displayOnGrouped && !hasForceSet) {
+            setListMode('postsAndReplies')
+            setHasForceSet(true)
+          }
+        }}
         pinnedEventIds={listMode === 'you' || !!search || groupedSince ? undefined : pinnedEventIds}
       />
     </>

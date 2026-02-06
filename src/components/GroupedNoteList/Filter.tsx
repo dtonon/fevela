@@ -93,7 +93,7 @@ export default function GroupedNotesFilter() {
 
       {tempSettings.enabled && (
         <>
-          <div className="space-y-2">
+          <div className="flex items-center justify-between gap-4 border-b-2 pb-4">
             <Label className="text-sm font-medium leading-4">{t('GroupedNotesTimeframe')}</Label>
             <Select
               value={`${tempSettings.timeFrame.value}-${tempSettings.timeFrame.unit}`}
@@ -190,7 +190,10 @@ export default function GroupedNotesFilter() {
           </div>
 
           <div className="flex items-center justify-between gap-4">
-            <Label htmlFor="sort-by-relevance" className="text-sm font-medium flex items-center gap-1">
+            <Label
+              htmlFor="sort-by-relevance"
+              className="text-sm font-medium flex items-center gap-1"
+            >
               {t('GroupedNotesSortByRelevance')}
               <Sparkles size={14} className="text-primary" />
             </Label>

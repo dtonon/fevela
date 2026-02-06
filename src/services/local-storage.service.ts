@@ -196,6 +196,14 @@ class LocalStorageService {
     if (groupedNotesSettingsStr) {
       try {
         this.groupedNotesSettings = JSON.parse(groupedNotesSettingsStr)
+
+        if (this.groupedNotesSettings) {
+          if (this.noteListMode === 'postsAndReplies') {
+            this.groupedNotesSettings.includeReplies = true
+          } else if (this.noteListMode === 'posts') {
+            this.groupedNotesSettings.includeReplies = false
+          }
+        }
       } catch {
         // Invalid JSON, ignore and use defaults
         this.groupedNotesSettings = null
