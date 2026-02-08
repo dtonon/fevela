@@ -2,7 +2,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import { RECOMMENDED_BLOSSOM_SERVERS } from '@/constants'
+
 import { createBlossomServerListDraftEvent } from '@/lib/draft-event'
 import { normalizeHttpUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
@@ -101,7 +101,7 @@ export default function BlossomServerListSetting() {
           <Separator className="bg-muted-foreground my-2" />
           <div className="font-medium">{t('Recommended blossom servers')}:</div>
           <div className="flex flex-col">
-            {RECOMMENDED_BLOSSOM_SERVERS.map((recommendedUrl) => (
+            {window.fevela.universe.recommendedBlossomServers.map((recommendedUrl) => (
               <Button
                 variant="link"
                 key={recommendedUrl}
