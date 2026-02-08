@@ -37,7 +37,6 @@ export const StorageKey = {
   HIDE_UNTRUSTED_INTERACTIONS: 'hideUntrustedInteractions',
   HIDE_UNTRUSTED_NOTIFICATIONS: 'hideUntrustedNotifications',
   TRANSLATION_SERVICE_CONFIG_MAP: 'translationServiceConfigMap',
-  MEDIA_UPLOAD_SERVICE_CONFIG_MAP: 'mediaUploadServiceConfigMap',
   HIDE_UNTRUSTED_NOTES: 'hideUntrustedNotes',
   DEFAULT_SHOW_NSFW: 'defaultShowNsfw',
   DISMISSED_TOO_MANY_RELAYS_ALERT: 'dismissedTooManyRelaysAlert',
@@ -110,16 +109,6 @@ export const YOUTUBE_URL_REGEX =
 
 export const FEVELA_PUBKEY = '8adab951da7d88367ed86731eeb7b4e2f8582efaac81a6459a5d580213b89a6e'
 export const DEV_PUBKEY = '7bdef7be22dd8e59f4600e044aa53a1cf975a9dc7d27df5833bc77db784a5805'
-
-export const NIP_96_SERVICE = [
-  'https://mockingyou.com',
-  'https://nostpic.com',
-  'https://nostr.build', // default
-  'https://nostrcheck.me',
-  'https://nostrmedia.com',
-  'https://files.sovbit.host'
-]
-export const DEFAULT_NIP_96_SERVICE = 'https://nostr.build'
 
 export const DEFAULT_NOSTRCONNECT_RELAY = [
   'wss://relay.nsec.app/',
