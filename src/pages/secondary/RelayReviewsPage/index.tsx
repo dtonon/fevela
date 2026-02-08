@@ -1,5 +1,5 @@
 import NoteList from '@/components/NoteList'
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { normalizeUrl, simplifyUrl } from '@/lib/url'
 import { forwardRef, useMemo } from 'react'
@@ -20,7 +20,7 @@ const RelayReviewsPage = forwardRef(({ url, index }: { url?: string; index?: num
         ? [
             {
               source: 'relays' as const,
-              urls: [normalizedUrl, ...BIG_RELAY_URLS],
+              urls: [normalizedUrl, ...window.fevela.universe.bigRelayUrls],
               filter: { '#d': [normalizedUrl] }
             }
           ]

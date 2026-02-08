@@ -1,5 +1,5 @@
 import LoginDialog from '@/components/LoginDialog'
-import { ApplicationDataKey, BIG_RELAY_URLS, MAX_PINNED_NOTES } from '@/constants'
+import { ApplicationDataKey, MAX_PINNED_NOTES } from '@/constants'
 import {
   createDeletionRequestDraftEvent,
   createFollowListDraftEvent,
@@ -231,11 +231,14 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       })
 
       // load application settings
-      const events = await client.fetchEvents(relayList.write.concat(BIG_RELAY_URLS).slice(0, 4), {
-        kinds: [kinds.Application],
-        authors: [account.pubkey],
-        '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
-      })
+      const events = await client.fetchEvents(
+        relayList.write.concat(window.fevela.universe.bigRelayUrls).slice(0, 4),
+        {
+          kinds: [kinds.Application],
+          authors: [account.pubkey],
+          '#d': [ApplicationDataKey.NOTIFICATIONS_SEEN_AT]
+        }
+      )
       const sortedEvents = events.sort((a, b) => b.created_at - a.created_at)
       const notificationsSeenAtEvent = sortedEvents.find(
         (e) =>
@@ -511,12 +514,20 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
   const setupNewUser = async (signer: ISigner) => {
     await Promise.allSettled([
-      client.publishEvent(BIG_RELAY_URLS, await signer.signEvent(createFollowListDraftEvent([]))),
-      client.publishEvent(BIG_RELAY_URLS, await signer.signEvent(createMuteListDraftEvent([]))),
       client.publishEvent(
-        BIG_RELAY_URLS,
+        window.fevela.universe.bigRelayUrls,
+        await signer.signEvent(createFollowListDraftEvent([]))
+      ),
+      client.publishEvent(
+        window.fevela.universe.bigRelayUrls,
+        await signer.signEvent(createMuteListDraftEvent([]))
+      ),
+      client.publishEvent(
+        window.fevela.universe.bigRelayUrls,
         await signer.signEvent(
-          createRelayListDraftEvent(BIG_RELAY_URLS.map((url) => ({ url, scope: 'both' })))
+          createRelayListDraftEvent(
+            window.fevela.universe.bigRelayUrls.map((url: string) => ({ url, scope: 'both' }))
+          )
         )
       )
     ])

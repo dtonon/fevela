@@ -1,4 +1,3 @@
-import { BIG_RELAY_URLS } from '@/constants'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
@@ -140,7 +139,7 @@ class NoteStatsService {
     await new Promise<void>((resolve) => {
       const subc = pool.subscribeMap(
         relayList.read
-          .concat(BIG_RELAY_URLS)
+          .concat(window.fevela.universe.bigRelayUrls)
           .filter((r) => purgatory.allowConnectingToRelay(r, ['read', filters]))
           .slice(0, 3)
           .flatMap((url) => filters.map((filter) => ({ url, filter }))),

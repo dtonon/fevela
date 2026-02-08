@@ -36,12 +36,45 @@ export default function TrendingNotes() {
   useEffect(() => {
     const fetchTrendingPosts = async () => {
       setLoading(true)
-      const events = await client.fetchTrendingNotes()
-      setTrendingNotes(events)
-      setLoading(false)
+
+      const subRequests = [
+        {
+          source: 'relays' as const,
+          urls: (window as any).fevela.universe.trending,
+          filter: {
+            kinds: [1],
+            limit: 100,
+            since: Math.floor(Date.now() / 1000) - 24 * 60 * 60 // last 24 hours
+          }
+        }
+      ]
+
+      const subCloser = client.subscribeTimeline(
+        subRequests,
+        {},
+        {
+          onEvents: (events, isFinal) => {
+            if (isFinal) {
+              setTrendingNotes(events)
+              setLoading(false)
+            }
+          },
+          onNew: () => {
+            // Handle new events if needed
+          }
+        }
+      )
+
+      return () => {
+        subCloser.close()
+      }
     }
 
-    fetchTrendingPosts()
+    const cleanup = fetchTrendingPosts()
+
+    return () => {
+      cleanup?.then?.((closeFn: () => void) => closeFn?.())
+    }
   }, [])
 
   useEffect(() => {

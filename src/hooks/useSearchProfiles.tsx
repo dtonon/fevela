@@ -1,4 +1,3 @@
-import { SEARCHABLE_RELAY_URLS } from '@/constants'
 import { useFeed } from '@/providers/FeedProvider'
 import client from '@/services/client.service'
 import { useEffect, useState } from 'react'
@@ -46,10 +45,13 @@ export function useSearchProfiles(search: string, limit: number) {
       both.push(local)
 
       const remote = client
-        .searchProfiles(searchableRelayUrls.concat(SEARCHABLE_RELAY_URLS).slice(0, 4), {
-          search,
-          limit
-        })
+        .searchProfiles(
+          searchableRelayUrls.concat(window.fevela.universe.searchableRelayUrls).slice(0, 4),
+          {
+            search,
+            limit
+          }
+        )
         .then(handleResults)
       both.push(remote)
 

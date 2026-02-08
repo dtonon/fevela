@@ -12,7 +12,43 @@ current.onsync.push((pubkey?: string) => {
   if (!pubkey) return
   lastSyncTimes.set(pubkey, new Date().toISOString())
 })
-;(window as any).fevela = {
+window.fevela = {
+  ...window.fevela,
+  universe: {
+    ...window.fevela?.universe,
+    trending: ['wss://trending.relays.land'],
+    defaultFavoriteRelays: [
+      'wss://nostr.wine/',
+      'wss://pyramid.fiatjaf.com/',
+      'wss://relays.land/spatianostra/',
+      'wss://theforest.nostr1.com/',
+      'wss://algo.utxo.one/',
+      'wss://140.f7z.io/',
+      'wss://news.utxo.one/'
+    ],
+    recommendedRelays: [
+      'wss://nostr.wine/',
+      'wss://pyramid.fiatjaf.com/',
+      'wss://relays.land/spatianostra/',
+      'wss://theforest.nostr1.com/',
+      'wss://algo.utxo.one/',
+      'wss://140.f7z.io/',
+      'wss://news.utxo.one/',
+      'wss://yabu.me/'
+    ],
+    recommendedBlossomServers: [
+      'https://blossom.primal.net/',
+      'https://nostr.media/',
+      'https://blossom.band/'
+    ],
+    defaultNostrConnectRelays: [
+      'wss://relay.nsec.app/',
+      'wss://bucket.coracle.social/',
+      'wss://relay.primal.net/'
+    ],
+    bigRelayUrls: ['wss://relay.damus.io/', 'wss://relay.primal.net/', 'wss://nos.lol/'],
+    searchableRelayUrls: ['wss://relay.nostr.band/', 'wss://search.nos.today/']
+  },
   store,
   client,
   relays() {

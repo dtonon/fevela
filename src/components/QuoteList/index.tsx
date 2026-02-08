@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
@@ -28,7 +28,7 @@ export default function QuoteList({ event, className }: { event: Event; classNam
   useEffect(() => {
     ;(async () => {
       const relayList = await client.fetchRelayList(event.pubkey)
-      const relayUrls = relayList.read.concat(BIG_RELAY_URLS)
+      const relayUrls = relayList.read.concat(window.fevela.universe.bigRelayUrls)
       const seenOn = client.getSeenEventRelayUrls(event.id, event)
       relayUrls.unshift(...seenOn)
 

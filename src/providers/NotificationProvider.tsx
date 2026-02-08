@@ -1,4 +1,3 @@
-import { BIG_RELAY_URLS } from '@/constants'
 import { compareEvents } from '@/lib/event'
 import { isMention, notificationFilter, replyKinds, reactionKinds } from '@/lib/notification'
 import { usePrimaryPage } from '@/PageManager'
@@ -127,7 +126,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         let eosed = false
         const relayList = await client.fetchRelayList(pubkey)
         const subCloser = pool.subscribe(
-          relayList.read.length > 0 ? relayList.read.slice(0, 5) : BIG_RELAY_URLS,
+          relayList.read.length > 0
+            ? relayList.read.slice(0, 5)
+            : window.fevela.universe.bigRelayUrls,
           {
             kinds: [...replyKinds, ...reactionKinds],
             '#p': [pubkey],

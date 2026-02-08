@@ -1,6 +1,6 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { DEFAULT_NOSTRCONNECT_RELAY } from '@/constants'
+
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { Check, Copy, Loader, ScanQrCode } from 'lucide-react'
@@ -52,7 +52,7 @@ export default function NostrConnectLogin({
     const newPrivKey = generateSecretKey()
     const newMeta: NostrConnectParams = {
       clientPubkey: getPublicKey(newPrivKey),
-      relays: DEFAULT_NOSTRCONNECT_RELAY,
+      relays: window.fevela.universe.defaultNostrConnectRelays,
       secret: Math.random().toString(36).substring(7),
       name: document.location.host,
       url: document.location.origin

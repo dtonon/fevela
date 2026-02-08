@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import {
   getEventKey,
   getEventKeyFromTag,
@@ -152,7 +152,7 @@ export default function ReplyNoteList({
       setSubRequests(
         filters.map((filter) => ({
           source: 'relays',
-          urls: relays.concat(BIG_RELAY_URLS).slice(0, 8),
+          urls: relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
           filter
         }))
       )
