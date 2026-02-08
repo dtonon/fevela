@@ -1,6 +1,6 @@
 import * as kinds from '@nostr/tools/kinds'
 
-export const FEVELA_API_BASE_URL = 'https://api.fevela.social'
+export const FEVELA_API_BASE_URL = 'https://api.jumble.social'
 
 export const DEFAULT_FAVORITE_RELAYS = [
   'wss://nostr.wine/',

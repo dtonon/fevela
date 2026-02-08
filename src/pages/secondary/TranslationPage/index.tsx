@@ -60,7 +60,7 @@ const TranslationPage = forwardRef(({ index }: { index?: number }, ref) => {
               <SelectValue placeholder={t('Select Translation Service')} />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="fevela">Fevela</SelectItem>
+              <SelectItem value="fevela">Jumble</SelectItem>
               <SelectItem value="libre_translate">LibreTranslate</SelectItem>
             </SelectContent>
           </Select>
