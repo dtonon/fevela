@@ -1,11 +1,11 @@
 import { usePinBury } from '@/providers/PinBuryProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { Pin, PinOff, ArrowDown, ArrowUp, Ellipsis, MailOpen } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DesktopMenu } from './DesktopMenu'
 import { MobileMenu } from './MobileMenu'
+import { useFeed } from '@/providers/FeedProvider'
 
 interface CompactModeMenuProps {
   pubkey: string
@@ -25,7 +25,7 @@ export default function CompactModeMenu({
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
-  const { settings } = useGroupedNotes()
+  const { settings } = useFeed()
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
 
   const state = useMemo(() => getPinBuryState(pubkey), [getPinBuryState, pubkey])
@@ -135,7 +135,7 @@ export default function CompactModeMenu({
   )
 
   // Only show menu when grouped notes is enabled
-  if (!settings.enabled) return null
+  if (!settings.grouped) return null
 
   return (
     <div className={className} onClick={(e) => e.stopPropagation()}>

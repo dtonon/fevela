@@ -4,16 +4,16 @@ import {
   isMentioningMutedUsers,
   isReplyNoteEvent,
   isFirstLevelReply,
-  getEventKey
+  getEventKey,
+  wordsInEvent,
+  isLongNote
 } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
-import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
 import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
 import noteStatsService, { TNoteStats } from '@/services/note-stats.service'
@@ -38,6 +38,7 @@ import CompactedEventCard from '../CompactedEventCard'
 import GroupedNotesEmptyState from './EmptyState'
 import { usePinBury } from '@/providers/PinBuryProvider'
 import { getActualId } from '@/lib/tag'
+import { getTimeFrameInMs, useFeed } from '@/providers/FeedProvider'
 
 type TNoteGroup = {
   topNote: NostrEvent
@@ -79,7 +80,7 @@ const GroupedNoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
-    const { resetSettings, settings } = useGroupedNotes()
+    const { resetSettings, settings } = useFeed()
     const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
     const { repliesMap } = useReply()
@@ -138,14 +139,14 @@ const GroupedNoteList = forwardRef(
 
     // Clear cache when relevance sorting is disabled
     useEffect(() => {
-      if (!settings.sortByRelevance) {
+      if (!settings.groupedSortByRelevance) {
         fetchedStatsRef.current.clear()
       }
-    }, [settings.sortByRelevance])
+    }, [settings.groupedSortByRelevance])
 
     // Subscribe to stats updates and fetch initial stats for displayed notes
     useEffect(() => {
-      if (!settings.sortByRelevance || noteGroups.length === 0) return
+      if (!settings.groupedSortByRelevance || noteGroups.length === 0) return
 
       const unsubscribers: (() => void)[] = []
 
@@ -183,11 +184,11 @@ const GroupedNoteList = forwardRef(
       return () => {
         unsubscribers.forEach((unsubscribe) => unsubscribe())
       }
-    }, [settings.sortByRelevance, noteGroups.length, pubkey])
+    }, [settings.groupedSortByRelevance, noteGroups.length, pubkey])
 
     // Subscribe to real-time interaction events (reactions, reposts, zaps)
     useEffect(() => {
-      if (!settings.sortByRelevance || noteGroups.length === 0 || !subRequests.length) return
+      if (!settings.groupedSortByRelevance || noteGroups.length === 0 || !subRequests.length) return
 
       // Collect all note IDs to monitor for interactions
       const noteIds = new Set<string>()
@@ -230,7 +231,7 @@ const GroupedNoteList = forwardRef(
       return () => {
         subc.close()
       }
-    }, [settings.sortByRelevance, noteGroups.length, subRequests, startLogin])
+    }, [settings.groupedSortByRelevance, noteGroups.length, subRequests, startLogin])
 
     useEffect(() => {
       let filteredEvents = events
@@ -240,61 +241,13 @@ const GroupedNoteList = forwardRef(
       }
 
       // filter by word filter (content and hashtags)
-      if (settings.wordFilter.trim()) {
-        const filterWords = settings.wordFilter
-          .split(',')
-          .map((word) => word.trim().toLowerCase())
-          .filter((word) => word.length > 0)
-
-        if (filterWords.length > 0) {
-          filteredEvents = filteredEvents.filter((event) => {
-            // get content in lowercase for case-insensitive matching
-            const content = (event.content || '').toLowerCase()
-
-            // get hashtags from tags
-            const hashtags = event.tags
-              .filter((tag) => tag[0] === 't' && tag[1])
-              .map((tag) => tag[1].toLowerCase())
-
-            // check if any filter word matches content or hashtags
-            const hasMatchInContent = filterWords.some((word) => content.includes(word))
-            const hasMatchInHashtags = filterWords.some((word) =>
-              hashtags.some((hashtag) => hashtag.includes(word))
-            )
-
-            // return true to KEEP the event (filter OUT filteredEvents that match)
-            return !hasMatchInContent && !hasMatchInHashtags
-          })
-        }
+      if (settings.wordFilter.length) {
+        filteredEvents = filteredEvents.filter((event) => !wordsInEvent(settings.wordFilter, event))
       }
 
       // filter out short notes (single words or less than 10 characters)
       if (settings.hideShortNotes) {
-        filteredEvents = filteredEvents.filter((event) => {
-          const content = (event.content || '').trim()
-
-          // filter out if content is less than 10 characters
-          if (content.length < 10) {
-            return false
-          }
-
-          // filter out emoji-only notes
-          // remove emojis and check if there's any substantial text left
-          // using Unicode property escapes to match all emoji characters
-          const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
-          const contentWithoutEmojis = content.replace(emojiRegex, '').replace(/\s+/g, '').trim()
-          if (contentWithoutEmojis.length < 2) {
-            return false
-          }
-
-          // filter out single words (no spaces or only one word)
-          const words = content.split(/\s+/).filter((word) => word.length > 0)
-          if (words.length === 1) {
-            return false
-          }
-
-          return true
-        })
+        filteredEvents = filteredEvents.filter(isLongNote)
       }
 
       // group events by author pubkey
@@ -335,7 +288,7 @@ const GroupedNoteList = forwardRef(
       }
 
       // calculate relevance scores and update topNote if sortByRelevance is enabled
-      if (settings.sortByRelevance) {
+      if (settings.groupedSortByRelevance) {
         noteGroups.forEach((group) => {
           let bestNote = group.allNotes[0]
           let bestScore = 0
@@ -515,7 +468,7 @@ const GroupedNoteList = forwardRef(
         return () => {}
       }
 
-      const timeframeMs = getTimeFrameInMs(settings.timeFrame)
+      const timeframeMs = getTimeFrameInMs(settings.groupedTimeframe)
       const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
 
       const subc = client.subscribeTimeline(
@@ -632,7 +585,7 @@ const GroupedNoteList = forwardRef(
       return () => {
         subc.close()
       }
-    }, [subRequests, refreshCount, showKinds, settings.timeFrame])
+    }, [subRequests, refreshCount, showKinds, settings.groupedTimeframe])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
@@ -668,7 +621,7 @@ const GroupedNoteList = forwardRef(
     const list = (
       <div className="min-h-screen" style={{ overflowAnchor: 'none' }}>
         {nameFilteredGroups.map(({ totalNotes, allNoteTimestamps, topNote }) => {
-          const displayScore = settings.sortByRelevance
+          const displayScore = settings.groupedSortByRelevance
             ? calculateRelevanceScore(
                 noteStatsService.getNoteStats(topNote.id),
                 getReplyCount(topNote)
@@ -676,7 +629,7 @@ const GroupedNoteList = forwardRef(
             : undefined
 
           // use CompactedNoteCard if compacted view is on
-          if (settings.compactedView) {
+          if (settings.groupedCompactedView) {
             const readStatus = getReadStatus(topNote.pubkey, topNote.created_at)
             const unreadCount = getUnreadCount(topNote.pubkey, allNoteTimestamps)
 

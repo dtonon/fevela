@@ -4,7 +4,6 @@ import { toNjump } from '@/lib/link'
 import { simplifyUrl } from '@/lib/url'
 import { useCurrentRelays } from '@/providers/CurrentRelaysProvider'
 import { useFavoriteRelays } from '@/providers/FavoriteRelaysProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { usePinList } from '@/providers/PinListProvider'
@@ -30,6 +29,7 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import RelayIcon from '../RelayIcon'
+import { useFeed } from '@/providers/FeedProvider'
 
 export interface SubMenuAction {
   label: React.ReactNode
@@ -74,7 +74,7 @@ export function useMenuActions({
   const { mutePublicly, mutePrivately, unmute, mutePubkeySet } = useMuteList()
   const { pinList, pin, unpin } = usePinList()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
-  const { settings: groupedNotesSettings } = useGroupedNotes()
+  const { settings: feedSettings } = useFeed()
   const isMuted = useMemo(() => mutePubkeySet.has(event.pubkey), [mutePubkeySet, event])
   const pinBuryState = useMemo(() => getPinBuryState(event.pubkey), [getPinBuryState, event.pubkey])
 
@@ -170,7 +170,7 @@ export function useMenuActions({
     const actions: MenuAction[] = []
 
     // Pin/Bury user actions (first block) - only when grouped notes is enabled
-    if (groupedNotesSettings.enabled) {
+    if (feedSettings.grouped) {
       if (pinBuryState === 'pinned') {
         actions.push({
           icon: PinOff,
@@ -234,7 +234,7 @@ export function useMenuActions({
           navigator.clipboard.writeText(getNoteBech32Id(event))
           closeDrawer()
         },
-        separator: groupedNotesSettings.enabled // Only add separator if pin/bury actions were shown
+        separator: feedSettings.grouped // Only add separator if pin/bury actions were shown
       },
       {
         icon: Copy,
@@ -361,7 +361,7 @@ export function useMenuActions({
     broadcastSubMenu,
     pinList,
     pinBuryState,
-    groupedNotesSettings.enabled,
+    feedSettings.grouped,
     closeDrawer,
     showSubMenuActions,
     setIsRawEventDialogOpen,

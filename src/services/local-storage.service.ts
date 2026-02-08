@@ -10,6 +10,7 @@ import {
 } from '@/constants'
 import { isSameAccount } from '@/lib/account'
 import { randomString } from '@/lib/random'
+import { createDefaultSettings, TFeedSettings } from '@/providers/FeedProvider'
 import {
   TAccount,
   TAccountPointer,
@@ -17,13 +18,11 @@ import {
   TLinkPreviewMode,
   TMediaAutoLoadPolicy,
   TMediaUploadServiceConfig,
-  TNoteListMode,
   TNotificationStyle,
   TRelaySet,
   TThemeSetting,
   TTranslationServiceConfig
 } from '@/types'
-import { TStoredGroupedNotesSettings } from '@/providers/GroupedNotesProvider'
 
 class LocalStorageService {
   static instance: LocalStorageService
@@ -32,7 +31,6 @@ class LocalStorageService {
   private themeSetting: TThemeSetting = 'system'
   private accounts: TAccount[] = []
   private currentAccount: TAccount | null = null
-  private noteListMode: TNoteListMode = 'posts'
   private lastReadNotificationTimeMap: Record<string, number> = {}
   private defaultZapSats: number = 21
   private defaultZapComment: string = 'Zap!'
@@ -51,7 +49,7 @@ class LocalStorageService {
   private hideContentMentioningMutedUsers: boolean = false
   private notificationListStyle: TNotificationStyle = NOTIFICATION_LIST_STYLE.DETAILED
   private mediaAutoLoadPolicy: TMediaAutoLoadPolicy = MEDIA_AUTO_LOAD_POLICY.ALWAYS
-  private groupedNotesSettings: TStoredGroupedNotesSettings | null = null
+  private feedSettings: TFeedSettings = createDefaultSettings()
   private shownCreateWalletGuideToastPubkeys: Set<string> = new Set()
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
@@ -74,11 +72,6 @@ class LocalStorageService {
     this.accounts = accountsStr ? JSON.parse(accountsStr) : []
     const currentAccountStr = window.localStorage.getItem(StorageKey.CURRENT_ACCOUNT)
     this.currentAccount = currentAccountStr ? JSON.parse(currentAccountStr) : null
-    const noteListModeStr = window.localStorage.getItem(StorageKey.NOTE_LIST_MODE)
-    this.noteListMode =
-      noteListModeStr && ['posts', 'postsAndReplies', 'pictures'].includes(noteListModeStr)
-        ? (noteListModeStr as TNoteListMode)
-        : 'posts'
     const lastReadNotificationTimeMapStr =
       window.localStorage.getItem(StorageKey.LAST_READ_NOTIFICATION_TIME_MAP) ?? '{}'
     this.lastReadNotificationTimeMap = JSON.parse(lastReadNotificationTimeMapStr)
@@ -192,21 +185,13 @@ class LocalStorageService {
       this.mediaAutoLoadPolicy = mediaAutoLoadPolicy as TMediaAutoLoadPolicy
     }
 
-    const groupedNotesSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
-    if (groupedNotesSettingsStr) {
+    const feedSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
+    if (feedSettingsStr) {
       try {
-        this.groupedNotesSettings = JSON.parse(groupedNotesSettingsStr)
-
-        if (this.groupedNotesSettings) {
-          if (this.noteListMode === 'postsAndReplies') {
-            this.groupedNotesSettings.includeReplies = true
-          } else if (this.noteListMode === 'posts') {
-            this.groupedNotesSettings.includeReplies = false
-          }
-        }
+        this.feedSettings = JSON.parse(feedSettingsStr)
       } catch {
         // Invalid JSON, ignore and use defaults
-        this.groupedNotesSettings = null
+        this.feedSettings = createDefaultSettings()
       }
     }
     const shownCreateWalletGuideToastPubkeysStr = window.localStorage.getItem(
@@ -260,15 +245,6 @@ class LocalStorageService {
   setThemeSetting(themeSetting: TThemeSetting) {
     window.localStorage.setItem(StorageKey.THEME_SETTING, themeSetting)
     this.themeSetting = themeSetting
-  }
-
-  getNoteListMode() {
-    return this.noteListMode
-  }
-
-  setNoteListMode(mode: TNoteListMode) {
-    window.localStorage.setItem(StorageKey.NOTE_LIST_MODE, mode)
-    this.noteListMode = mode
   }
 
   getAccounts() {
@@ -503,12 +479,12 @@ class LocalStorageService {
     window.localStorage.setItem(StorageKey.MEDIA_AUTO_LOAD_POLICY, policy)
   }
 
-  getGroupedNotesSettings() {
-    return this.groupedNotesSettings
+  getFeedSettings(): TFeedSettings {
+    return this.feedSettings
   }
 
-  setGroupedNotesSettings(settings: TStoredGroupedNotesSettings) {
-    this.groupedNotesSettings = settings
+  setFeedSettings(settings: TFeedSettings) {
+    this.feedSettings = settings
     window.localStorage.setItem(StorageKey.GROUPED_NOTES_SETTINGS, JSON.stringify(settings))
   }
 

@@ -432,7 +432,7 @@ export default {
     GroupedNotesSortByRelevance: "Sort user's notes by relevance",
     GroupedNotesFilter: 'Filter by author...',
     GroupedNotesTimeframe: 'Timeframe:',
-    GroupedNotesWordFilter: 'Filter out notes with these words (comma separated):',
+    GroupedNotesWordFilter: 'Filter out notes with these words:',
     GroupedNotesWordFilterPlaceholder: 'e.g. nostr, bitcoin, gm',
     GroupedNotesFilterMore:
       'Filter out users who have published more than X notes in the timeframe',
