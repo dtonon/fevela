@@ -20,7 +20,9 @@ setVh()
 initNostrWasm()
   .then((nw) => {
     setNostrWasm(nw)
-    setPool(new AbstractSimplePool({ verifyEvent, enableReconnect: true }))
+    setPool(
+      new AbstractSimplePool({ verifyEvent, enableReconnect: true, maxWaitForConnection: 3000 })
+    )
     pool.trackRelays = true
     setReplaceableStore(store)
 
