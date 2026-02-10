@@ -1,7 +1,7 @@
 import KindFilter from '@/components/KindFilter'
 import NoteList, { TNoteListRef } from '@/components/NoteList'
 import Tabs, { TTabDefinition } from '@/components/Tabs'
-import { SEARCHABLE_RELAY_URLS } from '@/constants'
+
 import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
@@ -131,7 +131,7 @@ export default function ProfileFeed({
         setSubRequests([
           {
             source: 'relays',
-            urls: searchableRelays.concat(SEARCHABLE_RELAY_URLS).slice(0, 8),
+            urls: searchableRelays.concat(window.fevela.universe.searchableRelayUrls).slice(0, 8),
             filter: { authors: [pubkey], search }
           }
         ])

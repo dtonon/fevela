@@ -3,7 +3,7 @@ import FollowingFavoriteRelayList from '@/components/FollowingFavoriteRelayList'
 import NoteList from '@/components/NoteList'
 import Tabs from '@/components/Tabs'
 import { Button } from '@/components/ui/button'
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import PrimaryPageLayout from '@/layouts/PrimaryPageLayout'
 import { getReplaceableEventIdentifier } from '@/lib/event'
 import { useUserTrust } from '@/providers/UserTrustProvider'
@@ -36,7 +36,7 @@ const ExplorePage = forwardRef((_, ref) => {
     ) : tab === 'reviews' ? (
       <NoteList
         showKinds={[ExtendedKind.RELAY_REVIEW]}
-        subRequests={[{ source: 'relays', urls: BIG_RELAY_URLS, filter: {} }]}
+        subRequests={[{ source: 'relays', urls: window.fevela.universe.bigRelayUrls, filter: {} }]}
         filterMutedNotes
         hideUntrustedNotes={hideUntrustedNotes}
         filterFn={relayReviewFilterFn}

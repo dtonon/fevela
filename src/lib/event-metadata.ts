@@ -1,5 +1,5 @@
 import { npubEncode } from '@nostr/tools/nip19'
-import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
+import { POLL_TYPE } from '@/constants'
 import { TPollType, TRelayList } from '@/types'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
@@ -14,7 +14,11 @@ import { RelayItem } from '@nostr/gadgets/lists'
 
 export function buildRelayList(items: RelayItem[]) {
   if (items.length === 0) {
-    return structuredClone(DEFAULT_RELAY_LIST)
+    return {
+      write: window.fevela.universe.bigRelayUrls,
+      read: window.fevela.universe.bigRelayUrls,
+      originalRelays: []
+    }
   }
 
   const torBrowserDetected = isTorBrowser()
@@ -42,11 +46,17 @@ export function buildRelayList(items: RelayItem[]) {
     }
   }
 
-  // If there are too many relays, use the default BIG_RELAY_URLS
+  // If there are too many relays, use the default bigRelayUrls
   // Because they don't know anything about relays, their settings cannot be trusted
   return {
-    write: relayList.write.length && relayList.write.length <= 8 ? relayList.write : BIG_RELAY_URLS,
-    read: relayList.read.length && relayList.write.length <= 8 ? relayList.read : BIG_RELAY_URLS,
+    write:
+      relayList.write.length && relayList.write.length <= 8
+        ? relayList.write
+        : window.fevela.universe.bigRelayUrls,
+    read:
+      relayList.read.length && relayList.write.length <= 8
+        ? relayList.read
+        : window.fevela.universe.bigRelayUrls,
     originalRelays: relayList.originalRelays
   }
 }

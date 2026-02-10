@@ -1,4 +1,3 @@
-import { BIG_RELAY_URLS, SEARCHABLE_RELAY_URLS } from '@/constants'
 import { TSearchParams } from '@/types'
 import NormalFeed from '../NormalFeed'
 import Profile from '../Profile'
@@ -14,7 +13,7 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
         ? [
             {
               source: 'relays' as const,
-              urls: SEARCHABLE_RELAY_URLS,
+              urls: window.fevela.universe.searchableRelayUrls,
               filter: { search: searchParams.search }
             }
           ]
@@ -28,7 +27,7 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
         ? [
             {
               source: 'relays' as const,
-              urls: BIG_RELAY_URLS,
+              urls: window.fevela.universe.bigRelayUrls,
               filter: { '#t': [searchParams.search] }
             }
           ]

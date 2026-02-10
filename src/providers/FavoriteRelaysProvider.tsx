@@ -1,4 +1,3 @@
-import { DEFAULT_FAVORITE_RELAYS } from '@/constants'
 import { createFavoriteRelaysDraftEvent, createRelaySetDraftEvent } from '@/lib/draft-event'
 import { getReplaceableCoordinate } from '@/lib/event'
 import { randomString } from '@/lib/random'
@@ -41,7 +40,7 @@ export function FavoriteRelaysProvider({ children }: { children: React.ReactNode
 
   useEffect(() => {
     if (favoriteRelays.length === 0) {
-      setURLs(DEFAULT_FAVORITE_RELAYS)
+      setURLs(window.fevela.universe.defaultFavoriteRelays)
       return
     }
 

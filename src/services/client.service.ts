@@ -28,7 +28,7 @@ import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
 import { verifyEvent } from '@nostr/tools/wasm'
 
-import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import { isValidPubkey } from '@/lib/pubkey'
 import { tagNameEquals } from '@/lib/tag'
 import { isLocalNetworkUrl, normalizeUrl } from '@/lib/url'
@@ -119,7 +119,7 @@ class ClientService extends EventTarget {
           ExtendedKind.RELAY_REVIEW
         ].includes(event.kind)
       ) {
-        _additionalRelayUrls.push(...BIG_RELAY_URLS)
+        _additionalRelayUrls.push(...window.fevela.universe.bigRelayUrls)
       }
 
       const relayList = await this.fetchRelayList(event.pubkey)
@@ -129,7 +129,7 @@ class ClientService extends EventTarget {
     }
 
     if (!relays.length) {
-      relays.push(...BIG_RELAY_URLS)
+      relays.push(...window.fevela.universe.bigRelayUrls)
     }
 
     return relays
@@ -799,8 +799,8 @@ class ClientService extends EventTarget {
     }
 
     // if we got nothing or there were no hints, try the big relays (except the ones we've already tried)
-    const bigRelayHints = BIG_RELAY_URLS.filter(
-      (br) => !(relayHints.includes(br) || authorRelaysUrls.includes(br))
+    const bigRelayHints = window.fevela.universe.bigRelayUrls.filter(
+      (br: string) => !(relayHints.includes(br) || authorRelaysUrls.includes(br))
     )
     bigRelayHints.push('wss://cache2.primal.net/v1')
     if (bigRelayHints.length) {
@@ -904,7 +904,11 @@ class ClientService extends EventTarget {
   ): Promise<TRelayList> {
     return loadRelayList(pubkey, [], forceUpdate).then((r) => {
       if (!r.event) {
-        return structuredClone(DEFAULT_RELAY_LIST)
+        return {
+          write: window.fevela.universe.bigRelayUrls,
+          read: window.fevela.universe.bigRelayUrls,
+          originalRelays: []
+        }
       } else {
         return {
           write: r.items.filter((r) => r.write).map((r) => r.url),
