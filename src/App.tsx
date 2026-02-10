@@ -9,10 +9,8 @@ import { DeletedEventProvider } from '@/providers/DeletedEventProvider'
 import { FavoriteRelaysProvider } from '@/providers/FavoriteRelaysProvider'
 import { FeedProvider } from '@/providers/FeedProvider'
 import { FollowListProvider } from '@/providers/FollowListProvider'
-import { GroupedNotesProvider } from '@/providers/GroupedNotesProvider'
 import { KindFilterProvider } from '@/providers/KindFilterProvider'
 import { LinkPreviewHoverProvider } from '@/providers/LinkPreviewHoverProvider'
-import { MediaUploadServiceProvider } from '@/providers/MediaUploadServiceProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
 import { OutboxProvider } from '@/providers/OutboxProvider'
@@ -48,15 +46,11 @@ export default function App(): JSX.Element {
                                     <PinListProvider>
                                       <FeedProvider>
                                         <ReplyProvider>
-                                          <MediaUploadServiceProvider>
-                                            <KindFilterProvider>
-                                              <GroupedNotesProvider>
-                                                <PageManager />
-                                                <Toaster />
-                                                <LinkPreviewHoverUI />
-                                              </GroupedNotesProvider>
-                                            </KindFilterProvider>
-                                          </MediaUploadServiceProvider>
+                                          <KindFilterProvider>
+                                            <PageManager />
+                                            <Toaster />
+                                            <LinkPreviewHoverUI />
+                                          </KindFilterProvider>
                                         </ReplyProvider>
                                       </FeedProvider>
                                     </PinListProvider>

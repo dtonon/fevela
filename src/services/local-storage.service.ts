@@ -1,5 +1,4 @@
 import {
-  DEFAULT_NIP_96_SERVICE,
   ExtendedKind,
   LINK_PREVIEW_MODE,
   MEDIA_AUTO_LOAD_POLICY,
@@ -10,20 +9,18 @@ import {
 } from '@/constants'
 import { isSameAccount } from '@/lib/account'
 import { randomString } from '@/lib/random'
+import { createDefaultSettings, TFeedSettings } from '@/providers/FeedProvider'
 import {
   TAccount,
   TAccountPointer,
   TFeedInfo,
   TLinkPreviewMode,
   TMediaAutoLoadPolicy,
-  TMediaUploadServiceConfig,
-  TNoteListMode,
   TNotificationStyle,
   TRelaySet,
   TThemeSetting,
   TTranslationServiceConfig
 } from '@/types'
-import { TStoredGroupedNotesSettings } from '@/providers/GroupedNotesProvider'
 
 class LocalStorageService {
   static instance: LocalStorageService
@@ -32,26 +29,24 @@ class LocalStorageService {
   private themeSetting: TThemeSetting = 'system'
   private accounts: TAccount[] = []
   private currentAccount: TAccount | null = null
-  private noteListMode: TNoteListMode = 'posts'
   private lastReadNotificationTimeMap: Record<string, number> = {}
   private defaultZapSats: number = 21
   private defaultZapComment: string = 'Zap!'
   private quickZap: boolean = false
   private accountFeedInfoMap: Record<string, TFeedInfo | undefined> = {}
-  private mediaUploadService: string = DEFAULT_NIP_96_SERVICE
+
   private autoplay: boolean = true
   private hideUntrustedInteractions: boolean = false
   private hideUntrustedNotifications: boolean = false
   private hideUntrustedNotes: boolean = false
   private translationServiceConfigMap: Record<string, TTranslationServiceConfig> = {}
-  private mediaUploadServiceConfigMap: Record<string, TMediaUploadServiceConfig> = {}
   private defaultShowNsfw: boolean = false
   private dismissedTooManyRelaysAlert: boolean = false
   private showKinds: number[] = []
   private hideContentMentioningMutedUsers: boolean = false
   private notificationListStyle: TNotificationStyle = NOTIFICATION_LIST_STYLE.DETAILED
   private mediaAutoLoadPolicy: TMediaAutoLoadPolicy = MEDIA_AUTO_LOAD_POLICY.ALWAYS
-  private groupedNotesSettings: TStoredGroupedNotesSettings | null = null
+  private feedSettings: TFeedSettings = createDefaultSettings()
   private shownCreateWalletGuideToastPubkeys: Set<string> = new Set()
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
@@ -74,11 +69,6 @@ class LocalStorageService {
     this.accounts = accountsStr ? JSON.parse(accountsStr) : []
     const currentAccountStr = window.localStorage.getItem(StorageKey.CURRENT_ACCOUNT)
     this.currentAccount = currentAccountStr ? JSON.parse(currentAccountStr) : null
-    const noteListModeStr = window.localStorage.getItem(StorageKey.NOTE_LIST_MODE)
-    this.noteListMode =
-      noteListModeStr && ['posts', 'postsAndReplies', 'pictures'].includes(noteListModeStr)
-        ? (noteListModeStr as TNoteListMode)
-        : 'posts'
     const lastReadNotificationTimeMapStr =
       window.localStorage.getItem(StorageKey.LAST_READ_NOTIFICATION_TIME_MAP) ?? '{}'
     this.lastReadNotificationTimeMap = JSON.parse(lastReadNotificationTimeMapStr)
@@ -148,13 +138,6 @@ class LocalStorageService {
       this.translationServiceConfigMap = JSON.parse(translationServiceConfigMapStr)
     }
 
-    const mediaUploadServiceConfigMapStr = window.localStorage.getItem(
-      StorageKey.MEDIA_UPLOAD_SERVICE_CONFIG_MAP
-    )
-    if (mediaUploadServiceConfigMapStr) {
-      this.mediaUploadServiceConfigMap = JSON.parse(mediaUploadServiceConfigMapStr)
-    }
-
     this.defaultShowNsfw = window.localStorage.getItem(StorageKey.DEFAULT_SHOW_NSFW) === 'true'
 
     this.dismissedTooManyRelaysAlert =
@@ -192,13 +175,13 @@ class LocalStorageService {
       this.mediaAutoLoadPolicy = mediaAutoLoadPolicy as TMediaAutoLoadPolicy
     }
 
-    const groupedNotesSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
-    if (groupedNotesSettingsStr) {
+    const feedSettingsStr = window.localStorage.getItem(StorageKey.GROUPED_NOTES_SETTINGS)
+    if (feedSettingsStr) {
       try {
-        this.groupedNotesSettings = JSON.parse(groupedNotesSettingsStr)
+        this.feedSettings = JSON.parse(feedSettingsStr)
       } catch {
         // Invalid JSON, ignore and use defaults
-        this.groupedNotesSettings = null
+        this.feedSettings = createDefaultSettings()
       }
     }
     const shownCreateWalletGuideToastPubkeysStr = window.localStorage.getItem(
@@ -252,15 +235,6 @@ class LocalStorageService {
   setThemeSetting(themeSetting: TThemeSetting) {
     window.localStorage.setItem(StorageKey.THEME_SETTING, themeSetting)
     this.themeSetting = themeSetting
-  }
-
-  getNoteListMode() {
-    return this.noteListMode
-  }
-
-  setNoteListMode(mode: TNoteListMode) {
-    window.localStorage.setItem(StorageKey.NOTE_LIST_MODE, mode)
-    this.noteListMode = mode
   }
 
   getAccounts() {
@@ -421,26 +395,6 @@ class LocalStorageService {
     )
   }
 
-  getMediaUploadServiceConfig(pubkey?: string | null): TMediaUploadServiceConfig {
-    const defaultConfig = { type: 'nip96', service: this.mediaUploadService } as const
-    if (!pubkey) {
-      return defaultConfig
-    }
-    return this.mediaUploadServiceConfigMap[pubkey] ?? defaultConfig
-  }
-
-  setMediaUploadServiceConfig(
-    pubkey: string,
-    config: TMediaUploadServiceConfig
-  ): TMediaUploadServiceConfig {
-    this.mediaUploadServiceConfigMap[pubkey] = config
-    window.localStorage.setItem(
-      StorageKey.MEDIA_UPLOAD_SERVICE_CONFIG_MAP,
-      JSON.stringify(this.mediaUploadServiceConfigMap)
-    )
-    return config
-  }
-
   getDefaultShowNsfw() {
     return this.defaultShowNsfw
   }
@@ -495,12 +449,12 @@ class LocalStorageService {
     window.localStorage.setItem(StorageKey.MEDIA_AUTO_LOAD_POLICY, policy)
   }
 
-  getGroupedNotesSettings() {
-    return this.groupedNotesSettings
+  getFeedSettings(): TFeedSettings {
+    return this.feedSettings
   }
 
-  setGroupedNotesSettings(settings: TStoredGroupedNotesSettings) {
-    this.groupedNotesSettings = settings
+  setFeedSettings(settings: TFeedSettings) {
+    this.feedSettings = settings
     window.localStorage.setItem(StorageKey.GROUPED_NOTES_SETTINGS, JSON.stringify(settings))
   }
 

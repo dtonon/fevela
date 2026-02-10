@@ -1,6 +1,6 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
+import { isLongNote, isMentioningMutedUsers, isReplyNoteEvent, wordsInEvent } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -27,6 +27,7 @@ import PullToRefresh from 'react-simple-pull-to-refresh'
 import { toast } from 'sonner'
 import NoteCard, { NoteCardLoadingSkeleton } from '../NoteCard'
 import PinnedNoteCard from '../PinnedNoteCard'
+import { useFeed } from '@/providers/FeedProvider'
 
 const LIMIT = 200
 const SHOW_COUNT = 10
@@ -75,6 +76,7 @@ const NoteList = forwardRef(
     const [refreshCount, setRefreshCount] = useState(0)
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
+    const { settings: feedSettings } = useFeed()
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -111,17 +113,33 @@ const NoteList = forwardRef(
       ]
     )
 
+    function shouldHideEventForFilters(evt: Event, wordFilter: string[], hideShortNotes: boolean) {
+      // word filter (content and hashtags)
+      if (wordsInEvent(wordFilter, evt)) {
+        return true
+      }
+
+      // hide short notes
+      if (hideShortNotes) {
+        if (!isLongNote(evt)) return false
+      }
+
+      return false
+    }
+
     const filteredEvents = useMemo(() => {
       const repostersMap = new Map<string, string[]>()
       const filteredEvents: { event: NostrEvent; reposters: string[] }[] = []
 
-      // When in filtered view, show all loaded events; otherwise use showCount limit
+      // when in filtered view, show all loaded events; otherwise use showCount limit
       const displayLimit = isFilteredView ? events.length : Math.min(events.length, showCount)
 
       for (let i = 0; i < displayLimit; i++) {
         const event = events[i]
 
         if (shouldHideEvent(event)) continue
+        if (shouldHideEventForFilters(event, feedSettings.wordFilter, feedSettings.hideShortNotes))
+          continue
 
         if (event.kind !== kinds.Repost) {
           // for all events just stop processing here, this is it
@@ -144,6 +162,14 @@ const NoteList = forwardRef(
           reposters = []
 
           if (shouldHideEvent(eventFromContent)) continue
+          if (
+            shouldHideEventForFilters(
+              eventFromContent,
+              feedSettings.wordFilter,
+              feedSettings.hideShortNotes
+            )
+          )
+            continue
           if (!verifyEvent(eventFromContent)) continue
 
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
@@ -165,7 +191,14 @@ const NoteList = forwardRef(
       }
 
       return filteredEvents
-    }, [events, showCount, shouldHideEvent, isFilteredView])
+    }, [
+      events,
+      showCount,
+      shouldHideEvent,
+      shouldHideEventForFilters,
+      isFilteredView,
+      feedSettings
+    ])
 
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {

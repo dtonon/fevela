@@ -125,8 +125,6 @@ export type TPublishOptions = {
   minPow?: number
 }
 
-export type TNoteListMode = 'posts' | 'replies' | 'postsAndReplies' | 'you'
-
 export type TNotificationType = 'all' | 'mentions' | 'reactions' | 'zaps'
 
 export type TPageRef = { scrollToTop: (behavior?: ScrollBehavior) => void }
@@ -150,15 +148,6 @@ export type TTranslationServiceConfig =
       service: 'libre_translate'
       server?: string
       api_key?: string
-    }
-
-export type TMediaUploadServiceConfig =
-  | {
-      type: 'nip96'
-      service: string
-    }
-  | {
-      type: 'blossom'
     }
 
 export type TPollType = (typeof POLL_TYPE)[keyof typeof POLL_TYPE]
