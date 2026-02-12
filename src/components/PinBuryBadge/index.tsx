@@ -1,6 +1,6 @@
 import { userIdToPubkey } from '@/lib/pubkey'
+import { useFeed } from '@/providers/FeedProvider'
 import { usePinBury } from '@/providers/PinBuryProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
 import { Pin, ArrowDown } from 'lucide-react'
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next'
 export default function PinBuryBadge({ pubkey, userId }: { pubkey?: string; userId?: string }) {
   const { t } = useTranslation()
   const { getPinBuryState } = usePinBury()
-  const { settings } = useGroupedNotes()
+  const { settings } = useFeed()
 
   const state = useMemo(() => {
     const key = pubkey || (userId ? userIdToPubkey(userId) : null)
@@ -16,7 +16,7 @@ export default function PinBuryBadge({ pubkey, userId }: { pubkey?: string; user
   }, [getPinBuryState, pubkey, userId])
 
   // Only show badge when grouped notes is enabled
-  if (!settings.enabled) return null
+  if (!settings.grouped) return null
   if (!state) return null
 
   if (state === 'pinned') {

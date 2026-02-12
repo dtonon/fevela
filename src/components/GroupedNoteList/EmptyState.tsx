@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
+import { useFeed } from '@/providers/FeedProvider'
 import { useTranslation } from 'react-i18next'
 
 export default function GroupedNotesEmptyState({
@@ -10,7 +10,7 @@ export default function GroupedNotesEmptyState({
   onReset: () => void
 }) {
   const { t } = useTranslation()
-  const { settings } = useGroupedNotes()
+  const { settings } = useFeed()
 
   return (
     <div className="flex flex-col items-center justify-center py-12 px-4 text-center">
@@ -27,17 +27,14 @@ export default function GroupedNotesEmptyState({
         <Button variant="outline" onClick={onOpenSettings}>
           {t('Adjust Settings')}
         </Button>
-        <Button onClick={onReset}>
-          {t('Reset to Default')}
-        </Button>
+        <Button onClick={onReset}>{t('Reset to Default')}</Button>
       </div>
 
       <div className="mt-6 text-xs text-muted-foreground">
         <p>
-          {t('Current settings:')} {settings.timeFrame.label}
+          {t('Current settings:')} {settings.groupedTimeframe.label}
           {settings.maxNotesFilter > 0 &&
-            `, ${t('max {{count}} notes per user', { count: settings.maxNotesFilter })}`
-          }
+            `, ${t('max {{count}} notes per user', { count: settings.maxNotesFilter })}`}
         </p>
       </div>
     </div>

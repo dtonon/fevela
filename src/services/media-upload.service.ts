@@ -16,7 +16,7 @@ export const UPLOAD_ABORTED_ERROR_MSG = 'Upload aborted'
 class MediaUploadService {
   static instance: MediaUploadService
 
-  private serviceConfig: TMediaUploadServiceConfig = storage.getMediaUploadServiceConfig()
+  private serviceConfig: TMediaUploadServiceConfig | null = null
   private nip96ServiceUploadUrlMap = new Map<string, string | undefined>()
   private imetaTagMap = new Map<string, string[]>()
 
@@ -27,14 +27,22 @@ class MediaUploadService {
     return MediaUploadService.instance
   }
 
+  private getServiceConfig(): TMediaUploadServiceConfig {
+    if (!this.serviceConfig) {
+      this.serviceConfig = storage.getMediaUploadServiceConfig()
+    }
+    return this.serviceConfig
+  }
+
   setServiceConfig(config: TMediaUploadServiceConfig) {
     this.serviceConfig = config
   }
 
   async upload(file: File, options?: UploadOptions) {
+    const config = this.getServiceConfig()
     let result: { url: string; tags: string[][] }
-    if (this.serviceConfig.type === 'nip96') {
-      result = await this.uploadByNip96(this.serviceConfig.service, file, options)
+    if (config.type === 'nip96') {
+      result = await this.uploadByNip96(config.service, file, options)
     } else {
       result = await this.uploadByBlossom(file, options)
     }

@@ -5,7 +5,7 @@ import { isMentioningMutedUsers, isReplyNoteEvent } from '@/lib/event'
 import { tagNameEquals } from '@/lib/tag'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
+import { useFeed } from '@/providers/FeedProvider'
 import client from '@/services/client.service'
 import { Event, verifyEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
@@ -59,14 +59,14 @@ export default function CompactedEventCard({
   const { t } = useTranslation()
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
-  const { settings: groupedNotesSettings } = useGroupedNotes()
+  const { settings: feedSettings } = useFeed()
   const [targetEvent, setTargetEvent] = useState<Event | null>(null)
   const [previewText, setPreviewText] = useState<string | null>(null)
 
   const isRepost = variant === 'repost'
   const isReply = !isRepost && isReplyNoteEvent(event)
 
-  const shouldShowPreview = groupedNotesSettings.compactedView && groupedNotesSettings.showPreview
+  const shouldShowPreview = feedSettings.groupedCompactedView && feedSettings.groupedShowPreview
 
   // Generate preview text asynchronously
   useEffect(() => {

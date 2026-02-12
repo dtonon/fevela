@@ -2,7 +2,7 @@ import { EMBEDDED_MENTION_REGEX, ExtendedKind } from '@/constants'
 import client from '@/services/client.service'
 import { TImetaInfo } from '@/types'
 import { LRUCache } from 'lru-cache'
-import { Event, UnsignedEvent } from '@nostr/tools/wasm'
+import { Event, NostrEvent, UnsignedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import { fastEventHash, getPow } from '@nostr/tools/nip13'
@@ -389,4 +389,55 @@ export function getRetainedEvent(a: Event, b: Event): Event {
     return a
   }
   return b
+}
+
+export function wordsInEvent(words: string[], event: NostrEvent): boolean {
+  const content = (event.content || '').toLowerCase()
+
+  // first check content against all words
+  for (const word of words) {
+    if (content.includes(word)) return true
+  }
+
+  // then check tags against all words
+  for (const tag of event.tags) {
+    if (tag[0] === 't' && tag[1]) {
+      for (const word of words) {
+        if (tag[1].toLowerCase().includes(word)) {
+          return true
+        }
+      }
+    }
+  }
+
+  return false
+}
+
+const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
+export function isLongNote(event: NostrEvent): boolean {
+  const content = (event.content || '').trim()
+
+  // fast fail for short content
+  if (content.length < 10) {
+    return false
+  }
+
+  // fast fail for single-word content
+  const words = content.split(/\s+/g).filter((word) => word.length > 0)
+  if (words.length === 1) {
+    return false
+  }
+
+  // check for at least 2 non-emoji, non-whitespace characters
+  let nonEmojiCount = 0
+  for (const char of content) {
+    if (!emojiRegex.test(char) && !/\s/.test(char)) {
+      nonEmojiCount++
+      if (nonEmojiCount >= 2) {
+        return true
+      }
+    }
+  }
+
+  return false
 }

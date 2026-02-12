@@ -5,18 +5,7 @@ import { useTranslation } from 'react-i18next'
 import { ScrollArea, ScrollBar } from '../ui/scroll-area'
 
 export type TTabDefinition = {
-  value:
-    | 'posts'
-    | 'replies'
-    | 'postsAndReplies'
-    | 'explore'
-    | 'mentions'
-    | 'following'
-    | 'reviews'
-    | 'zaps'
-    | 'reactions'
-    | 'you'
-    | 'all'
+  value: string
   label: string
 }
 
@@ -106,14 +95,14 @@ export default function Tabs({
       )}
     >
       {!hideTabs && (
-        <ScrollArea className="flex-1 w-0">
+        <ScrollArea className="flex-1 w-0 min-w-36">
           <div className="flex w-fit relative">
             {tabs.map((tab, index) => (
               <div
                 key={tab.value}
                 ref={(el) => (tabRefs.current[index] = el)}
                 className={cn(
-                  `w-fit text-center py-2 px-6 my-1 font-semibold whitespace-nowrap clickable cursor-pointer rounded-lg`,
+                  `w-fit text-center py-2 px-1 sm:px-2 lg:px-4 my-1 font-semibold whitespace-nowrap clickable cursor-pointer rounded-lg`,
                   value === tab.value ? '' : 'text-muted-foreground'
                 )}
                 onClick={() => {
