@@ -86,7 +86,7 @@ export default function KindFilter({
       }}
     >
       <ListFilter size={16} />
-      {t('Filter')}
+      <span className="hidden lg:block">{t('Filter')}</span>
       {isDifferentFromSaved && (
         <div className="absolute size-2 rounded-full bg-primary left-7 top-2 ring-2 ring-background" />
       )}

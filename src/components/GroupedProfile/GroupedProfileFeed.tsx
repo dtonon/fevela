@@ -1,9 +1,7 @@
 import NoteList from '@/components/NoteList'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
-import { useGroupedNotes } from '@/providers/GroupedNotesProvider'
-import { getTimeFrameInMs } from '@/providers/GroupedNotesProvider'
-import { isReplyNoteEvent, isFirstLevelReply } from '@/lib/event'
+import { isReplyNoteEvent, isFirstLevelReply, wordsInEvent, isLongNote } from '@/lib/event'
 import { toProfile } from '@/lib/link'
 import { SecondaryPageLink } from '@/PageManager'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -13,18 +11,19 @@ import { useEffect, useRef, useState } from 'react'
 import { TNoteListRef } from '@/components/NoteList'
 import { Event } from '@nostr/tools/wasm'
 import { useTranslation } from 'react-i18next'
+import { getTimeFrameInMs, useFeed } from '@/providers/FeedProvider'
 
 export default function GroupedProfileFeed({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { isReady, pubkey: myPubkey } = useNostr()
   const { showKinds } = useKindFilter()
-  const { settings: groupedNotesSettings } = useGroupedNotes()
+  const { settings: feedSettings } = useFeed()
   const { isEventDeleted } = useDeletedEvent()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const noteListRef = useRef<TNoteListRef>(null)
 
   // Calculate timeframe boundary from grouped notes settings
-  const timeframeMs = getTimeFrameInMs(groupedNotesSettings.timeFrame)
+  const timeframeMs = getTimeFrameInMs(feedSettings.groupedTimeframe)
   const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
 
   useEffect(() => {
@@ -62,58 +61,24 @@ export default function GroupedProfileFeed({ pubkey }: { pubkey: string }) {
       return false
     }
 
-    // Filter nested replies when showOnlyFirstLevelReplies is enabled
+    // filter nested replies when showOnlyFirstLevelReplies is enabled
     if (
-      groupedNotesSettings.includeReplies &&
-      groupedNotesSettings.showOnlyFirstLevelReplies &&
+      feedSettings.includeReplies &&
+      feedSettings.showOnlyFirstLevelReplies &&
       isReplyNoteEvent(event) &&
       !isFirstLevelReply(event)
     ) {
       return false
     }
 
-    // Apply word filter
-    if (groupedNotesSettings.wordFilter.trim()) {
-      const filterWords = groupedNotesSettings.wordFilter
-        .split(',')
-        .map((word) => word.trim().toLowerCase())
-        .filter((word) => word.length > 0)
-
-      if (filterWords.length > 0) {
-        const content = (event.content || '').toLowerCase()
-        const hashtags = event.tags
-          .filter((tag) => tag[0] === 't' && tag[1])
-          .map((tag) => tag[1].toLowerCase())
-
-        const hasMatchInContent = filterWords.some((word) => content.includes(word))
-        const hasMatchInHashtags = filterWords.some((word) =>
-          hashtags.some((hashtag) => hashtag.includes(word))
-        )
-
-        if (hasMatchInContent || hasMatchInHashtags) {
-          return false
-        }
-      }
+    // apply word filter
+    if (feedSettings.wordFilter.length) {
+      if (wordsInEvent(feedSettings.wordFilter, event)) return false
     }
 
-    // Apply short notes filter
-    if (groupedNotesSettings.hideShortNotes) {
-      const content = (event.content || '').trim()
-
-      if (content.length < 10) {
-        return false
-      }
-
-      const emojiRegex = /\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu
-      const contentWithoutEmojis = content.replace(emojiRegex, '').replace(/\s+/g, '').trim()
-      if (contentWithoutEmojis.length < 2) {
-        return false
-      }
-
-      const words = content.split(/\s+/).filter((word) => word.length > 0)
-      if (words.length === 1) {
-        return false
-      }
+    // apply short notes filter
+    if (feedSettings.hideShortNotes) {
+      if (!isLongNote(event)) return false
     }
 
     return true
@@ -136,7 +101,7 @@ export default function GroupedProfileFeed({ pubkey }: { pubkey: string }) {
       ref={noteListRef}
       subRequests={subRequests}
       showKinds={showKinds}
-      hideReplies={!groupedNotesSettings.includeReplies}
+      hideReplies={!feedSettings.includeReplies}
       filterMutedNotes={false}
       sinceTimestamp={groupedNotesSince}
       filterFn={filterFn}

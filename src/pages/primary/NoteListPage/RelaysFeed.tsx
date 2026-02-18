@@ -14,5 +14,5 @@ export default function RelaysFeed() {
     return null
   }
 
-  return <NormalFeed subRequests={subRequests} isMainFeed showRelayCloseReason />
+  return <NormalFeed subRequests={subRequests} showRelayCloseReason />
 }

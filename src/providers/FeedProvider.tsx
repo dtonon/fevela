@@ -1,8 +1,9 @@
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
+
 import { DEFAULT_FAVORITE_RELAYS } from '@/constants'
 import { isWebsocketUrl, normalizeUrl } from '@/lib/url'
 import storage from '@/services/local-storage.service'
 import { TFeedInfo, TFeedType } from '@/types'
-import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useFavoriteRelays } from './FavoriteRelaysProvider'
 import { useNostr } from './NostrProvider'
 
@@ -14,6 +15,64 @@ type TFeedContext = {
     feedType: TFeedType,
     options?: { activeRelaySetId?: string; pubkey?: string; relay?: string | null }
   ) => Promise<void>
+
+  settings: TFeedSettings
+  updateSettings: (settings: Partial<TFeedSettings>) => void
+  resetSettings: () => TFeedSettings
+  timeFrameOptions: TTimeFrame[]
+}
+
+export type TFeedSettings = {
+  grouped: boolean
+  groupedTimeframe: TTimeFrame
+  groupedCompactedView: boolean
+  groupedShowPreview: boolean
+  groupedSortByRelevance: boolean
+
+  wordFilter: string[]
+  maxNotesFilter: number // 0 means disabled
+  includeReplies: boolean
+  showOnlyFirstLevelReplies: boolean
+  hideShortNotes: boolean
+}
+
+export type TTimeFrame = {
+  value: number
+  unit: 'hours' | 'days'
+  label: string
+}
+
+export const createDefaultSettings = (timeFrameOptions?: TTimeFrame[]): TFeedSettings => ({
+  grouped: true,
+  groupedTimeframe: (timeFrameOptions || createTimeFrameOptions())[23], // 24 hours
+  groupedCompactedView: true,
+  groupedShowPreview: true,
+  groupedSortByRelevance: false,
+  wordFilter: [],
+  maxNotesFilter: 0, // 0 = disabled
+  includeReplies: false,
+  showOnlyFirstLevelReplies: false,
+  hideShortNotes: false
+})
+
+export const createTimeFrameOptions = (): TTimeFrame[] => [
+  // Hours: 1-24
+  ...Array.from({ length: 24 }, (_, i) => ({
+    value: i + 1,
+    unit: 'hours' as const,
+    label: 'GroupedNotesHours'
+  })),
+  // Days: 2-30
+  ...Array.from({ length: 29 }, (_, i) => ({
+    value: i + 2,
+    unit: 'days' as const,
+    label: 'GroupedNotesDays'
+  }))
+]
+
+export function getTimeFrameInMs(timeFrame: TTimeFrame): number {
+  const multiplier = timeFrame.unit === 'hours' ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000
+  return timeFrame.value * multiplier
 }
 
 const FeedContext = createContext<TFeedContext | undefined>(undefined)
@@ -36,6 +95,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     id: DEFAULT_FAVORITE_RELAYS[0]
   })
   const feedInfoRef = useRef<TFeedInfo>(feedInfo)
+  const timeFrameOptions = createTimeFrameOptions()
 
   useEffect(() => {
     const init = async () => {
@@ -74,14 +134,62 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     init()
   }, [pubkey, isInitialized])
 
-  const switchFeed = async (
+  const [settings, setSettings] = useState<TFeedSettings>(() => {
+    const storedSettings = storage.getFeedSettings()
+    if (storedSettings) {
+      // find matching timeFrame with current translations
+      const groupedTimeframe =
+        timeFrameOptions.find(
+          (tf) =>
+            tf.value === storedSettings.groupedTimeframe?.value &&
+            tf.unit === storedSettings.groupedTimeframe?.unit
+        ) || timeFrameOptions[23] // fallback to 24 hours
+
+      return {
+        ...storedSettings,
+        groupedTimeframe, // use the one with current translations
+        groupedShowPreview: storedSettings.groupedShowPreview ?? true, // default to true for existing users
+        groupedSortByRelevance: storedSettings.groupedSortByRelevance ?? false, // default to false for existing users
+        wordFilter: Array.isArray(storedSettings.wordFilter)
+          ? storedSettings.wordFilter
+          : typeof storedSettings.wordFilter === 'string' && storedSettings.wordFilter
+            ? storedSettings.wordFilter
+                .split(',')
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [], // try to recover the value for old users
+        showOnlyFirstLevelReplies: storedSettings.showOnlyFirstLevelReplies ?? false, // default to false for existing users
+        hideShortNotes: storedSettings.hideShortNotes ?? false // default to false for existing users
+      }
+    }
+    return createDefaultSettings(timeFrameOptions)
+  })
+
+  return (
+    <FeedContext.Provider
+      value={{
+        feedInfo,
+        relayUrls,
+        isReady,
+        switchFeed,
+        settings,
+        updateSettings,
+        resetSettings,
+        timeFrameOptions
+      }}
+    >
+      {children}
+    </FeedContext.Provider>
+  )
+
+  async function switchFeed(
     feedType: TFeedType,
     options: {
       activeRelaySetId?: string | null
       pubkey?: string | null
       relay?: string | null
     } = {}
-  ) => {
+  ) {
     setIsReady(false)
 
     if (feedType === 'relay') {
@@ -142,16 +250,16 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
     setIsReady(true)
   }
 
-  return (
-    <FeedContext.Provider
-      value={{
-        feedInfo,
-        relayUrls,
-        isReady,
-        switchFeed
-      }}
-    >
-      {children}
-    </FeedContext.Provider>
-  )
+  function updateSettings(newSettings: Partial<TFeedSettings>) {
+    const updated = { ...settings, ...newSettings }
+    setSettings(updated)
+    storage.setFeedSettings(updated)
+  }
+
+  function resetSettings(): TFeedSettings {
+    const defaultSettings = createDefaultSettings(timeFrameOptions)
+    setSettings(defaultSettings)
+    storage.setFeedSettings(defaultSettings)
+    return defaultSettings
+  }
 }
