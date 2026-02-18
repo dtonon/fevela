@@ -32,6 +32,14 @@ export function end() {
   outbox.close()
 }
 
+let liveTargets: string[] = []
+
+export function restart() {
+  if (!liveTargets.length) return
+  outbox.close()
+  outbox.live(liveTargets, { signal: undefined })
+}
+
 export const current: {
   onsync: Array<(pubkey?: string) => void>
   onnew: Array<(event: NostrEvent) => void>
@@ -69,6 +77,7 @@ export async function start(account: string, followings: string[], signal: Abort
   ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
 
   const targets = [account, ...followings]
+  liveTargets = targets
   startedListeners.forEach((cb) => cb(targets.length))
 
   if (0 === (await store.queryEvents({}, 1)).length) {

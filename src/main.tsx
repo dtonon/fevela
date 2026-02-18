@@ -3,6 +3,7 @@ import './index.css'
 import './polyfill'
 import './services/lightning.service'
 import './window'
+import { restart } from './services/outbox.service'
 
 import { createRoot } from 'react-dom/client'
 import { initNostrWasm } from 'nostr-wasm/gzipped'
@@ -31,6 +32,25 @@ initNostrWasm()
       const urls = pool.pruneIdleRelays()
       if (urls.length > 0) console.log(':: closed idle relays', urls)
     }, 25_000)
+
+    window.addEventListener('online', () => {
+      console.log(':: network restored, restarting relay subscriptions')
+      restart()
+    })
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && pool.relays.size > 0) {
+        // Wait for WebSocket close events to propagate before checking state.
+        // After a tab switch relays stay connected, so this is a no-op.
+        // After sleep the OS closes TCP connections and all relays show disconnected.
+        setTimeout(() => {
+          if (Array.from(pool.relays.values()).every((r) => !r.connected)) {
+            console.log(':: all relays disconnected after wakeup, restarting')
+            restart()
+          }
+        }, 2000)
+      }
+    })
 
     createRoot(document.getElementById('root')!).render(
       <ErrorBoundary>
