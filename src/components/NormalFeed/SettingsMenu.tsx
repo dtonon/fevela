@@ -286,7 +286,7 @@ export default function SettingsMenu({
   ): Omit<TFeedSettings, 'wordFilter'> & { wordFilter: string } {
     return {
       ...settings,
-      wordFilter: [...settings.wordFilter, ''].join(', ')
+      wordFilter: [...settings.wordFilter].join(', ')
     }
   }
 }
