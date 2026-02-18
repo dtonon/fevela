@@ -1,5 +1,4 @@
 import {
-  DEFAULT_NIP_96_SERVICE,
   ExtendedKind,
   LINK_PREVIEW_MODE,
   MEDIA_AUTO_LOAD_POLICY,
@@ -17,7 +16,6 @@ import {
   TFeedInfo,
   TLinkPreviewMode,
   TMediaAutoLoadPolicy,
-  TMediaUploadServiceConfig,
   TNotificationStyle,
   TRelaySet,
   TThemeSetting,
@@ -36,13 +34,12 @@ class LocalStorageService {
   private defaultZapComment: string = 'Zap!'
   private quickZap: boolean = false
   private accountFeedInfoMap: Record<string, TFeedInfo | undefined> = {}
-  private mediaUploadService: string = DEFAULT_NIP_96_SERVICE
+
   private autoplay: boolean = true
   private hideUntrustedInteractions: boolean = false
   private hideUntrustedNotifications: boolean = false
   private hideUntrustedNotes: boolean = false
   private translationServiceConfigMap: Record<string, TTranslationServiceConfig> = {}
-  private mediaUploadServiceConfigMap: Record<string, TMediaUploadServiceConfig> = {}
   private defaultShowNsfw: boolean = false
   private dismissedTooManyRelaysAlert: boolean = false
   private showKinds: number[] = []
@@ -139,13 +136,6 @@ class LocalStorageService {
     )
     if (translationServiceConfigMapStr) {
       this.translationServiceConfigMap = JSON.parse(translationServiceConfigMapStr)
-    }
-
-    const mediaUploadServiceConfigMapStr = window.localStorage.getItem(
-      StorageKey.MEDIA_UPLOAD_SERVICE_CONFIG_MAP
-    )
-    if (mediaUploadServiceConfigMapStr) {
-      this.mediaUploadServiceConfigMap = JSON.parse(mediaUploadServiceConfigMapStr)
     }
 
     this.defaultShowNsfw = window.localStorage.getItem(StorageKey.DEFAULT_SHOW_NSFW) === 'true'
@@ -403,26 +393,6 @@ class LocalStorageService {
       StorageKey.TRANSLATION_SERVICE_CONFIG_MAP,
       JSON.stringify(this.translationServiceConfigMap)
     )
-  }
-
-  getMediaUploadServiceConfig(pubkey?: string | null): TMediaUploadServiceConfig {
-    const defaultConfig = { type: 'nip96', service: this.mediaUploadService } as const
-    if (!pubkey) {
-      return defaultConfig
-    }
-    return this.mediaUploadServiceConfigMap[pubkey] ?? defaultConfig
-  }
-
-  setMediaUploadServiceConfig(
-    pubkey: string,
-    config: TMediaUploadServiceConfig
-  ): TMediaUploadServiceConfig {
-    this.mediaUploadServiceConfigMap[pubkey] = config
-    window.localStorage.setItem(
-      StorageKey.MEDIA_UPLOAD_SERVICE_CONFIG_MAP,
-      JSON.stringify(this.mediaUploadServiceConfigMap)
-    )
-    return config
   }
 
   getDefaultShowNsfw() {

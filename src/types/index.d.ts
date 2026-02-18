@@ -150,15 +150,6 @@ export type TTranslationServiceConfig =
       api_key?: string
     }
 
-export type TMediaUploadServiceConfig =
-  | {
-      type: 'nip96'
-      service: string
-    }
-  | {
-      type: 'blossom'
-    }
-
 export type TPollType = (typeof POLL_TYPE)[keyof typeof POLL_TYPE]
 
 export type TPollCreateData = {
