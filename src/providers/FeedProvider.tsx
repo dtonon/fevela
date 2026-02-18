@@ -150,7 +150,14 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         groupedTimeframe, // use the one with current translations
         groupedShowPreview: storedSettings.groupedShowPreview ?? true, // default to true for existing users
         groupedSortByRelevance: storedSettings.groupedSortByRelevance ?? false, // default to false for existing users
-        wordFilter: storedSettings.wordFilter ?? '', // default to empty for existing users
+        wordFilter: Array.isArray(storedSettings.wordFilter)
+          ? storedSettings.wordFilter
+          : typeof storedSettings.wordFilter === 'string' && storedSettings.wordFilter
+            ? storedSettings.wordFilter
+                .split(',')
+                .map((v) => v.trim())
+                .filter(Boolean)
+            : [], // try to recover the value for old users
         showOnlyFirstLevelReplies: storedSettings.showOnlyFirstLevelReplies ?? false, // default to false for existing users
         hideShortNotes: storedSettings.hideShortNotes ?? false // default to false for existing users
       }
