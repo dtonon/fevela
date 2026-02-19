@@ -22,7 +22,8 @@ initNostrWasm()
   .then((nw) => {
     setNostrWasm(nw)
     setPool(
-      new AbstractSimplePool({ verifyEvent, enableReconnect: true, maxWaitForConnection: 3000 })
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      new AbstractSimplePool({ verifyEvent, enableReconnect: true, maxWaitForConnection: 3000 }) as any
     )
     pool.trackRelays = true
     setReplaceableStore(store)
@@ -39,12 +40,14 @@ initNostrWasm()
     })
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible' && pool.relays.size > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const relays = (pool as any).relays as Map<string, { connected: boolean }>
+      if (document.visibilityState === 'visible' && relays.size > 0) {
         // Wait for WebSocket close events to propagate before checking state.
         // After a tab switch relays stay connected, so this is a no-op.
         // After sleep the OS closes TCP connections and all relays show disconnected.
         setTimeout(() => {
-          if (Array.from(pool.relays.values()).every((r) => !r.connected)) {
+          if (Array.from(relays.values()).every((r) => !r.connected)) {
             console.log(':: all relays disconnected after wakeup, restarting')
             restart()
           }

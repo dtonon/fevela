@@ -8,7 +8,9 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@jsr/nostr__tools": ["./node_modules/@nostr/tools"],
+      "@jsr/nostr__tools/*": ["./node_modules/@nostr/tools/*"]
     },
 
     /* Bundler mode */

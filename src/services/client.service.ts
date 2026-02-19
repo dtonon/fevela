@@ -160,7 +160,8 @@ class ClientService extends EventTarget {
                 !!that.signer
               ) {
                 return relay
-                  .auth((authEvt: EventTemplate) => that.signer!.signEvent(authEvt))
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  .auth(((authEvt: EventTemplate) => that.signer!.signEvent(authEvt)) as any)
                   .then(() => relay.publish(event))
               } else {
                 errors.push({ url, error })
@@ -366,7 +367,7 @@ class ClientService extends EventTarget {
                   resolve(events)
                   events = []
                 },
-                onauth: (async (authEvt) => {
+                onauth: (async (authEvt: EventTemplate) => {
                   // already logged in
                   if (this.signer) {
                     const evt = await this.signer!.signEvent(authEvt)
@@ -384,7 +385,8 @@ class ClientService extends EventTarget {
                   throw new Error(
                     "<not logged in, can't auth to relay during this.subscribeTimeline>"
                   )
-                }) as (event: EventTemplate) => Promise<VerifiedEvent>,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                }) as any,
                 onclose(reasons) {
                   if (onClose) {
                     for (let i = 0; i < reasons.length; i++) {
@@ -552,7 +554,8 @@ class ClientService extends EventTarget {
                 onclose() {
                   resolve(events)
                 },
-                onauth: (async (authEvt) => {
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                onauth: (async (authEvt: EventTemplate) => {
                   // already logged in
                   if (this.signer) {
                     const evt = await this.signer!.signEvent(authEvt)
@@ -571,7 +574,7 @@ class ClientService extends EventTarget {
                   throw new Error(
                     "<not logged in, can't auth to relay during this.loadMoreTimeline>"
                   )
-                }) as (event: EventTemplate) => Promise<VerifiedEvent>
+                }) as any
               }
             )
           })
@@ -636,11 +639,14 @@ class ClientService extends EventTarget {
     return this.getSeenEventRelayUrls(eventId, event).find((url) => !isLocalNetworkUrl(url)) ?? ''
   }
 
-  trackEventSeenOn(eventId: string, relay: AbstractRelay) {
-    let set = pool.seenOn.get(eventId)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  trackEventSeenOn(eventId: string, relay: any) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const seenOn = pool.seenOn as Map<string, Set<any>>
+    let set = seenOn.get(eventId)
     if (!set) {
       set = new Set()
-      pool.seenOn.set(eventId, set)
+      seenOn.set(eventId, set)
     }
     set.add(relay)
   }
@@ -662,7 +668,8 @@ class ClientService extends EventTarget {
       pool.subscribeEose(relays, filter, {
         label: 'f-fetch-events',
         maxWait: 10_000,
-        onauth: (async (authEvt) => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        onauth: (async (authEvt: EventTemplate) => {
           if (this.signer) {
             const evt = await this.signer!.signEvent(authEvt)
             if (!evt) {
@@ -672,7 +679,7 @@ class ClientService extends EventTarget {
           }
 
           throw new Error("<not logged in, can't auth to relay during this.fetchEvents>")
-        }) as (event: EventTemplate) => Promise<VerifiedEvent>,
+        }) as any,
         onevent: (event: NostrEvent) => {
           events.push(event)
           if (cache) {

@@ -153,7 +153,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         wordFilter: Array.isArray(storedSettings.wordFilter)
           ? storedSettings.wordFilter
           : typeof storedSettings.wordFilter === 'string' && storedSettings.wordFilter
-            ? storedSettings.wordFilter
+            ? (storedSettings.wordFilter as unknown as string)
                 .split(',')
                 .map((v) => v.trim())
                 .filter(Boolean)
