@@ -5,7 +5,8 @@ import { LRUCache } from 'lru-cache'
 import { Event, NostrEvent, UnsignedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
-import { fastEventHash, getPow } from '@nostr/tools/nip13'
+import { getPow } from '@nostr/tools/nip13'
+import { getEventHash } from '@nostr/tools/pure'
 import {
   generateBech32IdFromATag,
   generateBech32IdFromETag,
@@ -351,7 +352,7 @@ export async function minePow(
         }
 
         tag[1] = (++count).toString()
-        event.id = fastEventHash(event)
+        event.id = getEventHash(event)
 
         if (getPow(event.id) >= difficulty) {
           resolve(event)
