@@ -61,6 +61,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         if (notification.created_at <= notificationsSeenAt) {
           break
         }
+        if (notification.pubkey === pubkey) {
+          continue
+        }
         if (
           !notificationFilter(notification, {
             pubkey,
