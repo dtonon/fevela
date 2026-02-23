@@ -33,7 +33,10 @@ export const useNotification = () => {
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { current } = usePrimaryPage()
-  const active = useMemo(() => current === 'notifications', [current])
+  const active = useMemo(
+    () => current === 'notifications' || current === 'conversations',
+    [current]
+  )
   const { pubkey, notificationsSeenAt, updateNotificationsSeenAt } = useNostr()
   const { hideUntrustedNotifications, isUserTrusted } = useUserTrust()
   const { mutePubkeySet } = useMuteList()
