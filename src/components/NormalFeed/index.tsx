@@ -72,15 +72,17 @@ export default function NormalFeed({
                   </svg>
                 </span>
 
-                <Input
-                  type="text"
-                  placeholder={t('GroupedNotesFilter')}
-                  value={userFilter}
-                  onChange={(e) => setUserFilter(e.target.value)}
-                  showClearButton={true}
-                  onClear={() => setUserFilter('')}
-                  className="h-9 shadow-none max-w-36 border-none bg-transparent focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
-                />
+                <div className="relative">
+                  <Input
+                    type="text"
+                    placeholder={t('GroupedNotesFilter')}
+                    value={userFilter}
+                    onChange={(e) => setUserFilter(e.target.value)}
+                    showClearButton={true}
+                    onClear={() => setUserFilter('')}
+                    className="h-9 shadow-none max-w-36 border-none bg-transparent focus:outline-none focus-visible:outline-none focus-visible:ring-0 placeholder:text-muted-foreground"
+                  />
+                </div>
               </>
             )}
             {!supportTouch && <RefreshButton onClick={() => noteListRef.current?.refresh()} />}
