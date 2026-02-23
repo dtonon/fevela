@@ -33,7 +33,10 @@ export const useNotification = () => {
 
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
   const { current } = usePrimaryPage()
-  const active = useMemo(() => current === 'notifications', [current])
+  const active = useMemo(
+    () => current === 'notifications' || current === 'conversations',
+    [current]
+  )
   const { pubkey, notificationsSeenAt, updateNotificationsSeenAt } = useNostr()
   const { hideUntrustedNotifications, isUserTrusted } = useUserTrust()
   const { mutePubkeySet } = useMuteList()
@@ -57,6 +60,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
       for (const notification of newNotifications) {
         if (notification.created_at <= notificationsSeenAt) {
           break
+        }
+        if (notification.pubkey === pubkey) {
+          continue
         }
         if (
           !notificationFilter(notification, {

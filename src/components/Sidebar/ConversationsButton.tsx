@@ -1,7 +1,7 @@
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
 import { useNotification } from '@/providers/NotificationProvider'
-import { Bell } from 'lucide-react'
+import { MessageSquare } from 'lucide-react'
 import SidebarItem from './SidebarItem'
 
 export default function ConversationsButton({ collapse }: { collapse: boolean }) {
@@ -17,7 +17,7 @@ export default function ConversationsButton({ collapse }: { collapse: boolean })
       collapse={collapse}
     >
       <div className="relative">
-        <Bell />
+        <MessageSquare />
         {hasNewConversation && (
           <div className="absolute -top-1 right-0 w-2 h-2 ring-2 ring-background bg-primary rounded-full" />
         )}
