@@ -1,7 +1,6 @@
-import { userIdToPubkey } from '@/lib/pubkey'
 import { useNostr } from '@/providers/NostrProvider'
 import client from '@/services/client.service'
-import { NostrUser } from '@nostr/gadgets/metadata'
+import { bareNostrUser, NostrUser } from '@nostr/gadgets/metadata'
 import { useEffect, useState } from 'react'
 
 export function useFetchProfile(input?: string) {
@@ -9,56 +8,35 @@ export function useFetchProfile(input?: string) {
   const [isFetching, setIsFetching] = useState(true)
   const [error, setError] = useState<Error | null>(null)
   const [profile, setProfile] = useState<NostrUser | null>(null)
-  const [pubkey, setPubkey] = useState<string | null>(null)
 
-  // fetch immediately
   useEffect(() => {
     setProfile(null)
-    setPubkey(null)
+
+    if (!input) {
+      setIsFetching(false)
+      setError(new Error('No input provided'))
+      return
+    }
+
+    const bare = bareNostrUser(input)
+
+    if (currentAccountProfile && bare.pubkey === currentAccountProfile.pubkey) {
+      setProfile(currentAccountProfile)
+      return
+    }
+
+    setIsFetching(true)
     ;(async () => {
-      setIsFetching(true)
       try {
-        if (!input) {
-          setIsFetching(false)
-          setError(new Error('No input provided'))
-          return
-        }
-
-        const pubkey = userIdToPubkey(input)
-        setPubkey(pubkey)
         const profile = await client.fetchProfile(input)
-        if (profile) {
-          setProfile(profile)
-        }
-
-        // subscribe to profile updates when we don't get any good data
-        if (Object.keys(profile.metadata).length == 0) {
-          client.addEventListener('profileFetched:' + pubkey, handleProfileFetched)
-        }
+        if (profile) setProfile(profile)
       } catch (err) {
         setError(err as Error)
       } finally {
         setIsFetching(false)
       }
     })()
-
-    function handleProfileFetched(event: Event) {
-      const customEvent = event as CustomEvent<NostrUser>
-      const fetchedProfile = customEvent.detail
-      setProfile(fetchedProfile)
-      client.removeEventListener('profileFetched:' + pubkey, handleProfileFetched)
-    }
-
-    return () => {
-      client.removeEventListener('profileFetched:' + pubkey, handleProfileFetched)
-    }
   }, [input])
-
-  useEffect(() => {
-    if (currentAccountProfile && pubkey === currentAccountProfile.pubkey) {
-      setProfile(currentAccountProfile)
-    }
-  }, [currentAccountProfile, pubkey])
 
   return { isFetching, error, profile }
 }

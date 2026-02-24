@@ -1,16 +1,11 @@
-import { userIdToPubkey } from '@/lib/pubkey'
 import { useFollowList } from '@/providers/FollowListProvider'
 import { UserRoundCheck } from 'lucide-react'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
-export default function FollowingBadge({ pubkey, userId }: { pubkey?: string; userId?: string }) {
+export default function FollowingBadge({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { followList } = useFollowList()
-  const isFollowing = useMemo(() => {
-    if (pubkey) return followList.includes(pubkey)
-    return userId ? followList.includes(userIdToPubkey(userId)) : false
-  }, [followList, pubkey, userId])
+  const isFollowing = followList.includes(pubkey)
 
   if (!isFollowing) return null
 

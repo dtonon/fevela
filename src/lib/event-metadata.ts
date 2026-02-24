@@ -1,13 +1,10 @@
-import { npubEncode } from '@nostr/tools/nip19'
 import { BIG_RELAY_URLS, DEFAULT_RELAY_LIST, POLL_TYPE } from '@/constants'
 import { TPollType, TRelayList } from '@/types'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { getSatoshisAmountFromBolt11 } from '@nostr/tools/nip57'
-import { getLightningAddressFromProfile } from './lightning'
-import { formatPubkey } from './pubkey'
 import { generateBech32IdFromETag, tagNameEquals } from './tag'
-import { isWebsocketUrl, normalizeHttpUrl, normalizeUrl } from './url'
+import { isWebsocketUrl, normalizeUrl } from './url'
 import { isTorBrowser } from './utils'
 import { NostrUser } from '@nostr/gadgets/metadata'
 import { RelayItem } from '@nostr/gadgets/lists'
@@ -54,38 +51,6 @@ export function buildRelayList(items: RelayItem[]) {
 export function username(profile: NostrUser): string {
   const { name, display_name, nip05, website } = profile.metadata || {}
   return name || display_name || nip05?.split?.('@')?.[0] || website, profile?.shortName
-}
-
-export function getProfileFromEvent(event: Event) {
-  try {
-    const profileObj = JSON.parse(event.content)
-    const username =
-      profileObj.display_name?.trim() ||
-      profileObj.name?.trim() ||
-      profileObj.nip05?.split('@')[0]?.trim()
-    return {
-      pubkey: event.pubkey,
-      npub: npubEncode(event.pubkey),
-      banner: profileObj.banner,
-      avatar: profileObj.picture,
-      username: username || formatPubkey(event.pubkey),
-      original_username: username,
-      nip05: profileObj.nip05,
-      about: profileObj.about,
-      website: profileObj.website ? normalizeHttpUrl(profileObj.website) : undefined,
-      lud06: profileObj.lud06,
-      lud16: profileObj.lud16,
-      lightningAddress: getLightningAddressFromProfile(profileObj),
-      created_at: event.created_at
-    }
-  } catch (err) {
-    console.error(event.content, err)
-    return {
-      pubkey: event.pubkey,
-      npub: npubEncode(event.pubkey),
-      username: formatPubkey(event.pubkey)
-    }
-  }
 }
 
 export function getZapInfoFromEvent(receiptEvent: Event) {

@@ -1,14 +1,16 @@
+import { useState } from 'react'
+import { npubEncode } from '@nostr/tools/nip19'
+
 import { Button } from '@/components/ui/button'
 import { isSameAccount } from '@/lib/account'
-import { formatPubkey } from '@/lib/pubkey'
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { TAccountPointer } from '@/types'
 import { Loader, Trash2 } from 'lucide-react'
-import { useState } from 'react'
 import SignerTypeBadge from '../SignerTypeBadge'
 import { SimpleUserAvatar } from '../UserAvatar'
 import { SimpleUsername } from '../Username'
+import { formatNpub } from '@/lib/pubkey'
 
 export default function AccountList({
   className,
@@ -43,7 +45,7 @@ export default function AccountList({
               <div className="flex-1 w-0">
                 <SimpleUsername userId={act.pubkey} className="font-semibold truncate" />
                 <div className="text-sm rounded-full bg-muted px-2 w-fit">
-                  {formatPubkey(act.pubkey)}
+                  {formatNpub(npubEncode(act.pubkey))}
                 </div>
               </div>
             </div>

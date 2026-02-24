@@ -3,10 +3,9 @@ import Nip05 from '@/components/Nip05'
 import UserAvatar from '@/components/UserAvatar'
 import Username from '@/components/Username'
 import { Skeleton } from '@/components/ui/skeleton'
-import { userIdToPubkey } from '@/lib/pubkey'
 import { cn } from '@/lib/utils'
-import { useMemo } from 'react'
 import FollowingBadge from '../FollowingBadge'
+import { useFetchProfile } from '@/hooks'
 
 export default function UserItem({
   userId,
@@ -19,7 +18,9 @@ export default function UserItem({
   showFollowingBadge?: boolean
   className?: string
 }) {
-  const pubkey = useMemo(() => userIdToPubkey(userId), [userId])
+  const { profile } = useFetchProfile(userId)
+
+  if (!profile) return null
 
   return (
     <div className={cn('flex gap-2 items-center h-14', className)}>
@@ -31,7 +32,7 @@ export default function UserItem({
             className="font-semibold truncate max-w-full w-fit"
             skeletonClassName="h-4"
           />
-          {showFollowingBadge && <FollowingBadge pubkey={pubkey} />}
+          {showFollowingBadge && <FollowingBadge pubkey={profile.pubkey} />}
         </div>
         <Nip05 pubkey={userId} />
       </div>

@@ -9,9 +9,7 @@ const RelaySettingsPage = forwardRef(({ id, index }: { id?: string; index?: numb
   const { t } = useTranslation()
   const { profile } = useFetchProfile(id)
 
-  if (!id || !profile) {
-    return null
-  }
+  if (!id || !profile) return null
 
   return (
     <SecondaryPageLayout
@@ -20,7 +18,7 @@ const RelaySettingsPage = forwardRef(({ id, index }: { id?: string; index?: numb
       title={t("username's used relays", { username: username(profile) })}
     >
       <div className="px-4 pt-3">
-        <OthersRelayList userId={id} />
+        <OthersRelayList pubkey={profile.pubkey} />
       </div>
     </SecondaryPageLayout>
   )
