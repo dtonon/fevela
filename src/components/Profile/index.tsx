@@ -32,7 +32,7 @@ import { normalizeHttpUrl } from '@/lib/url'
 export default function Profile({ id }: { id?: string }) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
-  const { profile, isFetching } = useFetchProfile(id)
+  const { profile } = useFetchProfile(id)
   const { pubkey: accountPubkey } = useNostr()
   const { mutePubkeySet } = useMuteList()
   const [searchInput, setSearchInput] = useState('')
@@ -91,7 +91,7 @@ export default function Profile({ id }: { id?: string }) {
     }
   }, [topContainer])
 
-  if (!profile && isFetching) {
+  if (!profile) {
     return (
       <>
         {displayTopSection && (

@@ -1,11 +1,4 @@
-import { npubEncode } from '@nostr/tools/nip19'
 import { LRUCache } from 'lru-cache'
-import * as nip19 from '@nostr/tools/nip19'
-
-export function formatPubkey(pubkey: string) {
-  const npub = npubEncode(pubkey)
-  return formatNpub(npub)
-}
 
 export function formatNpub(npub: string, length = 12) {
   if (length < 12) {
@@ -19,29 +12,6 @@ export function formatNpub(npub: string, length = 12) {
   const prefixLength = Math.floor((length - 5) / 2) + 5
   const suffixLength = length - prefixLength
   return npub.slice(0, prefixLength) + '...' + npub.slice(-suffixLength)
-}
-
-export function formatUserId(userId: string) {
-  if (userId.startsWith('npub1')) {
-    return formatNpub(userId)
-  }
-  return formatPubkey(userId)
-}
-
-export function userIdToPubkey(userId: string) {
-  if (userId.startsWith('npub1') || userId.startsWith('nprofile1')) {
-    try {
-      const { type, data } = nip19.decode(userId)
-      if (type === 'npub') {
-        return data
-      } else if (type === 'nprofile') {
-        return data.pubkey
-      }
-    } catch (error) {
-      console.warn('Error decoding userId:', userId, 'error:', error)
-    }
-  }
-  return userId
 }
 
 export function isValidPubkey(pubkey: string) {

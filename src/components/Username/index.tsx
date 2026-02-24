@@ -21,7 +21,7 @@ export default function Username({
   withoutSkeleton?: boolean
 }) {
   const { profile, isFetching } = useFetchProfile(userId)
-  if (!profile && isFetching && !withoutSkeleton) {
+  if (isFetching && !withoutSkeleton) {
     return (
       <div className="py-1">
         <Skeleton className={cn('w-16', skeletonClassName)} />
@@ -70,7 +70,7 @@ export function SimpleUsername({
     providedProfile ? undefined : userId
   )
   const profile = providedProfile || fetchedProfile
-  if (!profile && isFetching && !withoutSkeleton) {
+  if (isFetching && !withoutSkeleton) {
     return (
       <div className="py-1">
         <Skeleton className={cn('w-16', skeletonClassName)} />

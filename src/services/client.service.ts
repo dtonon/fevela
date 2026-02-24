@@ -160,7 +160,7 @@ class ClientService extends EventTarget {
                 !!that.signer
               ) {
                 return relay
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                   .auth(((authEvt: EventTemplate) => that.signer!.signEvent(authEvt)) as any)
                   .then(() => relay.publish(event))
               } else {
@@ -385,7 +385,6 @@ class ClientService extends EventTarget {
                   throw new Error(
                     "<not logged in, can't auth to relay during this.subscribeTimeline>"
                   )
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 }) as any,
                 onclose(reasons) {
                   if (onClose) {
@@ -554,7 +553,7 @@ class ClientService extends EventTarget {
                 onclose() {
                   resolve(events)
                 },
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
                 onauth: (async (authEvt: EventTemplate) => {
                   // already logged in
                   if (this.signer) {
@@ -639,9 +638,7 @@ class ClientService extends EventTarget {
     return this.getSeenEventRelayUrls(eventId, event).find((url) => !isLocalNetworkUrl(url)) ?? ''
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   trackEventSeenOn(eventId: string, relay: any) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const seenOn = pool.seenOn as Map<string, Set<any>>
     let set = seenOn.get(eventId)
     if (!set) {
@@ -668,7 +665,7 @@ class ClientService extends EventTarget {
       pool.subscribeEose(relays, filter, {
         label: 'f-fetch-events',
         maxWait: 10_000,
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+
         onauth: (async (authEvt: EventTemplate) => {
           if (this.signer) {
             const evt = await this.signer!.signEvent(authEvt)
@@ -890,9 +887,6 @@ class ClientService extends EventTarget {
       req!.refreshStyle = true
     }
     const profile = await loadNostrUser(req!)
-
-    // emit event for profile updates
-    this.dispatchEvent(new CustomEvent('profileFetched:' + profile.pubkey, { detail: profile }))
 
     // index for autocomplete and search
     this.addUsernameToIndex(profile)

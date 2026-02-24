@@ -2,15 +2,12 @@ import { useSecondaryPage } from '@/PageManager'
 import { Badge } from '@/components/ui/badge'
 import { useFetchRelayInfo, useFetchRelayList } from '@/hooks'
 import { toRelay } from '@/lib/link'
-import { userIdToPubkey } from '@/lib/pubkey'
 import { TMailboxRelay } from '@/types'
-import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelaySimpleInfo from '../RelaySimpleInfo'
 
-export default function OthersRelayList({ userId }: { userId: string }) {
+export default function OthersRelayList({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
-  const pubkey = useMemo(() => userIdToPubkey(userId), [userId])
   const { relayList, isFetching } = useFetchRelayList(pubkey)
 
   if (isFetching) {
