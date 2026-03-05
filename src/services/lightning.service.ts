@@ -1,4 +1,4 @@
-import { BIG_RELAY_URLS, DEV_PUBKEY, FEVELA_PUBKEY } from '@/constants'
+import { DEV_PUBKEY, FEVELA_PUBKEY } from '@/constants'
 import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { init, launchPaymentModal } from '@getalby/bitcoin-connect-react'
 import { bech32 } from '@scure/base'
@@ -55,7 +55,10 @@ class LightningService {
       client.fetchRelayList(recipient),
       sender
         ? client.fetchRelayList(sender)
-        : Promise.resolve({ read: BIG_RELAY_URLS, write: BIG_RELAY_URLS })
+        : Promise.resolve({
+            read: window.fevela.universe.bigRelayUrls,
+            write: window.fevela.universe.bigRelayUrls
+          })
     ])
     if (!profile) {
       throw new Error('Recipient not found')
@@ -72,7 +75,7 @@ class LightningService {
       relays: receiptRelayList.read
         .slice(0, 4)
         .concat(senderRelayList.write.slice(0, 3))
-        .concat(BIG_RELAY_URLS),
+        .concat(window.fevela.universe.bigRelayUrls),
       comment
     })
     const zapRequest = await client.signer.signEvent(zapRequestDraft)
@@ -121,17 +124,21 @@ class LightningService {
       if (event) {
         filter['#e'] = [event.id]
       }
-      subCloser = pool.subscribe(senderRelayList.write.concat(BIG_RELAY_URLS).slice(0, 4), filter, {
-        label: 'f-zap',
-        onevent: (evt) => {
-          const info = getZapInfoFromEvent(evt)
-          if (!info) return
+      subCloser = pool.subscribe(
+        senderRelayList.write.concat(window.fevela.universe.bigRelayUrls).slice(0, 4),
+        filter,
+        {
+          label: 'f-zap',
+          onevent: (evt) => {
+            const info = getZapInfoFromEvent(evt)
+            if (!info) return
 
-          if (info.invoice === pr) {
-            setPaid({ preimage: info.preimage ?? '' })
+            if (info.invoice === pr) {
+              setPaid({ preimage: info.preimage ?? '' })
+            }
           }
         }
-      })
+      )
     })
   }
 

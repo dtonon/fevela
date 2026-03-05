@@ -2,24 +2,6 @@ import * as kinds from '@nostr/tools/kinds'
 
 export const FEVELA_API_BASE_URL = 'https://api.jumble.social'
 
-export const DEFAULT_FAVORITE_RELAYS = [
-  'wss://nostr.wine/',
-  'wss://pyramid.fiatjaf.com/',
-  'wss://relays.land/spatianostra/',
-  'wss://theforest.nostr1.com/',
-  'wss://algo.utxo.one/',
-  'wss://140.f7z.io/',
-  'wss://news.utxo.one/'
-]
-
-export const RECOMMENDED_RELAYS = DEFAULT_FAVORITE_RELAYS.concat(['wss://yabu.me/'])
-
-export const RECOMMENDED_BLOSSOM_SERVERS = [
-  'https://blossom.band/',
-  'https://blossom.primal.net/',
-  'https://nostr.media/'
-]
-
 export const StorageKey = {
   VERSION: 'version',
   THEME_SETTING: 'themeSetting',
@@ -57,18 +39,6 @@ export const StorageKey = {
 
 export const ApplicationDataKey = {
   NOTIFICATIONS_SEEN_AT: 'seen_notifications_at'
-}
-
-export const BIG_RELAY_URLS = ['wss://relay.damus.io/', 'wss://relay.primal.net/', 'wss://nos.lol/']
-
-export const SEARCHABLE_RELAY_URLS = ['wss://relay.nostr.band/', 'wss://search.nos.today/']
-
-export const GROUP_METADATA_EVENT_KIND = 39000
-
-export const DEFAULT_RELAY_LIST = {
-  write: BIG_RELAY_URLS,
-  read: BIG_RELAY_URLS,
-  originalRelays: []
 }
 
 export const ExtendedKind = {
