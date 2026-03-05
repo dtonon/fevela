@@ -83,6 +83,8 @@ const NoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
+        if (wordsInEvent(feedSettings.wordFilter, evt)) return true
+        if (feedSettings.hideShortNotes && !isLongNote(evt)) return true
         if (pinnedEventIds && pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
         if (hideReplies && isReplyNoteEvent(evt)) return true
@@ -113,20 +115,6 @@ const NoteList = forwardRef(
       ]
     )
 
-    function shouldHideEventForFilters(evt: Event, wordFilter: string[], hideShortNotes: boolean) {
-      // word filter (content and hashtags)
-      if (wordsInEvent(wordFilter, evt)) {
-        return true
-      }
-
-      // hide short notes
-      if (hideShortNotes) {
-        if (!isLongNote(evt)) return false
-      }
-
-      return false
-    }
-
     const filteredEvents = useMemo(() => {
       const repostersMap = new Map<string, string[]>()
       const filteredEvents: { event: NostrEvent; reposters: string[] }[] = []
@@ -138,8 +126,6 @@ const NoteList = forwardRef(
         const event = events[i]
 
         if (shouldHideEvent(event)) continue
-        if (shouldHideEventForFilters(event, feedSettings.wordFilter, feedSettings.hideShortNotes))
-          continue
 
         if (event.kind !== kinds.Repost) {
           // for all events just stop processing here, this is it
@@ -162,14 +148,6 @@ const NoteList = forwardRef(
           reposters = []
 
           if (shouldHideEvent(eventFromContent)) continue
-          if (
-            shouldHideEventForFilters(
-              eventFromContent,
-              feedSettings.wordFilter,
-              feedSettings.hideShortNotes
-            )
-          )
-            continue
           if (!verifyEvent(eventFromContent)) continue
 
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
@@ -191,14 +169,7 @@ const NoteList = forwardRef(
       }
 
       return filteredEvents
-    }, [
-      events,
-      showCount,
-      shouldHideEvent,
-      shouldHideEventForFilters,
-      isFilteredView,
-      feedSettings
-    ])
+    }, [events, showCount, shouldHideEvent, isFilteredView, feedSettings])
 
     const scrollToTop = (behavior: ScrollBehavior = 'instant') => {
       setTimeout(() => {
@@ -272,6 +243,8 @@ const NoteList = forwardRef(
                 for (let i = 0; i < newEvents.length; i++) {
                   const newEvent = newEvents[i]
 
+                  if (shouldHideEvent(newEvent)) continue
+
                   // TODO: figure out where exactly the viewport is: for now just assume it's at the top
                   if (events.length < 7 || newEvent.created_at < events[6].created_at) {
                     // if there are very few events in the viewport or the new events would be inserted below, just append
@@ -332,7 +305,7 @@ const NoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds])
+    }, [subRequests, refreshCount, showKinds, shouldHideEvent])
 
     const loadMore = useCallback(async () => {
       setEvents((events) => {
