@@ -73,7 +73,12 @@ class ClientService extends EventTarget {
 
   async determineTargetRelays(
     event: NostrEvent,
-    { specifiedRelayUrls, additionalRelayUrls }: TPublishOptions = {}
+    {
+      specifiedRelayUrls,
+      additionalRelayUrls,
+      includeOurWriteRelays = true,
+      includeTheirReadRelays = true
+    }: TPublishOptions = {}
   ) {
     if (event.kind === kinds.Report) {
       const targetEventId = event.tags.find(tagNameEquals('e'))?.[1]
@@ -88,7 +93,7 @@ class ClientService extends EventTarget {
     } else {
       const _additionalRelayUrls: string[] = additionalRelayUrls ?? []
       if (
-        !specifiedRelayUrls?.length &&
+        includeTheirReadRelays &&
         event.kind !== kinds.Contacts &&
         event.kind !== kinds.Mutelist
       ) {
@@ -122,10 +127,10 @@ class ClientService extends EventTarget {
         _additionalRelayUrls.push(...BIG_RELAY_URLS)
       }
 
-      const relayList = await this.fetchRelayList(event.pubkey)
-      relays = (relayList?.write.slice(0, 10) ?? []).concat(
-        Array.from(new Set(_additionalRelayUrls)) ?? []
-      )
+      const ourWriteRelayUrls = includeOurWriteRelays
+        ? ((await this.fetchRelayList(event.pubkey))?.write.slice(0, 10) ?? [])
+        : []
+      relays = ourWriteRelayUrls.concat(Array.from(new Set(_additionalRelayUrls)) ?? [])
     }
 
     if (!relays.length) {

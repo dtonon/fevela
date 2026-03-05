@@ -418,6 +418,13 @@ export default {
     'Reviews for {{relay}}': 'Reviews for {{relay}}',
     'No relays selected': 'No relays selected',
     'Post to': 'Post to',
+    'Our write relays': 'Our write relays',
+    'Their read relays': 'Their read relays',
+    'Our write relays and their read relays': 'Standard relays',
+    'Our write relays and {{count}} other relays': 'Our write relays and {{count}} other relays',
+    'Their read relays and {{count}} other relays': 'Their read relays and {{count}} other relays',
+    'Our write relays, their read relays and {{count}} other relays':
+      'Our write relays, their read relays and {{count}} other relays',
     'Write relays and {{count}} other relays': 'Write relays and {{count}} other relays',
     '{{count}} relays': '{{count}} relays',
     'Republishing...': 'Republishing...',

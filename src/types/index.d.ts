@@ -122,6 +122,8 @@ export type TImetaInfo = {
 export type TPublishOptions = {
   specifiedRelayUrls?: string[]
   additionalRelayUrls?: string[]
+  includeOurWriteRelays?: boolean
+  includeTheirReadRelays?: boolean
   minPow?: number
 }
 
