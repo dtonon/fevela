@@ -53,6 +53,8 @@ export default function PostContent({
   const [isPoll, setIsPoll] = useState(false)
   const [isProtectedEvent, setIsProtectedEvent] = useState(false)
   const [additionalRelayUrls, setAdditionalRelayUrls] = useState<string[]>([])
+  const [includeOurWriteRelays, setIncludeOurWriteRelays] = useState(true)
+  const [includeTheirReadRelays, setIncludeTheirReadRelays] = useState(true)
   const [pollCreateData, setPollCreateData] = useState<TPollCreateData>({
     isMultipleChoice: false,
     options: ['', ''],
@@ -143,6 +145,8 @@ export default function PostContent({
         const newEvent = await publish(draftEvent, {
           specifiedRelayUrls: isProtectedEvent ? additionalRelayUrls : undefined,
           additionalRelayUrls: isPoll ? pollCreateData.relays : additionalRelayUrls,
+          includeOurWriteRelays: isPoll ? undefined : includeOurWriteRelays,
+          includeTheirReadRelays: isPoll ? undefined : includeTheirReadRelays,
           minPow
         })
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
@@ -245,6 +249,8 @@ export default function PostContent({
         <PostRelaySelector
           setIsProtectedEvent={setIsProtectedEvent}
           setAdditionalRelayUrls={setAdditionalRelayUrls}
+          setIncludeOurWriteRelays={setIncludeOurWriteRelays}
+          setIncludeTheirReadRelays={setIncludeTheirReadRelays}
           parentEvent={parentEvent}
           openFrom={openFrom}
         />
