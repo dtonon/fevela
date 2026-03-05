@@ -233,22 +233,46 @@ const GroupedNoteList = forwardRef(
       }
     }, [settings.groupedSortByRelevance, noteGroups.length, subRequests, startLogin])
 
+    const shouldHideEvent = useCallback(
+      (evt: Event) => {
+        if (isEventDeleted(evt)) return true
+
+        if (settings.wordFilter.length && wordsInEvent(settings.wordFilter, evt)) return true
+        if (settings.hideShortNotes && !isLongNote(evt)) return true
+
+        if (
+          settings.includeReplies &&
+          settings.showOnlyFirstLevelReplies &&
+          isReplyNoteEvent(evt) &&
+          !isFirstLevelReply(evt)
+        )
+          return true
+
+        if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
+
+        if (
+          filterMutedNotes &&
+          hideContentMentioningMutedUsers &&
+          isMentioningMutedUsers(evt, mutePubkeySet)
+        )
+          return true
+
+        if (filterFn && !filterFn(evt)) return true
+
+        return false
+      },
+      [
+        filterFn,
+        filterMutedNotes,
+        hideContentMentioningMutedUsers,
+        isEventDeleted,
+        mutePubkeySet,
+        settings
+      ]
+    )
+
     useEffect(() => {
-      let filteredEvents = events
-
-      if (!settings.includeReplies) {
-        filteredEvents = filteredEvents.filter((event) => !isReplyNoteEvent(event))
-      }
-
-      // filter by word filter (content and hashtags)
-      if (settings.wordFilter.length) {
-        filteredEvents = filteredEvents.filter((event) => !wordsInEvent(settings.wordFilter, event))
-      }
-
-      // filter out short notes (single words or less than 10 characters)
-      if (settings.hideShortNotes) {
-        filteredEvents = filteredEvents.filter(isLongNote)
-      }
+      const filteredEvents = events
 
       // group events by author pubkey
       let noteGroups: TNoteGroup[] = []
@@ -332,36 +356,7 @@ const GroupedNoteList = forwardRef(
         noteGroups,
         hasNoResults: filteredEvents.length === 0 && events.length > 0
       })
-    }, [events, settings, getPinBuryState, statsUpdateTrigger, getReplyCount])
-
-    const shouldHideEvent = useCallback(
-      (evt: Event) => {
-        if (isEventDeleted(evt)) return true
-        // Filter nested replies when showOnlyFirstLevelReplies is enabled
-        if (
-          settings.includeReplies &&
-          settings.showOnlyFirstLevelReplies &&
-          isReplyNoteEvent(evt) &&
-          !isFirstLevelReply(evt)
-        ) {
-          return true
-        }
-        if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
-        if (
-          filterMutedNotes &&
-          hideContentMentioningMutedUsers &&
-          isMentioningMutedUsers(evt, mutePubkeySet)
-        ) {
-          return true
-        }
-        if (filterFn && !filterFn(evt)) {
-          return true
-        }
-
-        return false
-      },
-      [mutePubkeySet, isEventDeleted, settings, filterFn]
-    )
+    }, [events, getPinBuryState, statsUpdateTrigger, getReplyCount])
 
     // update matching pubkeys when user filter changes
     useEffect(() => {
@@ -506,7 +501,7 @@ const GroupedNoteList = forwardRef(
           },
           onNew: batchDebounce(
             (newEvents) => {
-              // Filter new events through shouldHideEvent
+              // filter new events through shouldHideEvent
               const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
 
               // do everything inside this setter otherwise it's impossible to get the latest state
