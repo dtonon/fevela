@@ -18,6 +18,7 @@ import * as nip19 from '@nostr/tools/nip19'
 import {
   getReplaceableCoordinate,
   getReplaceableCoordinateFromEvent,
+  getRootATag,
   getRootETag,
   isProtectedEvent,
   isReplaceableEvent
@@ -588,14 +589,22 @@ async function extractCommentMentions(content: string, parentEvent: Event) {
   const quoteEventHexIds: string[] = []
   const quoteReplaceableCoordinates: string[] = []
   const isComment = [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT].includes(parentEvent.kind)
+  const rootATag = getRootATag(parentEvent)
+  const rootETag = getRootETag(parentEvent)
   const rootCoordinateTag = isComment
     ? parentEvent.tags.find(tagNameEquals('A'))
-    : isReplaceableEvent(parentEvent.kind)
-      ? buildATag(parentEvent, true)
-      : undefined
-  const rootEventId = isComment ? parentEvent.tags.find(tagNameEquals('E'))?.[1] : parentEvent.id
+    : rootATag
+      ? trimTagEnd(['A', rootATag[1], rootATag[2] ?? ''])
+      : isReplaceableEvent(parentEvent.kind)
+        ? buildATag(parentEvent, true)
+        : undefined
+  const rootEventId = isComment
+    ? parentEvent.tags.find(tagNameEquals('E'))?.[1]
+    : rootETag?.[1] || parentEvent.id
   const rootKind = isComment ? parentEvent.tags.find(tagNameEquals('K'))?.[1] : parentEvent.kind
-  const rootPubkey = isComment ? parentEvent.tags.find(tagNameEquals('P'))?.[1] : parentEvent.pubkey
+  const rootPubkey = isComment
+    ? parentEvent.tags.find(tagNameEquals('P'))?.[1]
+    : rootETag?.[4] || parentEvent.pubkey
   const rootUrl = isComment ? parentEvent.tags.find(tagNameEquals('I'))?.[1] : undefined
 
   const addToSet = (arr: string[], item: string) => {

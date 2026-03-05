@@ -92,6 +92,9 @@ export default {
     'Add an Account': 'Add an Account',
     'More options': 'More options',
     'Add client tag': 'Add client tag',
+    'Quiet reply': 'Quiet reply',
+    'Publish this reply as kind:1111 using NIP-22 tags':
+      'Publish this reply as kind:1111 using NIP-22 tags',
     'Show others this was sent via Fevela': 'Show others this was sent via Fevela',
     'Are you sure you want to logout?': 'Are you sure you want to logout?',
     'relay sets': 'relay sets',

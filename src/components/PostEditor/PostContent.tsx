@@ -48,6 +48,7 @@ export default function PostContent({
   >([])
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [addClientTag, setAddClientTag] = useState(false)
+  const [quietReply, setQuietReply] = useState(false)
   const [mentions, setMentions] = useState<string[]>([])
   const [isNsfw, setIsNsfw] = useState(false)
   const [isPoll, setIsPoll] = useState(false)
@@ -100,6 +101,7 @@ export default function PostContent({
           }
         )
         setAddClientTag(cachedSettings.addClientTag ?? false)
+        setQuietReply(cachedSettings.quietReply ?? false)
       }
       return
     }
@@ -109,10 +111,11 @@ export default function PostContent({
         isNsfw,
         isPoll,
         pollCreateData,
-        addClientTag
+        addClientTag,
+        quietReply
       }
     )
-  }, [defaultContent, parentEvent, isNsfw, isPoll, pollCreateData, addClientTag])
+  }, [defaultContent, parentEvent, isNsfw, isPoll, pollCreateData, addClientTag, quietReply])
 
   const post = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -121,24 +124,25 @@ export default function PostContent({
 
       setPosting(true)
       try {
-        const draftEvent =
-          parentEvent && parentEvent.kind !== kinds.ShortTextNote
-            ? await createCommentDraftEvent(text, parentEvent, mentions, {
+        const shouldPublishAsComment =
+          !!parentEvent && (parentEvent.kind !== kinds.ShortTextNote || quietReply)
+        const draftEvent = shouldPublishAsComment
+          ? await createCommentDraftEvent(text, parentEvent!, mentions, {
+              addClientTag,
+              protectedEvent: isProtectedEvent,
+              isNsfw
+            })
+          : isPoll
+            ? await createPollDraftEvent(pubkey!, text, mentions, pollCreateData, {
+                addClientTag,
+                isNsfw
+              })
+            : await createShortTextNoteDraftEvent(text, mentions, {
+                parentEvent,
                 addClientTag,
                 protectedEvent: isProtectedEvent,
                 isNsfw
               })
-            : isPoll
-              ? await createPollDraftEvent(pubkey!, text, mentions, pollCreateData, {
-                  addClientTag,
-                  isNsfw
-                })
-              : await createShortTextNoteDraftEvent(text, mentions, {
-                  parentEvent,
-                  addClientTag,
-                  protectedEvent: isProtectedEvent,
-                  isNsfw
-                })
 
         const newEvent = await publish(draftEvent, {
           specifiedRelayUrls: isProtectedEvent ? additionalRelayUrls : undefined,
@@ -326,6 +330,10 @@ export default function PostContent({
       <PostOptions
         posting={posting}
         show={showMoreOptions}
+        isReply={!!parentEvent}
+        canQuietReply={parentEvent?.kind === kinds.ShortTextNote}
+        quietReply={quietReply}
+        setQuietReply={setQuietReply}
         addClientTag={addClientTag}
         setAddClientTag={setAddClientTag}
         isNsfw={isNsfw}
