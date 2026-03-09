@@ -15,7 +15,7 @@ import {
   DrawerTitle,
   DrawerTrigger
 } from '@/components/ui/drawer'
-import { BIG_RELAY_URLS } from '@/constants'
+
 import { getReplaceableEventIdentifier } from '@/lib/event'
 import { tagNameEquals } from '@/lib/tag'
 import { isWebsocketUrl, simplifyUrl } from '@/lib/url'
@@ -94,7 +94,7 @@ function RemoteRelaySets({ close }: { close?: () => void }) {
     const init = async () => {
       setInitialed(false)
       const events = await client.fetchEvents(
-        (relayList?.write ?? []).concat(BIG_RELAY_URLS).slice(0, 4),
+        (relayList?.write ?? []).concat(window.fevela.universe.bigRelayUrls).slice(0, 4),
         {
           kinds: [kinds.Relaysets],
           authors: [pubkey],

@@ -1,28 +1,31 @@
-import { BIG_RELAY_URLS, SUPPORTED_KINDS } from '@/constants'
+import { SUPPORTED_KINDS } from '@/constants'
 import { pool } from '@nostr/gadgets/global'
 import { OutboxManager } from '@nostr/gadgets/outbox'
 import { NostrEvent } from '@nostr/tools/core'
 import { store } from './store.service'
 
-export const outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], store, {
-  pool,
-  label: 'fevela',
-  onsyncupdate(pubkey) {
-    console.debug(':: synced updating', pubkey)
-    for (let i = 0; i < current.onsync.length; i++) {
-      current.onsync[i](pubkey)
-    }
-  },
-  onbeforeupdate(_pubkey) {},
-  onliveupdate(event) {
-    console.debug(':: live', event)
-    for (let i = 0; i < current.onnew.length; i++) {
-      current.onnew[i](event)
-    }
-  },
-  defaultRelaysForConfusedPeople: BIG_RELAY_URLS,
-  storeRelaysSeenOn: true
-})
+export let outbox: OutboxManager
+setTimeout(() => {
+  outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], store, {
+    pool,
+    label: 'fevela',
+    onsyncupdate(pubkey) {
+      console.debug(':: synced updating', pubkey)
+      for (let i = 0; i < current.onsync.length; i++) {
+        current.onsync[i](pubkey)
+      }
+    },
+    onbeforeupdate(_pubkey) {},
+    onliveupdate(event) {
+      console.debug(':: live', event)
+      for (let i = 0; i < current.onnew.length; i++) {
+        current.onnew[i](event)
+      }
+    },
+    defaultRelaysForConfusedPeople: window.fevela.universe.bigRelayUrls,
+    storeRelaysSeenOn: true
+  })
+}, 0)
 
 export const status: { syncing: true; pubkey: string } | { syncing: undefined | false } = {
   syncing: undefined

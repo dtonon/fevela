@@ -7,7 +7,7 @@ import {
   CarouselNext,
   CarouselPrevious
 } from '@/components/ui/carousel'
-import { BIG_RELAY_URLS, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import { compareEvents } from '@/lib/event'
 import { getStarsFromRelayReviewEvent } from '@/lib/event-metadata'
 import { toRelayReviews } from '@/lib/link'
@@ -55,7 +55,7 @@ export default function RelayReviewsPreview({ relayUrl }: { relayUrl: string }) 
   useEffect(() => {
     const init = async () => {
       const events = await client.fetchEvents(
-        [relayUrl, ...BIG_RELAY_URLS],
+        [relayUrl, ...window.fevela.universe.bigRelayUrls],
         { kinds: [ExtendedKind.RELAY_REVIEW], '#d': [relayUrl], limit: 100 },
         {
           cache: true

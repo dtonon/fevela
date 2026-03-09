@@ -1,4 +1,3 @@
-import { SEARCHABLE_RELAY_URLS } from '@/constants'
 import client from '@/services/client.service'
 import dayjs from 'dayjs'
 import { useEffect, useRef, useState } from 'react'
@@ -47,7 +46,7 @@ export function ProfileListBySearch({ search }: { search: string }) {
   }, [hasMore, search, until])
 
   const loadMore = async () => {
-    const profiles = await client.searchProfiles(SEARCHABLE_RELAY_URLS, {
+    const profiles = await client.searchProfiles(window.fevela.universe.searchableRelayUrls, {
       search,
       until,
       limit: LIMIT

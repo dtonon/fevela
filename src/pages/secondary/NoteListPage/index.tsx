@@ -1,7 +1,7 @@
 import { Favicon } from '@/components/Favicon'
 import NormalFeed from '@/components/NormalFeed'
 import { Button } from '@/components/ui/button'
-import { BIG_RELAY_URLS, SEARCHABLE_RELAY_URLS } from '@/constants'
+
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { toProfileList } from '@/lib/link'
 import { fetchPubkeysFromDomain, getWellKnownNip05Url } from '@/lib/nip05'
@@ -47,7 +47,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
           {
             source: 'relays',
             filter: { '#t': [hashtag], ...(kinds.length > 0 ? { kinds } : {}) },
-            urls: BIG_RELAY_URLS
+            urls: window.fevela.universe.bigRelayUrls
           }
         ])
         return
@@ -60,7 +60,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
           {
             source: 'relays',
             filter: { search, ...(kinds.length > 0 ? { kinds } : {}) },
-            urls: SEARCHABLE_RELAY_URLS
+            urls: window.fevela.universe.searchableRelayUrls
           }
         ])
         return
@@ -73,7 +73,7 @@ const NoteListPage = forwardRef(({ index }: { index?: number }, ref) => {
           {
             source: 'relays',
             filter: { '#I': [externalContentId], ...(kinds.length > 0 ? { kinds } : {}) },
-            urls: BIG_RELAY_URLS.concat(relayList?.write || [])
+            urls: window.fevela.universe.bigRelayUrls.concat(relayList?.write || [])
           }
         ])
         return

@@ -1,6 +1,4 @@
 import { createContext, useContext, useEffect, useRef, useState } from 'react'
-
-import { DEFAULT_FAVORITE_RELAYS } from '@/constants'
 import { isWebsocketUrl, normalizeUrl } from '@/lib/url'
 import storage from '@/services/local-storage.service'
 import { TFeedInfo, TFeedType } from '@/types'
@@ -92,7 +90,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false)
   const [feedInfo, setFeedInfo] = useState<TFeedInfo>({
     feedType: 'relay',
-    id: DEFAULT_FAVORITE_RELAYS[0]
+    id: window.fevela.universe.defaultFavoriteRelays[0]
   })
   const feedInfoRef = useRef<TFeedInfo>(feedInfo)
   const timeFrameOptions = createTimeFrameOptions()
@@ -107,7 +105,7 @@ export function FeedProvider({ children }: { children: React.ReactNode }) {
         ? { feedType: 'following' }
         : {
             feedType: 'relay',
-            id: relayURLs[0] ?? DEFAULT_FAVORITE_RELAYS[0]
+            id: relayURLs[0] ?? window.fevela.universe.defaultFavoriteRelays[0]
           }
 
       if (pubkey) {
