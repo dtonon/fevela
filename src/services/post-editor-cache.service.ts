@@ -7,6 +7,7 @@ type TPostSettings = {
   isPoll?: boolean
   pollCreateData?: TPollCreateData
   addClientTag?: boolean
+  quietReply?: boolean
 }
 
 class PostEditorCacheService {

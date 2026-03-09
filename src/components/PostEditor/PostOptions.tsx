@@ -8,6 +8,10 @@ import { useTranslation } from 'react-i18next'
 export default function PostOptions({
   posting,
   show,
+  isReply,
+  canQuietReply,
+  quietReply,
+  setQuietReply,
   addClientTag,
   setAddClientTag,
   isNsfw,
@@ -17,6 +21,10 @@ export default function PostOptions({
 }: {
   posting: boolean
   show: boolean
+  isReply: boolean
+  canQuietReply: boolean
+  quietReply: boolean
+  setQuietReply: Dispatch<SetStateAction<boolean>>
   addClientTag: boolean
   setAddClientTag: Dispatch<SetStateAction<boolean>>
   isNsfw: boolean
@@ -28,6 +36,9 @@ export default function PostOptions({
 
   useEffect(() => {
     setAddClientTag(window.localStorage.getItem(StorageKey.ADD_CLIENT_TAG) === 'true')
+    if (isReply && canQuietReply) {
+      setQuietReply(window.localStorage.getItem(StorageKey.QUIET_REPLY) === 'true')
+    }
   }, [])
 
   if (!show) return null
@@ -39,6 +50,11 @@ export default function PostOptions({
 
   const onNsfwChange = (checked: boolean) => {
     setIsNsfw(checked)
+  }
+
+  const onQuietReplyChange = (checked: boolean) => {
+    setQuietReply(checked)
+    window.localStorage.setItem(StorageKey.QUIET_REPLY, checked.toString())
   }
 
   return (
@@ -57,6 +73,23 @@ export default function PostOptions({
           {t('Show others this was sent via Fevela')}
         </div>
       </div>
+
+      {isReply && canQuietReply && (
+        <div className="space-y-2">
+          <div className="flex items-center space-x-2">
+            <Label htmlFor="quiet-reply">{t('Quiet reply')}</Label>
+            <Switch
+              id="quiet-reply"
+              checked={quietReply}
+              onCheckedChange={onQuietReplyChange}
+              disabled={posting}
+            />
+          </div>
+          <div className="text-muted-foreground text-xs">
+            {t('Publish this reply as kind:1111 using NIP-22 tags')}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center space-x-2">
         <Label htmlFor="add-nsfw-tag">{t('NSFW')}</Label>
