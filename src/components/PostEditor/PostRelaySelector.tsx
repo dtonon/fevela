@@ -22,7 +22,10 @@ import RelayIcon from '../RelayIcon'
 
 type TPostTargetItem =
   | {
-      type: 'writeRelays'
+      type: 'ourWriteRelays'
+    }
+  | {
+      type: 'theirReadRelays'
     }
   | {
       type: 'relay'
@@ -38,12 +41,16 @@ export default function PostRelaySelector({
   parentEvent,
   openFrom,
   setIsProtectedEvent,
-  setAdditionalRelayUrls
+  setAdditionalRelayUrls,
+  setIncludeOurWriteRelays,
+  setIncludeTheirReadRelays
 }: {
   parentEvent?: NostrEvent
   openFrom?: string[]
   setIsProtectedEvent: Dispatch<SetStateAction<boolean>>
   setAdditionalRelayUrls: Dispatch<SetStateAction<string[]>>
+  setIncludeOurWriteRelays: Dispatch<SetStateAction<boolean>>
+  setIncludeTheirReadRelays: Dispatch<SetStateAction<boolean>>
 }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
@@ -66,8 +73,11 @@ export default function PostRelaySelector({
     }
     if (postTargetItems.length === 1) {
       const item = postTargetItems[0]
-      if (item.type === 'writeRelays') {
-        return t('Write relays')
+      if (item.type === 'ourWriteRelays') {
+        return t('Our write relays')
+      }
+      if (item.type === 'theirReadRelays') {
+        return t('Their read relays')
       }
       if (item.type === 'relay') {
         return simplifyUrl(item.url)
@@ -78,7 +88,8 @@ export default function PostRelaySelector({
           : simplifyUrl(item.urls[0])
       }
     }
-    const hasWriteRelays = postTargetItems.some((item) => item.type === 'writeRelays')
+    const hasOurWriteRelays = postTargetItems.some((item) => item.type === 'ourWriteRelays')
+    const hasTheirReadRelays = postTargetItems.some((item) => item.type === 'theirReadRelays')
     const relayCount = postTargetItems.reduce((count, item) => {
       if (item.type === 'relay') {
         return count + 1
@@ -88,11 +99,23 @@ export default function PostRelaySelector({
       }
       return count
     }, 0)
-    if (hasWriteRelays) {
-      return t('Write relays and {{count}} other relays', { count: relayCount })
+    if (hasOurWriteRelays && hasTheirReadRelays) {
+      return relayCount > 0
+        ? t('Our write relays, their read relays and {{count}} other relays', { count: relayCount })
+        : t('Our write relays and their read relays')
+    }
+    if (hasOurWriteRelays) {
+      return relayCount > 0
+        ? t('Our write relays and {{count}} other relays', { count: relayCount })
+        : t('Our write relays')
+    }
+    if (hasTheirReadRelays) {
+      return relayCount > 0
+        ? t('Their read relays and {{count}} other relays', { count: relayCount })
+        : t('Their read relays')
     }
     return t('{{count}} relays', { count: relayCount })
-  }, [postTargetItems])
+  }, [postTargetItems, t])
 
   useEffect(() => {
     if (openFrom && openFrom.length) {
@@ -103,11 +126,13 @@ export default function PostRelaySelector({
       setPostTargetItems(parentEventSeenOnRelays.map((url) => ({ type: 'relay', url })))
       return
     }
-    setPostTargetItems([{ type: 'writeRelays' }])
+    setPostTargetItems([{ type: 'ourWriteRelays' }, { type: 'theirReadRelays' }])
   }, [openFrom, parentEventSeenOnRelays])
 
   useEffect(() => {
-    const isProtectedEvent = postTargetItems.every((item) => item.type !== 'writeRelays')
+    const includeOurWriteRelays = postTargetItems.some((item) => item.type === 'ourWriteRelays')
+    const includeTheirReadRelays = postTargetItems.some((item) => item.type === 'theirReadRelays')
+    const isProtectedEvent = !includeOurWriteRelays && !includeTheirReadRelays
     const relayUrls = postTargetItems.flatMap((item) => {
       if (item.type === 'relay') {
         return [item.url]
@@ -120,13 +145,29 @@ export default function PostRelaySelector({
 
     setIsProtectedEvent(isProtectedEvent)
     setAdditionalRelayUrls(relayUrls)
-  }, [postTargetItems])
+    setIncludeOurWriteRelays(includeOurWriteRelays)
+    setIncludeTheirReadRelays(includeTheirReadRelays)
+  }, [
+    postTargetItems,
+    setAdditionalRelayUrls,
+    setIncludeOurWriteRelays,
+    setIncludeTheirReadRelays,
+    setIsProtectedEvent
+  ])
 
-  const handleWriteRelaysCheckedChange = useCallback((checked: boolean) => {
+  const handleOurWriteRelaysCheckedChange = useCallback((checked: boolean) => {
     if (checked) {
-      setPostTargetItems((prev) => [...prev, { type: 'writeRelays' }])
+      setPostTargetItems((prev) => [...prev, { type: 'ourWriteRelays' }])
     } else {
-      setPostTargetItems((prev) => prev.filter((item) => item.type !== 'writeRelays'))
+      setPostTargetItems((prev) => prev.filter((item) => item.type !== 'ourWriteRelays'))
+    }
+  }, [])
+
+  const handleTheirReadRelaysCheckedChange = useCallback((checked: boolean) => {
+    if (checked) {
+      setPostTargetItems((prev) => [...prev, { type: 'theirReadRelays' }])
+    } else {
+      setPostTargetItems((prev) => prev.filter((item) => item.type !== 'theirReadRelays'))
     }
   }, [])
 
@@ -157,10 +198,16 @@ export default function PostRelaySelector({
     return (
       <>
         <MenuItem
-          checked={postTargetItems.some((item) => item.type === 'writeRelays')}
-          onCheckedChange={handleWriteRelaysCheckedChange}
+          checked={postTargetItems.some((item) => item.type === 'ourWriteRelays')}
+          onCheckedChange={handleOurWriteRelaysCheckedChange}
         >
-          {t('Write relays')}
+          {t('Our write relays')}
+        </MenuItem>
+        <MenuItem
+          checked={postTargetItems.some((item) => item.type === 'theirReadRelays')}
+          onCheckedChange={handleTheirReadRelaysCheckedChange}
+        >
+          {t('Their read relays')}
         </MenuItem>
         {relaySets.length > 0 && (
           <>
