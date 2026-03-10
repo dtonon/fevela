@@ -20,6 +20,7 @@ import noteStatsService, { TNoteStats } from '@/services/note-stats.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
 import { mergeReverseSortedLists } from '@nostr/tools/utils'
+import { matchFilters } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -502,61 +503,7 @@ const GroupedNoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew: batchDebounce(
-            (newEvents) => {
-              // filter new events through shouldHideEvent
-              const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
-
-              // do everything inside this setter otherwise it's impossible to get the latest state
-              setNoteGroups((curr) => {
-                const pending: NostrEvent[] = []
-                const appended: NostrEvent[] = []
-
-                for (let i = 0; i < filteredNewEvents.length; i++) {
-                  const newEvent = filteredNewEvents[i]
-
-                  // TODO: figure out where exactly the viewport is: for now just assume it's at the top
-                  if (
-                    curr.noteGroups.length < 7 ||
-                    newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
-                    curr.noteGroups
-                      .slice(0, 6)
-                      .some((group) => group.topNote.pubkey === newEvent.pubkey)
-                  ) {
-                    // if there are very few events in the viewport or the new events would be inserted below
-                    // or they authored by any of the top authors (but they wouldn't be their top notes), just append
-                    appended.push(newEvent)
-                  } else if (pubkey && newEvent.pubkey === pubkey) {
-                    // our own notes are also inserted regardless of any concern
-                    appended.push(newEvent)
-                  } else {
-                    // any other "new" notes that would be inserted above, make them be pending in the modal thing
-                    pending.push(newEvent)
-                  }
-                }
-
-                // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
-                if (pending.length) {
-                  setNewEvents((curr) => [...pending, ...curr])
-                }
-
-                if (appended.length) {
-                  // merging these will trigger a group recomputation
-                  setEvents((oldEvents) =>
-                    // insert each appended event using binary search to maintain sort order and deduplicate
-                    mergeReverseSortedLists(
-                      oldEvents,
-                      appended.sort((a, b) => b.created_at - a.created_at)
-                    )
-                  )
-                }
-
-                return curr
-              })
-            },
-            1800,
-            3000
-          ),
+          onNew: handleNew,
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools
@@ -584,6 +531,85 @@ const GroupedNoteList = forwardRef(
         subc.close()
       }
     }, [subRequests, refreshCount, showKinds, settings.groupedTimeframe])
+
+    const handleNew = batchDebounce(
+      (newEvents: NostrEvent[]) => {
+        // filter new events through shouldHideEvent
+        const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
+
+        // do everything inside this setter otherwise it's impossible to get the latest state
+        setNoteGroups((curr) => {
+          const pending: NostrEvent[] = []
+          const appended: NostrEvent[] = []
+
+          for (let i = 0; i < filteredNewEvents.length; i++) {
+            const newEvent = filteredNewEvents[i]
+
+            // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+            if (
+              curr.noteGroups.length < 7 ||
+              newEvent.created_at < curr.noteGroups[6].topNote.created_at ||
+              curr.noteGroups.slice(0, 6).some((group) => group.topNote.pubkey === newEvent.pubkey)
+            ) {
+              // if there are very few events in the viewport or the new events would be inserted below
+              // or they authored by any of the top authors (but they wouldn't be their top notes), just append
+              appended.push(newEvent)
+            } else if (pubkey && newEvent.pubkey === pubkey) {
+              // our own notes are also inserted regardless of any concern
+              appended.push(newEvent)
+            } else {
+              // any other "new" notes that would be inserted above, make them be pending in the modal thing
+              pending.push(newEvent)
+            }
+          }
+
+          // prepend them to the top (no need to sort as they will be sorted on mergeNewEvents)
+          if (pending.length) {
+            setNewEvents((curr) => [...pending, ...curr])
+          }
+
+          if (appended.length) {
+            // merging these will trigger a group recomputation
+            setEvents((oldEvents) =>
+              // insert each appended event using binary search to maintain sort order and deduplicate
+              mergeReverseSortedLists(
+                oldEvents,
+                appended.sort((a, b) => b.created_at - a.created_at)
+              )
+            )
+          }
+
+          return curr
+        })
+      },
+      1800,
+      3000
+    )
+
+    useEffect(() => {
+      if (!subRequests.length || showKinds.length === 0) return
+
+      const timeframeMs = getTimeFrameInMs(settings.groupedTimeframe)
+      const groupedNotesSince = Math.floor((Date.now() - timeframeMs) / 1000)
+      const filters = subRequests.map(({ filter }) => ({
+        ...filter,
+        kinds: showKinds,
+        since: groupedNotesSince
+      }))
+
+      const handler = (data: globalThis.Event) => {
+        const customEvent = data as unknown as CustomEvent<NostrEvent>
+        const evt = customEvent.detail
+        if (matchFilters(filters, evt)) {
+          handleNew(evt)
+        }
+      }
+
+      client.addEventListener('newEvent', handler)
+      return () => {
+        client.removeEventListener('newEvent', handler)
+      }
+    }, [subRequests, showKinds, settings.groupedTimeframe])
 
     function mergeNewEvents() {
       setEvents((oldEvents) =>
