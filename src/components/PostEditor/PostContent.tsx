@@ -82,11 +82,13 @@ export default function PostContent({
   defaultContent = '',
   parentEvent,
   close,
+  open,
   openFrom
 }: {
   defaultContent?: string
   parentEvent?: Event
   close: () => void
+  open: (content?: string) => void
   openFrom?: string[]
 }) {
   const { t } = useTranslation()
@@ -212,6 +214,7 @@ export default function PostContent({
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
         deleteDraftEventCache(draftEvent)
         addReplies([newEvent])
+        const submittedText = text
         close()
 
         const abortController = new AbortController()
@@ -222,6 +225,7 @@ export default function PostContent({
           addDeletedEvent(newEvent)
           void client.removeEventFromCache(newEvent.id)
           toast.dismiss(toastId)
+          open(submittedText)
         }
 
         toast(<PendingPublishToast endAt={endAt} onUndo={undoPublish} />, {
