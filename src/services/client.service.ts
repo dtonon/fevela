@@ -742,6 +742,10 @@ class ClientService extends EventTarget {
     })
   }
 
+  removeEventFromCache(eventId: string) {
+    return store.deleteEvents([eventId])
+  }
+
   async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {
     let filter: Filter | undefined
     let relayHints: string[] = []

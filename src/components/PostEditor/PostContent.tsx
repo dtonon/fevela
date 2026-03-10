@@ -207,6 +207,7 @@ export default function PostContent({
           minPow
         })
 
+        client.addEventToCache(newEvent)
         client.emitEphemeralEvent(newEvent)
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
         deleteDraftEventCache(draftEvent)
@@ -219,6 +220,7 @@ export default function PostContent({
         const undoPublish = () => {
           abortController.abort()
           addDeletedEvent(newEvent)
+          void client.removeEventFromCache(newEvent.id)
           toast.dismiss(toastId)
         }
 
