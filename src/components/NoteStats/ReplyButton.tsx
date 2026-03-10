@@ -1,6 +1,7 @@
 import { getEventKey, isMentioningMutedUsers } from '@/lib/event'
 import { cn } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useReply } from '@/providers/ReplyProvider'
@@ -16,13 +17,14 @@ export default function ReplyButton({ event }: { event: Event }) {
   const { t } = useTranslation()
   const { pubkey, checkLogin } = useNostr()
   const { repliesMap } = useReply()
+  const { isEventDeleted } = useDeletedEvent()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const { replyCount, hasReplied } = useMemo(() => {
     const key = getEventKey(event)
     const hasReplied = pubkey
-      ? repliesMap.get(key)?.events.some((evt) => evt.pubkey === pubkey)
+      ? repliesMap.get(key)?.events.some((evt) => evt.pubkey === pubkey && !isEventDeleted(evt))
       : false
 
     let replyCount = 0
@@ -35,6 +37,9 @@ export default function ReplyButton({ event }: { event: Event }) {
       const nestedReplies = repliesMap.get(replyKey)?.events ?? []
       replies.push(...nestedReplies)
 
+      if (isEventDeleted(reply)) {
+        continue
+      }
       if (hideUntrustedInteractions && !isUserTrusted(reply.pubkey)) {
         continue
       }
@@ -48,7 +53,7 @@ export default function ReplyButton({ event }: { event: Event }) {
     }
 
     return { replyCount, hasReplied }
-  }, [repliesMap, event, hideUntrustedInteractions])
+  }, [repliesMap, event, hideUntrustedInteractions, pubkey, isEventDeleted])
   const [open, setOpen] = useState(false)
 
   return (

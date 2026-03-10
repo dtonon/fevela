@@ -121,6 +121,9 @@ const GroupedNoteList = forwardRef(
           const nestedReplies = repliesMap.get(replyKey)?.events ?? []
           replies.push(...nestedReplies)
 
+          if (isEventDeleted(reply)) {
+            continue
+          }
           if (mutePubkeySet.has(reply.pubkey)) {
             continue
           }
@@ -131,7 +134,7 @@ const GroupedNoteList = forwardRef(
         }
         return replyCount
       },
-      [repliesMap, mutePubkeySet, hideContentMentioningMutedUsers]
+      [repliesMap, mutePubkeySet, hideContentMentioningMutedUsers, isEventDeleted]
     )
 
     // Track notes we've already fetched stats for

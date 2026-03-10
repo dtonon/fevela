@@ -8,8 +8,10 @@ import {
   deleteDraftEventCache
 } from '@/lib/draft-event'
 import { isTouchDevice } from '@/lib/utils'
+import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useReply } from '@/providers/ReplyProvider'
+import client from '@/services/client.service'
 import postEditorCache from '@/services/post-editor-cache.service'
 import { TPollCreateData } from '@/types'
 import { ImageUp, ListTodo, LoaderCircle, Settings, Smile, X } from 'lucide-react'
@@ -26,6 +28,56 @@ import PostRelaySelector from './PostRelaySelector'
 import PostTextarea, { TPostTextareaHandle } from './PostTextarea'
 import Uploader from './Uploader'
 
+const PENDING_PUBLISH_MS = 10_000
+
+function waitForAbortableDelay(duration: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException('Aborted', 'AbortError'))
+      return
+    }
+
+    const timeout = window.setTimeout(() => {
+      signal.removeEventListener('abort', handleAbort)
+      resolve()
+    }, duration)
+
+    const handleAbort = () => {
+      window.clearTimeout(timeout)
+      signal.removeEventListener('abort', handleAbort)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }
+
+    signal.addEventListener('abort', handleAbort)
+  })
+}
+
+function PendingPublishToast({ endAt, onUndo }: { endAt: number; onUndo: () => void }) {
+  const [secondsLeft, setSecondsLeft] = useState(
+    Math.max(0, Math.ceil((endAt - Date.now()) / 1000))
+  )
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setSecondsLeft(Math.max(0, Math.ceil((endAt - Date.now()) / 1000)))
+    }, 250)
+
+    return () => window.clearInterval(interval)
+  }, [endAt])
+
+  return (
+    <div className="flex items-center gap-3">
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium">Changed your mind?</div>
+      </div>
+      <Button variant="outline" size="sm" onClick={onUndo}>
+        UNDO
+      </Button>
+      <div className="text-sm font-medium">{secondsLeft}s</div>
+    </div>
+  )
+}
+
 export default function PostContent({
   defaultContent = '',
   parentEvent,
@@ -38,8 +90,9 @@ export default function PostContent({
   openFrom?: string[]
 }) {
   const { t } = useTranslation()
-  const { pubkey, publish, checkLogin } = useNostr()
+  const { pubkey, preparePublish, checkLogin } = useNostr()
   const { addReplies } = useReply()
+  const { addDeletedEvent } = useDeletedEvent()
   const [text, setText] = useState('')
   const textareaRef = useRef<TPostTextareaHandle>(null)
   const [posting, setPosting] = useState(false)
@@ -146,17 +199,58 @@ export default function PostContent({
                 isNsfw
               })
 
-        const newEvent = await publish(draftEvent, {
+        const { event: newEvent, relayUrls } = await preparePublish(draftEvent, {
           specifiedRelayUrls: isProtectedEvent ? additionalRelayUrls : undefined,
           additionalRelayUrls: isPoll ? pollCreateData.relays : additionalRelayUrls,
           includeOurWriteRelays: isPoll ? undefined : includeOurWriteRelays,
           includeTheirReadRelays: isPoll ? undefined : includeTheirReadRelays,
           minPow
         })
+
+        client.emitEphemeralEvent(newEvent)
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
         deleteDraftEventCache(draftEvent)
         addReplies([newEvent])
         close()
+
+        const abortController = new AbortController()
+        const toastId = `pending-publish-${newEvent.id}`
+        const endAt = Date.now() + PENDING_PUBLISH_MS
+        const undoPublish = () => {
+          abortController.abort()
+          addDeletedEvent(newEvent)
+          toast.dismiss(toastId)
+        }
+
+        toast(<PendingPublishToast endAt={endAt} onUndo={undoPublish} />, {
+          id: toastId,
+          duration: PENDING_PUBLISH_MS
+        })
+
+        void (async () => {
+          try {
+            await waitForAbortableDelay(PENDING_PUBLISH_MS, abortController.signal)
+            toast.dismiss(toastId)
+            await client.publishEvent(relayUrls, newEvent)
+            toast.success(t('Post successful'), { duration: 2000 })
+          } catch (error) {
+            toast.dismiss(toastId)
+
+            if (abortController.signal.aborted) {
+              return
+            }
+
+            addDeletedEvent(newEvent)
+            const errors = error instanceof AggregateError ? error.errors : [error]
+            errors.forEach((err) => {
+              toast.error(
+                `${t('Failed to post')}: ${err instanceof Error ? err.message : String(err)}`,
+                { duration: 10_000 }
+              )
+              console.error(err)
+            })
+          }
+        })()
       } catch (error) {
         const errors = error instanceof AggregateError ? error.errors : [error]
         errors.forEach((err) => {
@@ -170,7 +264,6 @@ export default function PostContent({
       } finally {
         setPosting(false)
       }
-      toast.success(t('Post successful'), { duration: 2000 })
     })
   }
 
