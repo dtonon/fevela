@@ -12,6 +12,7 @@ import { toNote } from '@/lib/link'
 import { generateBech32IdFromATag, generateBech32IdFromETag } from '@/lib/tag'
 import { useSecondaryPage } from '@/PageManager'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
+import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useReply } from '@/providers/ReplyProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
@@ -43,6 +44,7 @@ export default function ReplyNoteList({
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
+  const { isEventDeleted } = useDeletedEvent()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const { repliesMap, addReplies } = useReply()
   const replies = useMemo(() => {
@@ -60,6 +62,7 @@ export default function ReplyNoteList({
       events.forEach((evt) => {
         const key = getEventKey(evt)
         if (replyKeySet.has(key)) return
+        if (isEventDeleted(evt)) return
         if (mutePubkeySet.has(evt.pubkey)) return
         if (hideContentMentioningMutedUsers && isMentioningMutedUsers(evt, mutePubkeySet)) return
 
@@ -70,7 +73,14 @@ export default function ReplyNoteList({
       depth++
     }
     return replyEvents.sort((a, b) => a.created_at - b.created_at)
-  }, [event.id, repliesMap, showOnlyFirstLevel])
+  }, [
+    event.id,
+    repliesMap,
+    showOnlyFirstLevel,
+    isEventDeleted,
+    mutePubkeySet,
+    hideContentMentioningMutedUsers
+  ])
   const [until, setUntil] = useState<number | undefined>(undefined)
   const [loading, setLoading] = useState<boolean>(false)
   const [showCount, setShowCount] = useState(SHOW_COUNT)
