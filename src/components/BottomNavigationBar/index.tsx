@@ -1,7 +1,6 @@
 import { cn } from '@/lib/utils'
 import BackgroundAudio from '../BackgroundAudio'
 import AccountButton from './AccountButton'
-import ExploreButton from './ExploreButton'
 import FollowingButton from './FollowingButton'
 import ConversationsButton from './ConversationsButton'
 import NotificationsButton from './NotificationsButton'
@@ -19,7 +18,6 @@ export default function BottomNavigationBar() {
         <FollowingButton />
         <ConversationsButton />
         <NotificationsButton />
-        <ExploreButton />
         <AccountButton />
       </div>
     </div>

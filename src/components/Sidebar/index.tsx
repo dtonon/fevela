@@ -7,7 +7,6 @@ import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import { ChevronsLeft, ChevronsRight } from 'lucide-react'
 import AccountButton from './AccountButton'
 import BookmarkButton from './BookmarkButton'
-import RelaysButton from './ExploreButton'
 import FollowingButton from './FollowingButton'
 import RelayFeedButton from './RelayFeedButton'
 import ConversationsButton from './ConversationsButton'
@@ -47,7 +46,6 @@ export default function PrimaryPageSidebar() {
         {pubkey && <NotificationsButton collapse={sidebarCollapse} />}
         {pubkey && <BookmarkButton collapse={sidebarCollapse} />}
         <SearchButton collapse={sidebarCollapse} />
-        <RelaysButton collapse={sidebarCollapse} />
         <ProfileButton collapse={sidebarCollapse} />
         <SettingsButton collapse={sidebarCollapse} />
         <PostButton collapse={sidebarCollapse} />
