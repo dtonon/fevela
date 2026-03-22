@@ -16,14 +16,18 @@ window.fevela = {
   ...window.fevela,
   universe: {
     ...window.fevela?.universe,
-    trending: ['wss://trending.relays.land'],
+    trending: [
+      'wss://trending.relays.land',
+      'wss://spatia-arcana.com/nox',
+      'wss://pyramid.fiatjaf.com/uppermost',
+      'wss://feeds.nostrarchives.com/notes/trending/reposts/today'
+    ],
     defaultFavoriteRelays: [
-      'wss://nostr.wine/',
-      'wss://pyramid.fiatjaf.com/',
       'wss://relays.land/spatianostra/',
       'wss://theforest.nostr1.com/',
-      'wss://algo.utxo.one/',
-      'wss://140.f7z.io/',
+      'wss://pyramid.fiatjaf.com/popular',
+      'wss://spatia-arcana.com/lux',
+      'wss://nostr.wine/',
       'wss://news.utxo.one/'
     ],
     recommendedRelays: [
@@ -39,15 +43,12 @@ window.fevela = {
     recommendedBlossomServers: [
       'https://blossom.primal.net/',
       'https://nostr.media/',
+      'https://nostr.download/',
       'https://blossom.band/'
     ],
-    defaultNostrConnectRelays: [
-      'wss://relay.nsec.app/',
-      'wss://bucket.coracle.social/',
-      'wss://relay.primal.net/'
-    ],
+    defaultNostrConnectRelays: ['wss://bucket.coracle.social/', 'wss://relay.primal.net/'],
     bigRelayUrls: ['wss://relay.damus.io/', 'wss://relay.primal.net/', 'wss://nos.lol/'],
-    searchableRelayUrls: ['wss://relay.nostr.band/', 'wss://search.nos.today/']
+    searchableRelayUrls: ['wss://antiprimal.net/', 'wss://search.nostrarchives.com/']
   },
   store,
   client,
