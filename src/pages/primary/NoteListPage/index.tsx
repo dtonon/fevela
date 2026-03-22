@@ -23,7 +23,8 @@ import {
 import { useTranslation } from 'react-i18next'
 import FeedButton from './FeedButton'
 import FollowingFeed from './FollowingFeed'
-import RelaysFeed from './RelaysFeed'
+import NormalFeed from '@/components/NormalFeed'
+import { SUPPORTED_KINDS } from '@/constants'
 
 const NoteListPage = forwardRef((_, ref) => {
   const { t } = useTranslation()
@@ -68,7 +69,18 @@ const NoteListPage = forwardRef((_, ref) => {
         {showRelayDetails && feedInfo.feedType === 'relay' && !!feedInfo.id && (
           <RelayInfo url={feedInfo.id!} className="mb-2 pt-3" />
         )}
-        <RelaysFeed />
+        <NormalFeed
+          subRequests={[
+            {
+              source: 'relays' as const,
+              urls: relayUrls,
+              filter: {
+                kinds: SUPPORTED_KINDS
+              }
+            }
+          ]}
+          showRelayCloseReason
+        />
       </>
     )
   }

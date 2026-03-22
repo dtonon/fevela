@@ -1,7 +1,7 @@
 import { ISigner, TPublishOptions, TRelayList, TMutedList, TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import FlexSearch from 'flexsearch'
-import { EventTemplate, NostrEvent, validateEvent, VerifiedEvent } from '@nostr/tools/wasm'
+import { EventTemplate, NostrEvent, VerifiedEvent } from '@nostr/tools/wasm'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { binarySearch, mergeReverseSortedLists } from '@nostr/tools/utils'
 import { seenOn } from '@nostr/gadgets/redstore'
@@ -9,7 +9,6 @@ import { outboxFilterRelayBatch } from '@nostr/gadgets/outbox'
 import { Filter, matchFilters } from '@nostr/tools/filter'
 import * as nip19 from '@nostr/tools/nip19'
 import * as kinds from '@nostr/tools/kinds'
-import { AbstractRelay } from '@nostr/tools/abstract-relay'
 import { pool } from '@nostr/gadgets/global'
 import {
   loadNostrUser,
@@ -26,7 +25,6 @@ import {
 import { loadRelaySets } from '@nostr/gadgets/sets'
 import z from 'zod'
 import { isHex32 } from '@nostr/gadgets/utils'
-import { verifyEvent } from '@nostr/tools/wasm'
 
 import { ExtendedKind } from '@/constants'
 import { isValidPubkey } from '@/lib/pubkey'
@@ -42,8 +40,6 @@ class ClientService extends EventTarget {
   signer?: ISigner
   pubkey?: string
   followings?: Set<string>
-
-  private trendingNotesCache: NostrEvent[] | null = null
 
   private userIndex = new FlexSearch.Index({
     tokenize: 'forward'
@@ -695,41 +691,6 @@ class ClientService extends EventTarget {
     })
 
     return events
-  }
-
-  async fetchTrendingNotes() {
-    if (this.trendingNotesCache) {
-      return this.trendingNotesCache
-    }
-
-    try {
-      const response = await fetch('https://api.nostr.band/v0/trending/notes')
-      const data = await response.json()
-      const events: NostrEvent[] = []
-      for (const note of data.notes ?? []) {
-        if (validateEvent(note.event)) {
-          events.push(note.event)
-          this.addEventToCache(note.event)
-          if (note.relays?.length) {
-            note.relays.map((r: string) => {
-              try {
-                const relay = new AbstractRelay(r, {
-                  verifyEvent: verifyEvent
-                })
-                this.trackEventSeenOn(note.event.id, relay)
-              } catch {
-                return null
-              }
-            })
-          }
-        }
-      }
-      this.trendingNotesCache = events
-      return this.trendingNotesCache
-    } catch (error) {
-      console.error('fetchTrendingNotes error', error)
-      return []
-    }
   }
 
   addEventToCache(event: NostrEvent) {

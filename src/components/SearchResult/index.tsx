@@ -1,10 +1,10 @@
 import { TSearchParams } from '@/types'
-import NormalFeed from '../NormalFeed'
 import Profile from '../Profile'
 import { ProfileListBySearch } from '../ProfileListBySearch'
 import Relay from '../Relay'
-import TrendingNotes from '../TrendingNotes'
+import NoteList from '../NoteList'
 import { useMemo } from 'react'
+import { SUPPORTED_KINDS } from '@/constants'
 
 export default function SearchResult({ searchParams }: { searchParams: TSearchParams | null }) {
   const notesSubRequests = useMemo(
@@ -36,7 +36,20 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
   )
 
   if (!searchParams) {
-    return <TrendingNotes />
+    return (
+      <NoteList
+        subRequests={[
+          {
+            source: 'relays' as const,
+            urls: window.fevela.universe.trending,
+            filter: {
+              kinds: SUPPORTED_KINDS
+            }
+          }
+        ]}
+        showKinds={SUPPORTED_KINDS}
+      />
+    )
   }
   if (searchParams.type === 'profile') {
     return <Profile id={searchParams.search} />
@@ -45,10 +58,10 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
     return <ProfileListBySearch search={searchParams.search} />
   }
   if (searchParams.type === 'notes') {
-    return <NormalFeed subRequests={notesSubRequests} showRelayCloseReason />
+    return <NoteList subRequests={notesSubRequests} showKinds={SUPPORTED_KINDS} />
   }
   if (searchParams.type === 'hashtag') {
-    return <NormalFeed subRequests={hashtagSubRequests} showRelayCloseReason />
+    return <NoteList subRequests={hashtagSubRequests} showKinds={SUPPORTED_KINDS} />
   }
   return <Relay url={searchParams.search} />
 }
