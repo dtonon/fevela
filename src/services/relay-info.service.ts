@@ -1,6 +1,6 @@
 import { simplifyUrl } from '@/lib/url'
 import indexDb from '@/services/indexed-db.service'
-import { TAwesomeRelayCollection, TRelayInfo } from '@/types'
+import { TRelayInfo } from '@/types'
 import DataLoader from 'dataloader'
 import FlexSearch from 'flexsearch'
 
@@ -15,7 +15,6 @@ class RelayInfoService {
   }
 
   private initPromise: Promise<void> | null = null
-  private awesomeRelayCollections: Promise<TAwesomeRelayCollection[]> | null = null
   private relayInfoMap = new Map<string, TRelayInfo>()
   private relayInfoIndex = new FlexSearch.Index({
     tokenize: 'forward',
@@ -86,28 +85,6 @@ class RelayInfoService {
       }
     }
     return relayInfos
-  }
-
-  async getAwesomeRelayCollections() {
-    if (this.awesomeRelayCollections) return this.awesomeRelayCollections
-
-    this.awesomeRelayCollections = (async () => {
-      try {
-        const res = await fetch(
-          'https://raw.githubusercontent.com/CodyTseng/awesome-nostr-relays/master/dist/collections.json'
-        )
-        if (!res.ok) {
-          throw new Error('Failed to fetch awesome relay collections')
-        }
-        const data = (await res.json()) as { collections: TAwesomeRelayCollection[] }
-        return data.collections
-      } catch (error) {
-        console.error('Error fetching awesome relay collections:', error)
-        return []
-      }
-    })()
-
-    return this.awesomeRelayCollections
   }
 
   private async _getRelayInfo(url: string) {
