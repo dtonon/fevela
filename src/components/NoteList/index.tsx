@@ -275,8 +275,6 @@ const NoteList = forwardRef(
           for (let i = 0; i < newEvents.length; i++) {
             const newEvent = newEvents[i]
 
-            if (shouldHideEvent(newEvent)) continue
-
             // TODO: figure out where exactly the viewport is: for now just assume it's at the top
             if (events.length < 7 || newEvent.created_at < events[6].created_at) {
               // if there are very few events in the viewport or the new events would be inserted below, just append
