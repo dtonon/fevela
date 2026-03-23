@@ -61,6 +61,8 @@ export default function GroupedProfileFeed({ pubkey }: { pubkey: string }) {
       return false
     }
 
+    if (!feedSettings.includeReplies && isReplyNoteEvent(event)) return false
+
     // filter nested replies when showOnlyFirstLevelReplies is enabled
     if (
       feedSettings.includeReplies &&

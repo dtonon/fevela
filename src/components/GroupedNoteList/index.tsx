@@ -244,6 +244,7 @@ const GroupedNoteList = forwardRef(
         if (settings.wordFilter.length && wordsInEvent(settings.wordFilter, evt)) return true
         if (settings.hideShortNotes && !isLongNote(evt)) return true
 
+        if (!settings.includeReplies && isReplyNoteEvent(evt)) return true
         if (
           settings.includeReplies &&
           settings.showOnlyFirstLevelReplies &&
@@ -275,9 +276,12 @@ const GroupedNoteList = forwardRef(
       ]
     )
 
-    useEffect(() => {
-      const filteredEvents = events
+    const filteredEvents = useMemo(
+      () => events.filter((evt) => !shouldHideEvent(evt)),
+      [events, shouldHideEvent]
+    )
 
+    useEffect(() => {
       // group events by author pubkey
       let noteGroups: TNoteGroup[] = []
       const authorIndexes = new Map<string, number>()
@@ -360,7 +364,7 @@ const GroupedNoteList = forwardRef(
         noteGroups,
         hasNoResults: filteredEvents.length === 0 && events.length > 0
       })
-    }, [events, getPinBuryState, statsUpdateTrigger, getReplyCount])
+    }, [filteredEvents, events, getPinBuryState, statsUpdateTrigger, getReplyCount])
 
     // update matching pubkeys when user filter changes
     useEffect(() => {
