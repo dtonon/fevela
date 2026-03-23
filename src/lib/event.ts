@@ -219,9 +219,13 @@ export function getRootBech32Id(event?: Event) {
   const rootTag = getRootTag(event)
   if (!rootTag) return undefined
 
-  return rootTag[0] === 'e' || rootTag[0] === 'a'
-    ? generateBech32IdFromETag(rootTag)
-    : generateBech32IdFromATag(rootTag)
+  if (rootTag[0] === 'e' || rootTag[0] === 'E') {
+    return generateBech32IdFromETag(rootTag)
+  }
+  if (rootTag[0] === 'a' || rootTag[0] === 'A') {
+    return generateBech32IdFromATag(rootTag)
+  }
+  return undefined
 }
 
 // For internal identification of events
