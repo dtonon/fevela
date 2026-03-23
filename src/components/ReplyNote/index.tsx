@@ -12,6 +12,7 @@ import { useTranslation } from 'react-i18next'
 import ClientTag from '../ClientTag'
 import Collapsible from '../Collapsible'
 import Content from '../Content'
+import PendingUndoButton from '../PendingUndoButton'
 import { FormattedTimestamp } from '../FormattedTimestamp'
 import Nip05 from '../Nip05'
 import NoteOptions from '../NoteOptions'
@@ -84,6 +85,7 @@ export default function ReplyNote({
                 <NoteOptions event={event} className="shrink-0 [&_svg]:size-5" />
               </div>
             </div>
+            <PendingUndoButton event={event} className="mt-1" />
             {parentEventId && (
               <ParentNotePreview
                 className="mt-2"

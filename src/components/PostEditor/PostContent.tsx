@@ -7,6 +7,7 @@ import {
   createShortTextNoteDraftEvent,
   deleteDraftEventCache
 } from '@/lib/draft-event'
+import { addPendingPublish, removePendingPublish, usePendingCountdown } from '@/lib/pendingPublish'
 import { isTouchDevice } from '@/lib/utils'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useNostr } from '@/providers/NostrProvider'
@@ -53,24 +54,14 @@ function waitForAbortableDelay(duration: number, signal: AbortSignal) {
 }
 
 function PendingPublishToast({ endAt, onUndo }: { endAt: number; onUndo: () => void }) {
-  const [secondsLeft, setSecondsLeft] = useState(
-    Math.max(0, Math.ceil((endAt - Date.now()) / 1000))
-  )
-
-  useEffect(() => {
-    const interval = window.setInterval(() => {
-      setSecondsLeft(Math.max(0, Math.ceil((endAt - Date.now()) / 1000)))
-    }, 250)
-
-    return () => window.clearInterval(interval)
-  }, [endAt])
+  const secondsLeft = usePendingCountdown(endAt)
 
   return (
     <div className="flex items-center gap-3">
       <div className="min-w-0 flex-1">
         <div className="text-sm font-medium">Changed your mind?</div>
       </div>
-      <Button variant="outline" size="sm" onClick={onUndo}>
+      <Button variant="outline" size="sm" className="text-primary" onClick={onUndo}>
         UNDO
       </Button>
       <div className="text-sm font-medium">{secondsLeft}s</div>
@@ -225,9 +216,11 @@ export default function PostContent({
           addDeletedEvent(newEvent)
           void client.removeEventFromCache(newEvent.id)
           toast.dismiss(toastId)
+          removePendingPublish(newEvent.id)
           open(submittedText)
         }
 
+        addPendingPublish(newEvent.id, endAt, undoPublish)
         toast(<PendingPublishToast endAt={endAt} onUndo={undoPublish} />, {
           id: toastId,
           duration: PENDING_PUBLISH_MS
@@ -237,10 +230,12 @@ export default function PostContent({
           try {
             await waitForAbortableDelay(PENDING_PUBLISH_MS, abortController.signal)
             toast.dismiss(toastId)
+            removePendingPublish(newEvent.id)
             await client.publishEvent(relayUrls, newEvent)
             toast.success(t('Post successful'), { duration: 2000 })
           } catch (error) {
             toast.dismiss(toastId)
+            removePendingPublish(newEvent.id)
 
             if (abortController.signal.aborted) {
               return
