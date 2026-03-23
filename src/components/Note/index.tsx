@@ -21,6 +21,7 @@ import ParentNotePreview from '../ParentNotePreview'
 import TranslateButton from '../TranslateButton'
 import UserAvatar from '../UserAvatar'
 import Username from '../Username'
+import PendingUndoButton from '../PendingUndoButton'
 import CommunityDefinition from './CommunityDefinition'
 import GroupMetadata from './GroupMetadata'
 import Highlight from './Highlight'
@@ -157,6 +158,7 @@ export default function Note({
           </div>
         </div>
       )}
+      <PendingUndoButton event={event} className="mt-1" />
       {parentEventId && (
         <ParentNotePreview
           eventId={parentEventId}

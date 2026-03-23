@@ -12,6 +12,7 @@ import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, NostrEvent, verifyEvent } from '@nostr/tools/wasm'
 import { mergeReverseSortedLists } from '@nostr/tools/utils'
+import { matchFilters } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import {
   forwardRef,
@@ -233,54 +234,7 @@ const NoteList = forwardRef(
               setEvents(events)
             }
           },
-          onNew: batchDebounce(
-            (newEvents) => {
-              // do everything inside this setter so we get the latest state (because react is incredibly retarded)
-              setEvents((events) => {
-                const pending: Event[] = []
-                const appended: Event[] = []
-
-                for (let i = 0; i < newEvents.length; i++) {
-                  const newEvent = newEvents[i]
-
-                  if (shouldHideEvent(newEvent)) continue
-
-                  // TODO: figure out where exactly the viewport is: for now just assume it's at the top
-                  if (events.length < 7 || newEvent.created_at < events[6].created_at) {
-                    // if there are very few events in the viewport or the new events would be inserted below, just append
-                    appended.push(newEvent)
-                  } else if (pubkey && newEvent.pubkey === pubkey) {
-                    // our own notes are also inserted regardless of any concern
-                    appended.push(newEvent)
-                  } else {
-                    // any other "new" notes that would be inserted above, make them be pending in the modal thingie
-                    pending.push(newEvent)
-                  }
-                }
-
-                if (pending.length) {
-                  // sort these as they will not come in order (they will come from different author syncing processes)
-                  pending.sort((a, b) => b.created_at - a.created_at)
-                  // prepend them to the top
-                  setNewEvents((curr) =>
-                    [...pending, ...curr].sort((a, b) => b.created_at - a.created_at)
-                  )
-                }
-
-                // insert each appended event using binary search to maintain sort order and deduplicate
-                if (appended.length) {
-                  return mergeReverseSortedLists(
-                    events,
-                    appended.sort((a, b) => b.created_at - a.created_at)
-                  )
-                } else {
-                  return events
-                }
-              })
-            },
-            1800,
-            3000
-          ),
+          onNew: handleNew,
           onClose(url, reason) {
             if (!showRelayCloseReason) return
             // ignore reasons from @nostr/tools
@@ -306,6 +260,78 @@ const NoteList = forwardRef(
 
       return () => subc.close()
     }, [subRequests, refreshCount, showKinds, shouldHideEvent])
+
+    const handleNew = batchDebounce(
+      (newEvents: NostrEvent[]) => {
+        // do everything inside this setter so we get the latest state (because react is incredibly retarded)
+        setEvents((events) => {
+          const pending: Event[] = []
+          const appended: Event[] = []
+
+          for (let i = 0; i < newEvents.length; i++) {
+            const newEvent = newEvents[i]
+
+            if (shouldHideEvent(newEvent)) continue
+
+            // TODO: figure out where exactly the viewport is: for now just assume it's at the top
+            if (events.length < 7 || newEvent.created_at < events[6].created_at) {
+              // if there are very few events in the viewport or the new events would be inserted below, just append
+              appended.push(newEvent)
+            } else if (pubkey && newEvent.pubkey === pubkey) {
+              // our own notes are also inserted regardless of any concern
+              appended.push(newEvent)
+            } else {
+              // any other "new" notes that would be inserted above, make them be pending in the modal thingie
+              pending.push(newEvent)
+            }
+          }
+
+          if (pending.length) {
+            // sort these as they will not come in order (they will come from different author syncing processes)
+            pending.sort((a, b) => b.created_at - a.created_at)
+            // prepend them to the top
+            setNewEvents((curr) =>
+              [...pending, ...curr].sort((a, b) => b.created_at - a.created_at)
+            )
+          }
+
+          // insert each appended event using binary search to maintain sort order and deduplicate
+          if (appended.length) {
+            return mergeReverseSortedLists(
+              events,
+              appended.sort((a, b) => b.created_at - a.created_at)
+            )
+          } else {
+            return events
+          }
+        })
+      },
+      1800,
+      3000
+    )
+
+    useEffect(() => {
+      if (!subRequests.length || showKinds.length === 0) return
+
+      const filters = subRequests.map(({ filter }) => ({
+        ...filter,
+        kinds: showKinds,
+        ...(sinceTimestamp && isFilteredView ? { since: sinceTimestamp } : {})
+      }))
+
+      const handler = (data: globalThis.Event) => {
+        const customEvent = data as unknown as CustomEvent<NostrEvent>
+        const evt = customEvent.detail
+        if (matchFilters(filters, evt)) {
+          handleNew(evt)
+        }
+      }
+
+      client.addEventListener('newEvent', handler)
+      return () => {
+        client.removeEventListener('newEvent', handler)
+      }
+    }, [subRequests, showKinds, sinceTimestamp, isFilteredView])
 
     const loadMore = useCallback(async () => {
       setEvents((events) => {

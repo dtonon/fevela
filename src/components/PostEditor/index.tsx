@@ -16,7 +16,7 @@ import {
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import postEditor from '@/services/post-editor.service'
 import { Event } from '@nostr/tools/wasm'
-import { Dispatch, useMemo } from 'react'
+import { Dispatch, useMemo, useState } from 'react'
 import PostContent from './PostContent'
 import Title from './Title'
 
@@ -34,17 +34,28 @@ export default function PostEditor({
   openFrom?: string[]
 }) {
   const { isSmallScreen } = useScreenSize()
+  const [undoContent, setUndoContent] = useState(defaultContent)
+  const [undoKey, setUndoKey] = useState(0)
+
+  const handleOpen = (content?: string) => {
+    if (content !== undefined) {
+      setUndoContent(content)
+      setUndoKey((k) => k + 1)
+    }
+    setOpen(true)
+  }
 
   const content = useMemo(() => {
     return (
       <PostContent
-        defaultContent={defaultContent}
+        defaultContent={undoContent}
         parentEvent={parentEvent}
         close={() => setOpen(false)}
+        open={handleOpen}
         openFrom={openFrom}
       />
     )
-  }, [])
+  }, [undoKey])
 
   if (isSmallScreen) {
     return (

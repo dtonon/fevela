@@ -198,6 +198,10 @@ class ClientService extends EventTarget {
     this.addEventToCache(event)
   }
 
+  emitEphemeralEvent(event: NostrEvent) {
+    this.dispatchEvent(new CustomEvent('newEvent', { detail: event }))
+  }
+
   async signHttpAuth(url: string, method: string, description = '') {
     if (!this.signer) {
       throw new Error('Please login first to sign the event')
@@ -697,6 +701,10 @@ class ClientService extends EventTarget {
     store.saveEvent(event, {
       seenOn: Array.from(pool.seenOn.get(event.id) || []).map((relay) => relay.url)
     })
+  }
+
+  removeEventFromCache(eventId: string) {
+    return store.deleteEvents([eventId])
   }
 
   async fetchEvent(idOrCode: string): Promise<NostrEvent | undefined> {

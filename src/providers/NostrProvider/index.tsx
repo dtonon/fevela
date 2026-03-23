@@ -78,6 +78,10 @@ type TNostrContext = {
   /**
    * Default publish the event to current relays, user's write relays and additional relays
    */
+  preparePublish: (
+    draftEvent: TDraftEvent,
+    options?: TPublishOptions
+  ) => Promise<{ event: VerifiedEvent; relayUrls: string[] }>
   publish: (draftEvent: TDraftEvent, options?: TPublishOptions) => Promise<Event>
   attemptDelete: (targetEvent: Event) => Promise<void>
   signHttpAuth: (url: string, method: string) => Promise<string>
@@ -541,7 +545,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     return event as VerifiedEvent
   }
 
-  const publish = async (
+  const preparePublish = async (
     draftEvent: TDraftEvent,
     { minPow = 0, ...options }: TPublishOptions = {}
   ) => {
@@ -571,9 +575,15 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    const relays = await client.determineTargetRelays(event, options)
+    const relayUrls = await client.determineTargetRelays(event, options)
 
-    await client.publishEvent(relays, event)
+    return { event, relayUrls }
+  }
+
+  const publish = async (draftEvent: TDraftEvent, options: TPublishOptions = {}) => {
+    const { event, relayUrls } = await preparePublish(draftEvent, options)
+
+    await client.publishEvent(relayUrls, event)
     return event
   }
 
@@ -711,6 +721,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         nostrConnectionLogin,
         npubLogin,
         removeAccount,
+        preparePublish,
         publish,
         attemptDelete,
         signHttpAuth,
