@@ -245,6 +245,7 @@ const GroupedNoteList = forwardRef(
         if (settings.hideShortNotes && !isLongNote(evt)) return true
 
         if (!settings.includeReplies && isReplyNoteEvent(evt)) return true
+
         if (
           settings.includeReplies &&
           settings.showOnlyFirstLevelReplies &&
@@ -482,8 +483,6 @@ const GroupedNoteList = forwardRef(
         },
         {
           async onEvents(events, isFinal) {
-            events = events.filter((evt) => !shouldHideEvent(evt))
-
             if (isFinal) {
               setLoading(false)
 
@@ -538,16 +537,13 @@ const GroupedNoteList = forwardRef(
 
     const handleNew = batchDebounce(
       (newEvents: NostrEvent[]) => {
-        // filter new events through shouldHideEvent
-        const filteredNewEvents = newEvents.filter((evt) => !shouldHideEvent(evt))
-
         // do everything inside this setter otherwise it's impossible to get the latest state
         setNoteGroups((curr) => {
           const pending: NostrEvent[] = []
           const appended: NostrEvent[] = []
 
-          for (let i = 0; i < filteredNewEvents.length; i++) {
-            const newEvent = filteredNewEvents[i]
+          for (let i = 0; i < newEvents.length; i++) {
+            const newEvent = newEvents[i]
 
             // TODO: figure out where exactly the viewport is: for now just assume it's at the top
             if (
