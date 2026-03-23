@@ -49,7 +49,7 @@ export default function Notification({
   const handleClick = () => {
     markNotificationAsRead(notificationId)
     if (targetEvent) {
-      push(toNote(targetEvent.id))
+      push(toNote(targetEvent))
     } else if (pubkey) {
       push(toProfile(pubkey))
     }

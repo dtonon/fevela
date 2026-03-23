@@ -5,7 +5,19 @@ import { getNoteBech32Id } from './event'
 
 export const toHome = () => '/'
 export const toNote = (eventOrId: Event | string) => {
-  if (typeof eventOrId === 'string') return `/notes/${eventOrId}`
+  if (typeof eventOrId === 'string') {
+    if (
+      eventOrId.startsWith('nevent') ||
+      eventOrId.startsWith('naddr') ||
+      eventOrId.startsWith('note')
+    ) {
+      return `/notes/${eventOrId}`
+    }
+    if (/^[0-9a-fA-F]{64}$/.test(eventOrId)) {
+      return `/notes/${nip19.neventEncode({ id: eventOrId })}`
+    }
+    return `/notes/${eventOrId}`
+  }
   const nevent = getNoteBech32Id(eventOrId)
   return `/notes/${nevent}`
 }
