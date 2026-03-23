@@ -172,13 +172,6 @@ export type TSearchParams = {
 export type TNotificationStyle =
   (typeof NOTIFICATION_LIST_STYLE)[keyof typeof NOTIFICATION_LIST_STYLE]
 
-export type TAwesomeRelayCollection = {
-  id: string
-  name: string
-  description: string
-  relays: string[]
-}
-
 export type TMediaAutoLoadPolicy =
   (typeof MEDIA_AUTO_LOAD_POLICY)[keyof typeof MEDIA_AUTO_LOAD_POLICY]
 
