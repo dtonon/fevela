@@ -64,7 +64,7 @@ function PendingPublishToast({ endAt, onUndo }: { endAt: number; onUndo: () => v
       <Button variant="outline" size="sm" className="text-primary" onClick={onUndo}>
         UNDO
       </Button>
-      <div className="text-sm font-medium">{secondsLeft}s</div>
+      <div className="text-sm font-medium w-8 text-right">{secondsLeft}s</div>
     </div>
   )
 }
@@ -223,7 +223,9 @@ export default function PostContent({
         addPendingPublish(newEvent.id, endAt, undoPublish)
         toast(<PendingPublishToast endAt={endAt} onUndo={undoPublish} />, {
           id: toastId,
-          duration: PENDING_PUBLISH_MS
+          duration: PENDING_PUBLISH_MS,
+          style: { '--width': 'fit-content' } as React.CSSProperties,
+          closeButton: true
         })
 
         void (async () => {
