@@ -194,7 +194,6 @@ export default function ProfileFeed({
         ref={noteListRef}
         subRequests={subRequests}
         showKinds={temporaryShowKinds}
-        hideReplies={!feedSettings.includeReplies}
         filterMutedNotes={false}
         sinceTimestamp={groupedSince}
         onNotesLoaded={(count: number, hasPosts: boolean, hasReplies: boolean) => {

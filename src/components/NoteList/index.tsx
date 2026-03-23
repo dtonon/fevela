@@ -1,6 +1,6 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isLongNote, isMentioningMutedUsers, isReplyNoteEvent, wordsInEvent } from '@/lib/event'
+import { isFirstLevelReply, isLongNote, isMentioningMutedUsers, isReplyNoteEvent, wordsInEvent } from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -39,8 +39,6 @@ const NoteList = forwardRef(
       subRequests,
       showKinds,
       filterMutedNotes = true,
-      hideReplies = false,
-      showOnlyReplies = false,
       hideUntrustedNotes = false,
       showRelayCloseReason = false,
       sinceTimestamp,
@@ -52,8 +50,6 @@ const NoteList = forwardRef(
       subRequests: TFeedSubRequest[]
       showKinds: number[]
       filterMutedNotes?: boolean
-      hideReplies?: boolean
-      showOnlyReplies?: boolean
       hideUntrustedNotes?: boolean
       showRelayCloseReason?: boolean
       sinceTimestamp?: number
@@ -88,8 +84,14 @@ const NoteList = forwardRef(
         if (feedSettings.hideShortNotes && !isLongNote(evt)) return true
         if (pinnedEventIds && pinnedEventIds.includes(evt.id)) return true
         if (isEventDeleted(evt)) return true
-        if (hideReplies && isReplyNoteEvent(evt)) return true
-        if (showOnlyReplies && !isReplyNoteEvent(evt)) return true
+        if (!feedSettings.includeReplies && isReplyNoteEvent(evt)) return true
+        if (
+          feedSettings.includeReplies &&
+          feedSettings.showOnlyFirstLevelReplies &&
+          isReplyNoteEvent(evt) &&
+          !isFirstLevelReply(evt)
+        )
+          return true
         if (hideUntrustedNotes && !isUserTrusted(evt.pubkey)) return true
         if (filterMutedNotes && mutePubkeySet.has(evt.pubkey)) return true
         if (
@@ -106,13 +108,15 @@ const NoteList = forwardRef(
         return false
       },
       [
-        hideReplies,
-        showOnlyReplies,
         hideUntrustedNotes,
         mutePubkeySet,
         pinnedEventIds,
         isEventDeleted,
-        filterFn
+        filterFn,
+        feedSettings.wordFilter,
+        feedSettings.hideShortNotes,
+        feedSettings.includeReplies,
+        feedSettings.showOnlyFirstLevelReplies
       ]
     )
 
@@ -259,7 +263,7 @@ const NoteList = forwardRef(
       )
 
       return () => subc.close()
-    }, [subRequests, refreshCount, showKinds, shouldHideEvent])
+    }, [subRequests, refreshCount, showKinds])
 
     const handleNew = batchDebounce(
       (newEvents: NostrEvent[]) => {

@@ -110,7 +110,6 @@ export default function NormalFeed({
           ref={noteListRef as React.Ref<TNoteListRef>}
           showKinds={temporaryShowKinds}
           subRequests={subRequests}
-          hideReplies={!feedSettings.includeReplies}
           hideUntrustedNotes={hideUntrustedNotes}
           showRelayCloseReason={showRelayCloseReason}
         />

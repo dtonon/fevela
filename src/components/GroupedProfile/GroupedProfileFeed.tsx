@@ -101,7 +101,6 @@ export default function GroupedProfileFeed({ pubkey }: { pubkey: string }) {
       ref={noteListRef}
       subRequests={subRequests}
       showKinds={showKinds}
-      hideReplies={!feedSettings.includeReplies}
       filterMutedNotes={false}
       sinceTimestamp={groupedNotesSince}
       filterFn={filterFn}
