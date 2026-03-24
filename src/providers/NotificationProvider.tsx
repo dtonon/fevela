@@ -112,7 +112,6 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
   useEffect(() => {
     if (!pubkey) return
 
-    setNewNotifications([])
     setReadNotificationIdSet(new Set())
 
     // Track if component is mounted
@@ -127,6 +126,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         subCloserRef.current = null
       }
       if (!isMountedRef.current) return null
+      setNewNotifications([])
 
       try {
         let eosed = false
