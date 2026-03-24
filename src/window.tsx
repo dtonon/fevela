@@ -6,6 +6,7 @@ import { store } from './services/store.service'
 import { current, outbox } from './services/outbox.service'
 import client from './services/client.service'
 import { Filter } from '@nostr/tools/filter'
+import * as kinds from '@nostr/tools/kinds'
 
 const lastSyncTimes = new Map<string, string>()
 current.onsync.push((pubkey?: string) => {
@@ -46,6 +47,27 @@ window.fevela = {
       'https://nostr.download/',
       'https://blossom.band/'
     ],
+    clientHandlers: {
+      byKind: {
+        [kinds.LongFormArticle]: [
+          { name: 'Habla', urlPattern: 'https://habla.news/a/{}' },
+          { name: 'Yakihonne', urlPattern: 'https://yakihonne.com/{}' }
+        ],
+        [kinds.LiveEvent]: [{ name: 'zap.stream', urlPattern: 'https://zap.stream/{}' }],
+        [kinds.Date]: [{ name: 'Coracle', urlPattern: 'https://coracle.social/{}' }],
+        [kinds.Time]: [{ name: 'Coracle', urlPattern: 'https://coracle.social/{}' }]
+      },
+      fallback: [
+        {
+          name: 'Grimoire',
+          urlPattern: 'https://grimoire.rocks/run?cmd=open%20{}'
+        },
+        {
+          name: 'njump',
+          urlPattern: 'https://njump.me/{}'
+        }
+      ]
+    },
     defaultNostrConnectRelays: ['wss://bucket.coracle.social/', 'wss://relay.primal.net/'],
     bigRelayUrls: ['wss://relay.damus.io/', 'wss://relay.primal.net/', 'wss://nos.lol/'],
     searchableRelayUrls: ['wss://antiprimal.net/', 'wss://search.nostrarchives.com/']

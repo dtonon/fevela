@@ -2,76 +2,13 @@ import { Button, ButtonProps } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog'
 import { Drawer, DrawerContent, DrawerOverlay, DrawerTrigger } from '@/components/ui/drawer'
 import { Separator } from '@/components/ui/separator'
-import { ExtendedKind } from '@/constants'
-import { getReplaceableEventIdentifier, getNoteBech32Id } from '@/lib/event'
-import { toChachiChat } from '@/lib/link'
+import { getNoteBech32Id } from '@/lib/event'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
-import clientService from '@/services/client.service'
 import { ExternalLink } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
-import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
-import { Dispatch, SetStateAction, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-
-const clients: Record<string, { name: string; getUrl: (id: string) => string }> = {
-  nosta: {
-    name: 'Nosta',
-    getUrl: (id: string) => `https://nosta.me/${id}`
-  },
-  snort: {
-    name: 'Snort',
-    getUrl: (id: string) => `https://snort.social/${id}`
-  },
-  olas: {
-    name: 'Olas',
-    getUrl: (id: string) => `https://olas.app/e/${id}`
-  },
-  primal: {
-    name: 'Primal',
-    getUrl: (id: string) => `https://primal.net/e/${id}`
-  },
-  nostrudel: {
-    name: 'Nostrudel',
-    getUrl: (id: string) => `https://nostrudel.ninja/l/${id}`
-  },
-  nostter: {
-    name: 'Nostter',
-    getUrl: (id: string) => `https://nostter.app/${id}`
-  },
-  coracle: {
-    name: 'Coracle',
-    getUrl: (id: string) => `https://coracle.social/${id}`
-  },
-  iris: {
-    name: 'Iris',
-    getUrl: (id: string) => `https://iris.to/${id}`
-  },
-  lumilumi: {
-    name: 'Lumilumi',
-    getUrl: (id: string) => `https://lumilumi.app/${id}`
-  },
-  zapStream: {
-    name: 'zap.stream',
-    getUrl: (id: string) => `https://zap.stream/${id}`
-  },
-  yakihonne: {
-    name: 'YakiHonne',
-    getUrl: (id: string) => `https://yakihonne.com/${id}`
-  },
-  habla: {
-    name: 'Habla',
-    getUrl: (id: string) => `https://habla.news/a/${id}`
-  },
-  pareto: {
-    name: 'Pareto',
-    getUrl: (id: string) => `https://pareto.space/a/${id}`
-  },
-  njump: {
-    name: 'Njump',
-    getUrl: (id: string) => `https://njump.me/${id}`
-  }
-}
 
 export default function ClientSelect({
   event,
@@ -94,31 +31,19 @@ export default function ClientSelect({
         const pointer = nip19.decode(originalNoteId)
         if (pointer.type === 'naddr') {
           kind = pointer.data.kind
+        } else if (pointer.type === 'nevent') {
+          kind = pointer.data.kind
         }
       } catch (error) {
         console.error('Failed to decode NIP-19 pointer:', error)
-        return ['njump']
       }
     }
-    if (!kind) {
-      return ['njump']
-    }
 
-    switch (kind) {
-      case kinds.LongFormArticle:
-      case kinds.DraftLong:
-        return ['yakihonne', 'coracle', 'habla', 'lumilumi', 'pareto', 'njump']
-      case kinds.LiveEvent:
-        return ['zapStream', 'nostrudel', 'njump']
-      case kinds.Date:
-      case kinds.Time:
-        return ['coracle', 'njump']
-      case kinds.CommunityDefinition:
-        return ['coracle', 'snort', 'njump']
-      default:
-        return ['njump']
-    }
-  }, [event])
+    const handlerRegistry = window.fevela?.universe?.clientHandlers
+    const fallbackHandlers = handlerRegistry?.fallback ?? []
+    const kindHandlers = handlerRegistry?.byKind?.[kind!] ?? []
+    return [...kindHandlers, ...fallbackHandlers]
+  }, [event, originalNoteId])
 
   if (!originalNoteId && !event) {
     return null
@@ -126,27 +51,14 @@ export default function ClientSelect({
 
   const content = (
     <div className="space-y-2">
-      {event?.kind === ExtendedKind.GROUP_METADATA ? (
-        <RelayBasedGroupChatSelector
-          event={event}
-          originalNoteId={originalNoteId}
-          setOpen={setOpen}
+      {supportedClients.map((client) => (
+        <ClientSelectItem
+          key={client.name}
+          onClick={() => setOpen(false)}
+          href={client.urlPattern.replace('{}', originalNoteId ?? getNoteBech32Id(event!))}
+          name={client.name}
         />
-      ) : (
-        supportedClients.map((clientId) => {
-          const client = clients[clientId]
-          if (!client) return null
-
-          return (
-            <ClientSelectItem
-              key={clientId}
-              onClick={() => setOpen(false)}
-              href={client.getUrl(originalNoteId ?? getNoteBech32Id(event!))}
-              name={client.name}
-            />
-          )
-        })
-      )}
+      ))}
       <Separator />
       <Button
         variant="ghost"
@@ -193,39 +105,6 @@ export default function ClientSelect({
         </DialogContent>
       </Dialog>
     </div>
-  )
-}
-
-function RelayBasedGroupChatSelector({
-  event,
-  originalNoteId,
-  setOpen
-}: {
-  event: Event
-  setOpen: Dispatch<SetStateAction<boolean>>
-  originalNoteId?: string
-}) {
-  const { relay, id } = useMemo(() => {
-    let relay: string | undefined
-    if (originalNoteId) {
-      const pointer = nip19.decode(originalNoteId)
-      if (pointer.type === 'naddr' && pointer.data.relays?.length) {
-        relay = pointer.data.relays[0]
-      }
-    }
-    if (!relay) {
-      relay = clientService.getEventHint(event.id, event)
-    }
-
-    return { relay, id: getReplaceableEventIdentifier(event) }
-  }, [event, originalNoteId])
-
-  return (
-    <ClientSelectItem
-      onClick={() => setOpen(false)}
-      href={toChachiChat(relay, id)}
-      name="Chachi Chat"
-    />
   )
 }
 
