@@ -3,11 +3,20 @@ export interface FevelaUniverse {
   defaultFavoriteRelays: string[]
   recommendedRelays: string[]
   recommendedBlossomServers: string[]
+  clientHandlers: {
+    byKind: Record<number, ClientHandler[]>
+    fallback: ClientHandler[]
+  }
   fevelaApiBaseUrl: string
   defaultNip96Service: string
   defaultNostrConnectRelays: string[]
   bigRelayUrls: string[]
   searchableRelayUrls: string[]
+}
+
+export type ClientHandler = {
+  name: string
+  urlPattern: string
 }
 
 declare global {
