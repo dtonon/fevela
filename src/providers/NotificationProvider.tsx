@@ -226,9 +226,11 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         favicon.href = '/favicon.ico'
       })
     } else {
+      let cancelled = false
       const img = document.createElement('img')
       img.src = '/favicon.ico'
       img.onload = () => {
+        if (cancelled) return
         const size = Math.max(img.width, img.height, 32)
         const canvas = document.createElement('canvas')
         canvas.width = size
@@ -244,6 +246,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         favicons.forEach((favicon) => {
           favicon.href = canvas.toDataURL('image/png')
         })
+      }
+      return () => {
+        cancelled = true
       }
     }
   }, [filteredNewNotifications])
