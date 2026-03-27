@@ -160,11 +160,17 @@ export default function ReplyNoteList({
       }
 
       setSubRequests(
-        filters.map((filter) => ({
-          source: 'relays',
-          urls: relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
-          filter
-        }))
+        filters.flatMap<TFeedSubRequest>((filter) => [
+          {
+            source: 'relays',
+            urls: relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+            filter
+          },
+          {
+            source: 'local',
+            filter
+          }
+        ])
       )
     })()
   }, [event])
