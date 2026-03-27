@@ -33,11 +33,13 @@ const SHOW_COUNT = 10
 export default function ReplyNoteList({
   index,
   event,
-  showOnlyFirstLevel = false
+  showOnlyFirstLevel = false,
+  selectedRelayUrls
 }: {
   index?: number
   event: NEvent
   showOnlyFirstLevel?: boolean
+  selectedRelayUrls: string[]
 }) {
   const { t } = useTranslation()
   const { push, currentIndex } = useSecondaryPage()
@@ -46,7 +48,7 @@ export default function ReplyNoteList({
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const { isEventDeleted } = useDeletedEvent()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
-  const { repliesMap, addReplies } = useReply()
+  const { repliesMap, addReplies, reset } = useReply()
   const replies = useMemo(() => {
     const replyKeySet = new Set<string>()
     const replyEvents: NEvent[] = []
@@ -101,10 +103,12 @@ export default function ReplyNoteList({
       }
 
       const filters: Filter[] = []
-      const relays: string[] = client.getSeenEventRelayUrls(event.id, event)
+      const relays: string[] = selectedRelayUrls.length
+        ? selectedRelayUrls
+        : client.getSeenEventRelayUrls(event.id, event)
 
       const hint = rootTag[2]
-      if (hint) relays.push(hint)
+      if (hint && !selectedRelayUrls.length) relays.push(hint)
 
       switch (rootTag[0]) {
         case 'e':
@@ -119,15 +123,17 @@ export default function ReplyNoteList({
             kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT]
           })
 
-          const authorHint = event.kind === 1 ? rootTag[4] : rootTag[3]
-          try {
-            const author =
-              authorHint || (await client.fetchEvent(generateBech32IdFromETag(rootTag)!))?.pubkey
-            if (author) {
-              relays.push(...(await client.fetchRelayList(author)).read)
+          if (!selectedRelayUrls.length) {
+            const authorHint = event.kind === 1 ? rootTag[4] : rootTag[3]
+            try {
+              const author =
+                authorHint || (await client.fetchEvent(generateBech32IdFromETag(rootTag)!))?.pubkey
+              if (author) {
+                relays.push(...(await client.fetchRelayList(author)).read)
+              }
+            } catch (_err) {
+              /***/
             }
-          } catch (_err) {
-            /***/
           }
 
           break
@@ -144,8 +150,10 @@ export default function ReplyNoteList({
             }
           )
 
-          const author = rootTag[1].split(':')[1]
-          relays.push(...(await client.fetchRelayList(author)).read)
+          if (!selectedRelayUrls.length) {
+            const author = rootTag[1].split(':')[1]
+            relays.push(...(await client.fetchRelayList(author)).read)
+          }
           break
         default:
           filters.push({
@@ -154,7 +162,7 @@ export default function ReplyNoteList({
           })
       }
 
-      if (isProtectedEvent(event)) {
+      if (!selectedRelayUrls.length && isProtectedEvent(event)) {
         const seenOn = client.getSeenEventRelayUrls(event.id)
         relays.push(...seenOn)
       }
@@ -163,25 +171,32 @@ export default function ReplyNoteList({
         filters.flatMap<TFeedSubRequest>((filter) => [
           {
             source: 'relays',
-            urls: relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+            urls: selectedRelayUrls.length
+              ? relays
+              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
             filter
           },
-          {
-            source: 'local',
-            filter
-          }
+          ...(!selectedRelayUrls.length
+            ? [
+                {
+                  source: 'local',
+                  filter
+                } as TFeedSubRequest
+              ]
+            : [])
         ])
       )
     })()
-  }, [event])
+  }, [event, selectedRelayUrls])
 
   useEffect(() => {
     if (loading || subRequests.length === 0 || currentIndex !== index) return
 
+    reset()
     setLoading(true)
     let isClosed = false
 
-    // Timeout fallback in case relays don't respond
+    // timeout fallback in case relays don't respond
     const timeoutId = setTimeout(() => {
       if (!isClosed) {
         setLoading(false)

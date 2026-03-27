@@ -2,8 +2,8 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Event } from '@nostr/tools/wasm'
-import { List } from 'lucide-react'
-import { useState } from 'react'
+import { List, Radio } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import HideUntrustedContentButton from '../HideUntrustedContentButton'
 import QuoteList from '../QuoteList'
@@ -12,6 +12,9 @@ import ReplyNoteList from '../ReplyNoteList'
 import RepostList from '../RepostList'
 import ZapList from '../ZapList'
 import { Tabs, TTabValue } from './Tabs'
+import PostRelaySelector from '../PostEditor/PostRelaySelector'
+import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
+import { simplifyUrl } from '@/lib/url'
 
 export default function NoteInteractions({
   pageIndex,
@@ -23,11 +26,17 @@ export default function NoteInteractions({
   const { t } = useTranslation()
   const [type, setType] = useState<TTabValue>('replies')
   const [showOnlyFirstLevel, setShowOnlyFirstLevel] = useState(false)
+  const [selectedRelayUrls, setSelectedRelayUrls] = useState<string[]>([])
   let list
   switch (type) {
     case 'replies':
       list = (
-        <ReplyNoteList index={pageIndex} event={event} showOnlyFirstLevel={showOnlyFirstLevel} />
+        <ReplyNoteList
+          index={pageIndex}
+          event={event}
+          showOnlyFirstLevel={showOnlyFirstLevel}
+          selectedRelayUrls={selectedRelayUrls}
+        />
       )
       break
     case 'quotes':
@@ -67,6 +76,25 @@ export default function NoteInteractions({
               </Button>
             </div>
           )}
+          <PostRelaySelector setAdditionalRelayUrls={setSelectedRelayUrls} parentEvent={event}>
+            <div className="size-10 flex items-center justify-center">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={
+                    selectedRelayUrls.length
+                      ? `${t('Relays')}: ${selectedRelayUrls.map(simplifyUrl).join(', ')}`
+                      : t('Relays')
+                  }
+                >
+                  <Radio
+                    className={selectedRelayUrls.length ? 'text-primary' : 'text-muted-foreground'}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+            </div>
+          </PostRelaySelector>
           <div className="size-10 flex items-center justify-center">
             <HideUntrustedContentButton type="interactions" />
           </div>

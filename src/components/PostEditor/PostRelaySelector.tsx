@@ -38,6 +38,7 @@ type TPostTargetItem =
     }
 
 export default function PostRelaySelector({
+  children,
   parentEvent,
   openFrom,
   setIsProtectedEvent,
@@ -45,12 +46,13 @@ export default function PostRelaySelector({
   setIncludeOurWriteRelays,
   setIncludeTheirReadRelays
 }: {
+  children?: React.ReactNode
   parentEvent?: NostrEvent
   openFrom?: string[]
-  setIsProtectedEvent: Dispatch<SetStateAction<boolean>>
   setAdditionalRelayUrls: Dispatch<SetStateAction<string[]>>
-  setIncludeOurWriteRelays: Dispatch<SetStateAction<boolean>>
-  setIncludeTheirReadRelays: Dispatch<SetStateAction<boolean>>
+  setIsProtectedEvent?: Dispatch<SetStateAction<boolean>>
+  setIncludeOurWriteRelays?: Dispatch<SetStateAction<boolean>>
+  setIncludeTheirReadRelays?: Dispatch<SetStateAction<boolean>>
 }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
@@ -58,15 +60,18 @@ export default function PostRelaySelector({
   const { relayUrls } = useCurrentRelays()
   const { relaySets, urls } = useFavoriteRelays()
   const [postTargetItems, setPostTargetItems] = useState<TPostTargetItem[]>([])
+
   const parentEventSeenOnRelays = useMemo(() => {
     if (!parentEvent || !isProtectedEvent(parentEvent)) {
       return []
     }
     return client.getSeenEventRelayUrls(parentEvent.id, parentEvent)
   }, [parentEvent])
+
   const selectableRelays = useMemo(() => {
     return Array.from(new Set(parentEventSeenOnRelays.concat(relayUrls).concat(urls)))
   }, [parentEventSeenOnRelays, relayUrls, urls])
+
   const description = useMemo(() => {
     if (postTargetItems.length === 0) {
       return t('No relays selected')
@@ -143,10 +148,10 @@ export default function PostRelaySelector({
       return []
     })
 
-    setIsProtectedEvent(isProtectedEvent)
+    setIsProtectedEvent?.(isProtectedEvent)
     setAdditionalRelayUrls(relayUrls)
-    setIncludeOurWriteRelays(includeOurWriteRelays)
-    setIncludeTheirReadRelays(includeTheirReadRelays)
+    setIncludeOurWriteRelays?.(includeOurWriteRelays)
+    setIncludeTheirReadRelays?.(includeTheirReadRelays)
   }, [
     postTargetItems,
     setAdditionalRelayUrls,
@@ -197,18 +202,22 @@ export default function PostRelaySelector({
   const content = useMemo(() => {
     return (
       <>
-        <MenuItem
-          checked={postTargetItems.some((item) => item.type === 'ourWriteRelays')}
-          onCheckedChange={handleOurWriteRelaysCheckedChange}
-        >
-          {t('Our write relays')}
-        </MenuItem>
-        <MenuItem
-          checked={postTargetItems.some((item) => item.type === 'theirReadRelays')}
-          onCheckedChange={handleTheirReadRelaysCheckedChange}
-        >
-          {t('Their read relays')}
-        </MenuItem>
+        {setIncludeOurWriteRelays && (
+          <MenuItem
+            checked={postTargetItems.some((item) => item.type === 'ourWriteRelays')}
+            onCheckedChange={handleOurWriteRelaysCheckedChange}
+          >
+            {t('Our write relays')}
+          </MenuItem>
+        )}
+        {setIncludeTheirReadRelays && (
+          <MenuItem
+            checked={postTargetItems.some((item) => item.type === 'theirReadRelays')}
+            onCheckedChange={handleTheirReadRelaysCheckedChange}
+          >
+            {t('Their read relays')}
+          </MenuItem>
+        )}
         {relaySets.length > 0 && (
           <>
             <MenuSeparator />
@@ -250,19 +259,21 @@ export default function PostRelaySelector({
     )
   }, [postTargetItems, relaySets, selectableRelays])
 
+  const triggerContent = children || (
+    <div className="flex items-center gap-2">
+      {t('Post to')}
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" className="px-2 flex-1 max-w-fit justify-start">
+          <div className="truncate">{description}</div>
+        </Button>
+      </DropdownMenuTrigger>
+    </div>
+  )
+
   if (isSmallScreen) {
     return (
       <>
-        <div className="flex items-center gap-2">
-          {t('Post to')}
-          <Button
-            variant="outline"
-            className="px-2 flex-1 max-w-fit justify-start"
-            onClick={() => setIsDrawerOpen(true)}
-          >
-            <div className="truncate">{description}</div>
-          </Button>
-        </div>
+        {triggerContent}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <DrawerOverlay onClick={() => setIsDrawerOpen(false)} />
           <DrawerContent className="max-h-[80vh]" hideOverlay>
@@ -280,14 +291,7 @@ export default function PostRelaySelector({
 
   return (
     <DropdownMenu>
-      <div className="flex items-center gap-2">
-        {t('Post to')}
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" className="px-2 flex-1 max-w-fit justify-start">
-            <div className="truncate">{description}</div>
-          </Button>
-        </DropdownMenuTrigger>
-      </div>
+      {triggerContent}
       <DropdownMenuContent align="start" className="max-w-96 max-h-[50vh]" showScrollButtons>
         {content}
       </DropdownMenuContent>

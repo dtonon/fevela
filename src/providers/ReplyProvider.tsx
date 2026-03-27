@@ -5,6 +5,7 @@ import { createContext, useCallback, useContext, useState } from 'react'
 type TReplyContext = {
   repliesMap: Map<string, { events: Event[]; eventKeySet: Set<string> }>
   addReplies: (replies: Event[]) => void
+  reset: () => void
 }
 
 const ReplyContext = createContext<TReplyContext | undefined>(undefined)
@@ -23,13 +24,8 @@ export function ReplyProvider({ children }: { children: React.ReactNode }) {
   >(new Map())
 
   const addReplies = useCallback((replies: Event[]) => {
-    const newReplyKeySet = new Set<string>()
     const newReplyEventMap = new Map<string, Event[]>()
     replies.forEach((reply) => {
-      const key = getEventKey(reply)
-      if (newReplyKeySet.has(key)) return
-      newReplyKeySet.add(key)
-
       const parentTag = getParentTag(reply)
       if (parentTag) {
         const parentKey = getEventKeyFromTag(parentTag.tag)
@@ -60,7 +56,10 @@ export function ReplyProvider({ children }: { children: React.ReactNode }) {
     <ReplyContext.Provider
       value={{
         repliesMap,
-        addReplies
+        addReplies,
+        reset() {
+          setRepliesMap(new Map())
+        }
       }}
     >
       {children}
