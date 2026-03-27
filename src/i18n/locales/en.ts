@@ -208,7 +208,7 @@ export default {
     'Temporarily display this reply': 'Temporarily display this reply',
     'Note not found': 'Note not found',
     'no more replies': 'no more replies',
-    ShowOnlyFirstLevelReplies: 'Show only first level replies',
+    ShowOnlyFirstLevelReplies: 'Show only top-level replies',
     'Relay sets': 'Relay sets',
     'Favorite Relays': 'Favorite Relays',
     "Following's Favorites": "Following's Favorites",
