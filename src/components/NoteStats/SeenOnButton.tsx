@@ -18,8 +18,8 @@ import { Event } from '@nostr/tools/wasm'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelayIcon from '../RelayIcon'
-import { Save } from 'lucide-react'
 import { isLocal } from '@nostr/gadgets/redstore'
+import LocalDatabaseMenuButton from './LocalDatabaseMenuButton'
 
 export default function SeenOnButton({ event }: { event: Event }) {
   const { t } = useTranslation()
@@ -27,6 +27,7 @@ export default function SeenOnButton({ event }: { event: Event }) {
   const { push } = useSecondaryPage()
   const [relays, setRelays] = useState<string[]>([])
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
+  const [isEventLocal, setIsEventLocal] = useState(() => isLocal(event))
 
   useEffect(() => {
     const seenOn = client.getSeenEventRelayUrls(event.id, event)
@@ -57,10 +58,15 @@ export default function SeenOnButton({ event }: { event: Event }) {
           <DrawerOverlay onClick={() => setIsDrawerOpen(false)} />
           <DrawerContent hideOverlay>
             <div className="py-2">
-              {isLocal(event) && (
-                <span className="inline-flex gap-4 text-lg font-medium h-9 p-6">
-                  <Save className="!w-6 !h-6" /> local database
-                </span>
+              {isEventLocal && (
+                <LocalDatabaseMenuButton
+                  event={event}
+                  is={isEventLocal}
+                  mode="drawer"
+                  onAction={() => {
+                    setIsEventLocal(false)
+                  }}
+                />
               )}
               {relays.map((relay) => (
                 <Button
@@ -77,6 +83,21 @@ export default function SeenOnButton({ event }: { event: Event }) {
                   <RelayIcon url={relay} /> {simplifyUrl(relay)}
                 </Button>
               ))}
+              {!isEventLocal && (
+                <>
+                  <div className="px-6 pt-2 pb-1 text-sm font-medium text-muted-foreground">
+                    {t('Not on')}
+                  </div>
+                  <LocalDatabaseMenuButton
+                    event={event}
+                    is={isEventLocal}
+                    mode="drawer"
+                    onAction={() => {
+                      setIsEventLocal(true)
+                    }}
+                  />
+                </>
+              )}
             </div>
           </DrawerContent>
         </Drawer>
@@ -89,10 +110,13 @@ export default function SeenOnButton({ event }: { event: Event }) {
       <DropdownMenuContent>
         <DropdownMenuLabel>{t('Seen on')}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {isLocal(event) && (
-          <DropdownMenuItem className="min-w-52m cursor-default focus:bg-transparent">
-            <Save className="!w-6 !h-6" /> local database
-          </DropdownMenuItem>
+        {isEventLocal && (
+          <LocalDatabaseMenuButton
+            event={event}
+            is={isEventLocal}
+            mode="dropdown"
+            onAction={() => setIsEventLocal(false)}
+          />
         )}
         {relays.map((relay) => (
           <DropdownMenuItem key={relay} onClick={() => push(toRelay(relay))} className="min-w-52">
@@ -100,6 +124,18 @@ export default function SeenOnButton({ event }: { event: Event }) {
             {simplifyUrl(relay)}
           </DropdownMenuItem>
         ))}
+        {!isEventLocal && (
+          <>
+            <DropdownMenuSeparator />
+            <DropdownMenuLabel>{t('Not on')}</DropdownMenuLabel>
+            <LocalDatabaseMenuButton
+              event={event}
+              is={isEventLocal}
+              mode="dropdown"
+              onAction={() => setIsEventLocal(true)}
+            />
+          </>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
