@@ -2,16 +2,16 @@ import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { Event } from '@nostr/tools/wasm'
-import { List } from 'lucide-react'
-import { useState } from 'react'
+import { List, Radio } from 'lucide-react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import HideUntrustedContentButton from '../HideUntrustedContentButton'
-import QuoteList from '../QuoteList'
 import ReactionList from '../ReactionList'
 import ReplyNoteList from '../ReplyNoteList'
-import RepostList from '../RepostList'
-import ZapList from '../ZapList'
 import { Tabs, TTabValue } from './Tabs'
+import PostRelaySelector from '../PostEditor/PostRelaySelector'
+import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
+import { simplifyUrl } from '@/lib/url'
 
 export default function NoteInteractions({
   pageIndex,
@@ -23,28 +23,24 @@ export default function NoteInteractions({
   const { t } = useTranslation()
   const [type, setType] = useState<TTabValue>('replies')
   const [showOnlyFirstLevel, setShowOnlyFirstLevel] = useState(false)
-  let list
-  switch (type) {
-    case 'replies':
-      list = (
-        <ReplyNoteList index={pageIndex} event={event} showOnlyFirstLevel={showOnlyFirstLevel} />
-      )
-      break
-    case 'quotes':
-      list = <QuoteList event={event} />
-      break
-    case 'reactions':
-      list = <ReactionList event={event} />
-      break
-    case 'reposts':
-      list = <RepostList event={event} />
-      break
-    case 'zaps':
-      list = <ZapList event={event} />
-      break
-    default:
-      break
-  }
+  const [selectedRelayUrls, setSelectedRelayUrls] = useState<string[]>([])
+  const list = useMemo(() => {
+    switch (type) {
+      case 'replies':
+        return (
+          <ReplyNoteList
+            index={pageIndex}
+            event={event}
+            showOnlyFirstLevel={showOnlyFirstLevel}
+            selectedRelayUrls={selectedRelayUrls}
+          />
+        )
+      case 'reactions':
+        return <ReactionList event={event} selectedRelayUrls={selectedRelayUrls} />
+      default:
+        break
+    }
+  }, [type, selectedRelayUrls])
 
   return (
     <>
@@ -67,6 +63,25 @@ export default function NoteInteractions({
               </Button>
             </div>
           )}
+          <PostRelaySelector setAdditionalRelayUrls={setSelectedRelayUrls} parentEvent={event}>
+            <div className="size-10 flex items-center justify-center">
+              <DropdownMenuTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  title={
+                    selectedRelayUrls.length
+                      ? `${t('Relays')}: ${selectedRelayUrls.map(simplifyUrl).join(', ')}`
+                      : t('Relays')
+                  }
+                >
+                  <Radio
+                    className={selectedRelayUrls.length ? 'text-primary' : 'text-muted-foreground'}
+                  />
+                </Button>
+              </DropdownMenuTrigger>
+            </div>
+          </PostRelaySelector>
           <div className="size-10 flex items-center justify-center">
             <HideUntrustedContentButton type="interactions" />
           </div>

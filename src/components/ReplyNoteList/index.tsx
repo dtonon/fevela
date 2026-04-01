@@ -1,12 +1,13 @@
 import { ExtendedKind } from '@/constants'
 import {
+  getReplaceableCoordinateFromEvent,
   getEventKey,
   getEventKeyFromTag,
   getParentTag,
   getRootTag,
   isMentioningMutedUsers,
-  isProtectedEvent,
-  isReplyNoteEvent
+  isReplaceableEvent,
+  isProtectedEvent
 } from '@/lib/event'
 import { toNote } from '@/lib/link'
 import { generateBech32IdFromATag, generateBech32IdFromETag } from '@/lib/tag'
@@ -28,16 +29,18 @@ import { SubCloser } from '@nostr/tools/abstract-pool'
 import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
-const SHOW_COUNT = 10
+const SHOW_COUNT = 20
 
 export default function ReplyNoteList({
   index,
   event,
-  showOnlyFirstLevel = false
+  showOnlyFirstLevel = false,
+  selectedRelayUrls
 }: {
   index?: number
   event: NEvent
   showOnlyFirstLevel?: boolean
+  selectedRelayUrls: string[]
 }) {
   const { t } = useTranslation()
   const { push, currentIndex } = useSecondaryPage()
@@ -46,7 +49,7 @@ export default function ReplyNoteList({
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const { isEventDeleted } = useDeletedEvent()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
-  const { repliesMap, addReplies } = useReply()
+  const { repliesMap, addReplies, reset } = useReply()
   const replies = useMemo(() => {
     const replyKeySet = new Set<string>()
     const replyEvents: NEvent[] = []
@@ -58,7 +61,7 @@ export default function ReplyNoteList({
     let depth = 0
 
     while (parentEventKeys.length > 0 && depth < maxDepth) {
-      const events = parentEventKeys.flatMap((key) => repliesMap.get(key)?.events || [])
+      const events = parentEventKeys.flatMap((key) => repliesMap.get(key) || [])
       events.forEach((evt) => {
         const key = getEventKey(evt)
         if (replyKeySet.has(key)) return
@@ -101,10 +104,12 @@ export default function ReplyNoteList({
       }
 
       const filters: Filter[] = []
-      const relays: string[] = client.getSeenEventRelayUrls(event.id, event)
+      const relays: string[] = selectedRelayUrls.length
+        ? selectedRelayUrls
+        : client.getSeenEventRelayUrls(event.id, event)
 
       const hint = rootTag[2]
-      if (hint) relays.push(hint)
+      if (hint && !selectedRelayUrls.length) relays.push(hint)
 
       switch (rootTag[0]) {
         case 'e':
@@ -119,15 +124,17 @@ export default function ReplyNoteList({
             kinds: [ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT]
           })
 
-          const authorHint = event.kind === 1 ? rootTag[4] : rootTag[3]
-          try {
-            const author =
-              authorHint || (await client.fetchEvent(generateBech32IdFromETag(rootTag)!))?.pubkey
-            if (author) {
-              relays.push(...(await client.fetchRelayList(author)).read)
+          if (!selectedRelayUrls.length) {
+            const authorHint = event.kind === 1 ? rootTag[4] : rootTag[3]
+            try {
+              const author =
+                authorHint || (await client.fetchEvent(generateBech32IdFromETag(rootTag)!))?.pubkey
+              if (author) {
+                relays.push(...(await client.fetchRelayList(author)).read)
+              }
+            } catch (_err) {
+              /***/
             }
-          } catch (_err) {
-            /***/
           }
 
           break
@@ -144,8 +151,10 @@ export default function ReplyNoteList({
             }
           )
 
-          const author = rootTag[1].split(':')[1]
-          relays.push(...(await client.fetchRelayList(author)).read)
+          if (!selectedRelayUrls.length) {
+            const author = rootTag[1].split(':')[1]
+            relays.push(...(await client.fetchRelayList(author)).read)
+          }
           break
         default:
           filters.push({
@@ -154,28 +163,71 @@ export default function ReplyNoteList({
           })
       }
 
-      if (isProtectedEvent(event)) {
+      const quoteTarget = isReplaceableEvent(event.kind)
+        ? getReplaceableCoordinateFromEvent(event) || event.id
+        : event.id
+
+      const quoteFilter = {
+        '#q': [quoteTarget],
+        kinds: [
+          kinds.ShortTextNote,
+          kinds.Highlights,
+          kinds.LongFormArticle,
+          ExtendedKind.COMMENT,
+          ExtendedKind.POLL
+        ]
+      }
+
+      if (!selectedRelayUrls.length && isProtectedEvent(event)) {
         const seenOn = client.getSeenEventRelayUrls(event.id)
         relays.push(...seenOn)
       }
 
       setSubRequests(
-        filters.map((filter) => ({
-          source: 'relays',
-          urls: relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
-          filter
-        }))
+        filters.flatMap<TFeedSubRequest>((filter) => [
+          {
+            source: 'relays',
+            urls: selectedRelayUrls.length
+              ? relays
+              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+            filter
+          },
+          ...(!selectedRelayUrls.length
+            ? [
+                {
+                  source: 'local',
+                  filter
+                } as TFeedSubRequest
+              ]
+            : []),
+          {
+            source: 'relays',
+            urls: selectedRelayUrls.length
+              ? relays
+              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+            filter: quoteFilter
+          },
+          ...(!selectedRelayUrls.length
+            ? [
+                {
+                  source: 'local',
+                  filter: quoteFilter
+                } as TFeedSubRequest
+              ]
+            : [])
+        ])
       )
     })()
-  }, [event])
+  }, [event, selectedRelayUrls])
 
   useEffect(() => {
     if (loading || subRequests.length === 0 || currentIndex !== index) return
 
+    reset()
     setLoading(true)
     let isClosed = false
 
-    // Timeout fallback in case relays don't respond
+    // timeout fallback in case relays don't respond
     const timeoutId = setTimeout(() => {
       if (!isClosed) {
         setLoading(false)
@@ -201,11 +253,10 @@ export default function ReplyNoteList({
             }
 
             if (events.length > 0) {
-              addReplies(events.filter(isReplyNoteEvent))
+              addReplies(events)
             }
           },
           onNew: (evt) => {
-            if (!isReplyNoteEvent(evt)) return
             addReplies([evt])
           }
         }
@@ -259,10 +310,7 @@ export default function ReplyNoteList({
     setLoading(true)
     try {
       const events = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
-      const olderEvents = events.filter((evt) => isReplyNoteEvent(evt))
-      if (olderEvents.length > 0) {
-        addReplies(olderEvents)
-      }
+      addReplies(events)
       setUntil(events.length ? events[events.length - 1].created_at - 1 : undefined)
     } catch (_err) {
       // Failed to load more, but don't block UI
@@ -307,11 +355,12 @@ export default function ReplyNoteList({
           if (hideUntrustedInteractions && !isUserTrusted(reply.pubkey)) {
             const replyKey = getEventKey(reply)
             const repliesForThisReply = repliesMap.get(replyKey)
-            // If the reply is not trusted and there are no trusted replies for this reply, skip rendering
+
             if (
               !repliesForThisReply ||
-              repliesForThisReply.events.every((evt) => !isUserTrusted(evt.pubkey))
+              repliesForThisReply.every((evt) => !isUserTrusted(evt.pubkey))
             ) {
+              // if the reply is not trusted and there are no trusted replies for this reply, skip rendering
               return null
             }
           }

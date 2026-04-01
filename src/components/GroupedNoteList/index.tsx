@@ -113,13 +113,13 @@ const GroupedNoteList = forwardRef(
       (event: Event): number => {
         const key = getEventKey(event)
         let replyCount = 0
-        const replies = [...(repliesMap.get(key)?.events || [])]
+        const replies = [...(repliesMap.get(key) || [])]
         while (replies.length > 0) {
           const reply = replies.pop()
           if (!reply) break
 
           const replyKey = getEventKey(reply)
-          const nestedReplies = repliesMap.get(replyKey)?.events ?? []
+          const nestedReplies = repliesMap.get(replyKey) ?? []
           replies.push(...nestedReplies)
 
           if (isEventDeleted(reply)) {
