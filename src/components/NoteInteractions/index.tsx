@@ -6,11 +6,8 @@ import { List, Radio } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import HideUntrustedContentButton from '../HideUntrustedContentButton'
-import QuoteList from '../QuoteList'
 import ReactionList from '../ReactionList'
 import ReplyNoteList from '../ReplyNoteList'
-import RepostList from '../RepostList'
-import ZapList from '../ZapList'
 import { Tabs, TTabValue } from './Tabs'
 import PostRelaySelector from '../PostEditor/PostRelaySelector'
 import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
@@ -27,33 +24,23 @@ export default function NoteInteractions({
   const [type, setType] = useState<TTabValue>('replies')
   const [showOnlyFirstLevel, setShowOnlyFirstLevel] = useState(false)
   const [selectedRelayUrls, setSelectedRelayUrls] = useState<string[]>([])
-  let list
-  switch (type) {
-    case 'replies':
-      list = (
-        <ReplyNoteList
-          index={pageIndex}
-          event={event}
-          showOnlyFirstLevel={showOnlyFirstLevel}
-          selectedRelayUrls={selectedRelayUrls}
-        />
-      )
-      break
-    case 'quotes':
-      list = <QuoteList event={event} />
-      break
-    case 'reactions':
-      list = <ReactionList event={event} />
-      break
-    case 'reposts':
-      list = <RepostList event={event} />
-      break
-    case 'zaps':
-      list = <ZapList event={event} />
-      break
-    default:
-      break
-  }
+  const list = useMemo(() => {
+    switch (type) {
+      case 'replies':
+        return (
+          <ReplyNoteList
+            index={pageIndex}
+            event={event}
+            showOnlyFirstLevel={showOnlyFirstLevel}
+            selectedRelayUrls={selectedRelayUrls}
+          />
+        )
+      case 'reactions':
+        return <ReactionList event={event} selectedRelayUrls={selectedRelayUrls} />
+      default:
+        break
+    }
+  }, [type, selectedRelayUrls])
 
   return (
     <>

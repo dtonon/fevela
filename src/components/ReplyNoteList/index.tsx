@@ -1,12 +1,13 @@
 import { ExtendedKind } from '@/constants'
 import {
+  getReplaceableCoordinateFromEvent,
   getEventKey,
   getEventKeyFromTag,
   getParentTag,
   getRootTag,
   isMentioningMutedUsers,
-  isProtectedEvent,
-  isReplyNoteEvent
+  isReplaceableEvent,
+  isProtectedEvent
 } from '@/lib/event'
 import { toNote } from '@/lib/link'
 import { generateBech32IdFromATag, generateBech32IdFromETag } from '@/lib/tag'
@@ -28,7 +29,7 @@ import { SubCloser } from '@nostr/tools/abstract-pool'
 import { TFeedSubRequest } from '@/types'
 
 const LIMIT = 100
-const SHOW_COUNT = 10
+const SHOW_COUNT = 20
 
 export default function ReplyNoteList({
   index,
@@ -60,7 +61,7 @@ export default function ReplyNoteList({
     let depth = 0
 
     while (parentEventKeys.length > 0 && depth < maxDepth) {
-      const events = parentEventKeys.flatMap((key) => repliesMap.get(key)?.events || [])
+      const events = parentEventKeys.flatMap((key) => repliesMap.get(key) || [])
       events.forEach((evt) => {
         const key = getEventKey(evt)
         if (replyKeySet.has(key)) return
@@ -162,6 +163,21 @@ export default function ReplyNoteList({
           })
       }
 
+      const quoteTarget = isReplaceableEvent(event.kind)
+        ? getReplaceableCoordinateFromEvent(event) || event.id
+        : event.id
+
+      const quoteFilter = {
+        '#q': [quoteTarget],
+        kinds: [
+          kinds.ShortTextNote,
+          kinds.Highlights,
+          kinds.LongFormArticle,
+          ExtendedKind.COMMENT,
+          ExtendedKind.POLL
+        ]
+      }
+
       if (!selectedRelayUrls.length && isProtectedEvent(event)) {
         const seenOn = client.getSeenEventRelayUrls(event.id)
         relays.push(...seenOn)
@@ -181,6 +197,21 @@ export default function ReplyNoteList({
                 {
                   source: 'local',
                   filter
+                } as TFeedSubRequest
+              ]
+            : []),
+          {
+            source: 'relays',
+            urls: selectedRelayUrls.length
+              ? relays
+              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+            filter: quoteFilter
+          },
+          ...(!selectedRelayUrls.length
+            ? [
+                {
+                  source: 'local',
+                  filter: quoteFilter
                 } as TFeedSubRequest
               ]
             : [])
@@ -222,11 +253,10 @@ export default function ReplyNoteList({
             }
 
             if (events.length > 0) {
-              addReplies(events.filter(isReplyNoteEvent))
+              addReplies(events)
             }
           },
           onNew: (evt) => {
-            if (!isReplyNoteEvent(evt)) return
             addReplies([evt])
           }
         }
@@ -280,10 +310,7 @@ export default function ReplyNoteList({
     setLoading(true)
     try {
       const events = await client.loadMoreTimeline(subRequests, { until, limit: LIMIT })
-      const olderEvents = events.filter((evt) => isReplyNoteEvent(evt))
-      if (olderEvents.length > 0) {
-        addReplies(olderEvents)
-      }
+      addReplies(events)
       setUntil(events.length ? events[events.length - 1].created_at - 1 : undefined)
     } catch (_err) {
       // Failed to load more, but don't block UI
@@ -328,11 +355,12 @@ export default function ReplyNoteList({
           if (hideUntrustedInteractions && !isUserTrusted(reply.pubkey)) {
             const replyKey = getEventKey(reply)
             const repliesForThisReply = repliesMap.get(replyKey)
-            // If the reply is not trusted and there are no trusted replies for this reply, skip rendering
+
             if (
               !repliesForThisReply ||
-              repliesForThisReply.events.every((evt) => !isUserTrusted(evt.pubkey))
+              repliesForThisReply.every((evt) => !isUserTrusted(evt.pubkey))
             ) {
+              // if the reply is not trusted and there are no trusted replies for this reply, skip rendering
               return null
             }
           }
