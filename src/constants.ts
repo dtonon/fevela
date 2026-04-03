@@ -22,7 +22,6 @@ export const StorageKey = {
   TRANSLATION_SERVICE_CONFIG_MAP: 'translationServiceConfigMap',
   HIDE_UNTRUSTED_NOTES: 'hideUntrustedNotes',
   DEFAULT_SHOW_NSFW: 'defaultShowNsfw',
-  DISMISSED_TOO_MANY_RELAYS_ALERT: 'dismissedTooManyRelaysAlert',
   SHOW_KINDS: 'showKinds',
   SHOW_KINDS_VERSION: 'showKindsVersion',
   HIDE_CONTENT_MENTIONING_MUTED_USERS: 'hideContentMentioningMutedUsers',

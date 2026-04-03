@@ -41,13 +41,11 @@ class LocalStorageService {
   private hideUntrustedNotes: boolean = false
   private translationServiceConfigMap: Record<string, TTranslationServiceConfig> = {}
   private defaultShowNsfw: boolean = false
-  private dismissedTooManyRelaysAlert: boolean = false
   private showKinds: number[] = []
   private hideContentMentioningMutedUsers: boolean = false
   private notificationListStyle: TNotificationStyle = NOTIFICATION_LIST_STYLE.DETAILED
   private mediaAutoLoadPolicy: TMediaAutoLoadPolicy = MEDIA_AUTO_LOAD_POLICY.ALWAYS
   private feedSettings: TFeedSettings = createDefaultSettings()
-  private shownCreateWalletGuideToastPubkeys: Set<string> = new Set()
   private sidebarCollapse: boolean = false
   private primaryColor: TPrimaryColor = 'DEFAULT'
   private enableSingleColumnLayout: boolean = false
@@ -140,9 +138,6 @@ class LocalStorageService {
 
     this.defaultShowNsfw = window.localStorage.getItem(StorageKey.DEFAULT_SHOW_NSFW) === 'true'
 
-    this.dismissedTooManyRelaysAlert =
-      window.localStorage.getItem(StorageKey.DISMISSED_TOO_MANY_RELAYS_ALERT) === 'true'
-
     const showKindsStr = window.localStorage.getItem(StorageKey.SHOW_KINDS)
     if (!showKindsStr) {
       this.showKinds = SUPPORTED_KINDS
@@ -184,12 +179,6 @@ class LocalStorageService {
         this.feedSettings = createDefaultSettings()
       }
     }
-    const shownCreateWalletGuideToastPubkeysStr = window.localStorage.getItem(
-      StorageKey.SHOWN_CREATE_WALLET_GUIDE_TOAST_PUBKEYS
-    )
-    this.shownCreateWalletGuideToastPubkeys = shownCreateWalletGuideToastPubkeysStr
-      ? new Set(JSON.parse(shownCreateWalletGuideToastPubkeysStr))
-      : new Set()
 
     this.sidebarCollapse = window.localStorage.getItem(StorageKey.SIDEBAR_COLLAPSE) === 'true'
 
@@ -404,15 +393,6 @@ class LocalStorageService {
     window.localStorage.setItem(StorageKey.DEFAULT_SHOW_NSFW, defaultShowNsfw.toString())
   }
 
-  getDismissedTooManyRelaysAlert() {
-    return this.dismissedTooManyRelaysAlert
-  }
-
-  setDismissedTooManyRelaysAlert(dismissed: boolean) {
-    this.dismissedTooManyRelaysAlert = dismissed
-    window.localStorage.setItem(StorageKey.DISMISSED_TOO_MANY_RELAYS_ALERT, dismissed.toString())
-  }
-
   getShowKinds() {
     return this.showKinds
   }
@@ -456,21 +436,6 @@ class LocalStorageService {
   setFeedSettings(settings: TFeedSettings) {
     this.feedSettings = settings
     window.localStorage.setItem(StorageKey.GROUPED_NOTES_SETTINGS, JSON.stringify(settings))
-  }
-
-  hasShownCreateWalletGuideToast(pubkey: string) {
-    return this.shownCreateWalletGuideToastPubkeys.has(pubkey)
-  }
-
-  markCreateWalletGuideToastAsShown(pubkey: string) {
-    if (this.shownCreateWalletGuideToastPubkeys.has(pubkey)) {
-      return
-    }
-    this.shownCreateWalletGuideToastPubkeys.add(pubkey)
-    window.localStorage.setItem(
-      StorageKey.SHOWN_CREATE_WALLET_GUIDE_TOAST_PUBKEYS,
-      JSON.stringify(Array.from(this.shownCreateWalletGuideToastPubkeys))
-    )
   }
 
   getSidebarCollapse() {
