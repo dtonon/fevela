@@ -1,19 +1,22 @@
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
-import { TRelayInfo } from '@/types'
 import { HTMLProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelayIcon from '../RelayIcon'
 import SaveRelayDropdownMenu from '../SaveRelayDropdownMenu'
 import { SimpleUserAvatar } from '../UserAvatar'
+import { RelayInfoDocument } from '@nostr/gadgets/relays'
+import { simplifyUrl } from '@/lib/url'
 
 export default function RelaySimpleInfo({
+  url,
   relayInfo,
   users,
   className,
   ...props
 }: HTMLProps<HTMLDivElement> & {
-  relayInfo?: TRelayInfo
+  url: string
+  relayInfo: RelayInfoDocument | null
   users?: string[]
 }) {
   const { t } = useTranslation()
@@ -22,15 +25,15 @@ export default function RelaySimpleInfo({
     <div className={cn('space-y-1', className)} {...props}>
       <div className="flex items-start justify-between gap-2 w-full">
         <div className="flex flex-1 w-0 items-center gap-2">
-          <RelayIcon url={relayInfo?.url} className="h-9 w-9" />
+          <RelayIcon url={url} className="h-9 w-9" />
           <div className="flex-1 w-0">
-            <div className="truncate font-semibold">{relayInfo?.name || relayInfo?.shortUrl}</div>
+            <div className="truncate font-semibold">{relayInfo?.name || simplifyUrl(url)}</div>
             {relayInfo?.name && (
-              <div className="text-xs text-muted-foreground truncate">{relayInfo?.shortUrl}</div>
+              <div className="text-xs text-muted-foreground truncate">{simplifyUrl(url)}</div>
             )}
           </div>
         </div>
-        {relayInfo && <SaveRelayDropdownMenu itemUrls={[relayInfo.url]} />}
+        {relayInfo && <SaveRelayDropdownMenu itemUrls={[simplifyUrl(url)]} />}
       </div>
       {!!relayInfo?.description && <div className="line-clamp-3">{relayInfo.description}</div>}
       {!!users?.length && (

@@ -1,9 +1,7 @@
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ScrollArea, ScrollBar } from '@/components/ui/scroll-area'
 import { useFetchRelayInfo } from '@/hooks'
-import { checkNip43Support } from '@/lib/relay'
-import { normalizeHttpUrl } from '@/lib/url'
+import { normalizeHttpUrl, simplifyUrl } from '@/lib/url'
 import { cn } from '@/lib/utils'
 import { useNostr } from '@/providers/NostrProvider'
 import { Check, Copy, GitBranch, Link, Mail, SquareCode } from 'lucide-react'
@@ -24,7 +22,7 @@ export default function RelayInfo({ url, className }: { url: string; className?:
   const { relayInfo, isFetching } = useFetchRelayInfo(url)
   const [open, setOpen] = useState(false)
   const [isMember, setIsMember] = useState(false)
-  const supportsNip43 = useMemo(() => checkNip43Support(relayInfo), [relayInfo])
+  const supportsNip43 = relayInfo?.supported_nips?.includes?.(43)
   const shouldShowPostButton = useMemo(() => !supportsNip43 || isMember, [supportsNip43, isMember])
 
   if (isFetching || !relayInfo) {
@@ -39,18 +37,11 @@ export default function RelayInfo({ url, className }: { url: string; className?:
             <div className="flex gap-2 items-center truncate">
               <RelayIcon url={url} className="w-8 h-8" />
               <div className="text-2xl font-semibold truncate select-text">
-                {relayInfo.name || relayInfo.shortUrl}
+                {relayInfo.name || simplifyUrl(url)}
               </div>
             </div>
-            <RelayControls url={relayInfo.url} />
+            <RelayControls url={url} />
           </div>
-          {!!relayInfo.tags?.length && (
-            <div className="flex gap-2">
-              {relayInfo.tags.map((tag) => (
-                <Badge variant="secondary">{tag}</Badge>
-              ))}
-            </div>
-          )}
           {relayInfo.description && (
             <div className="text-wrap break-words whitespace-pre-wrap mt-2 select-text">
               {relayInfo.description}
@@ -61,11 +52,11 @@ export default function RelayInfo({ url, className }: { url: string; className?:
         <div className="space-y-2">
           <div className="text-sm font-semibold text-muted-foreground">{t('Homepage')}</div>
           <a
-            href={normalizeHttpUrl(relayInfo.url)}
+            href={normalizeHttpUrl(url)}
             target="_blank"
             className="hover:underline text-primary select-text truncate block w-fit max-w-full"
           >
-            {normalizeHttpUrl(relayInfo.url)}
+            {normalizeHttpUrl(url)}
           </a>
         </div>
 
@@ -110,7 +101,11 @@ export default function RelayInfo({ url, className }: { url: string; className?:
           </div>
           <ScrollBar orientation="horizontal" />
         </ScrollArea>
-        <RelayMembershipControl relayInfo={relayInfo} onMembershipStatusChange={setIsMember} />
+        <RelayMembershipControl
+          url={url}
+          relayInfo={relayInfo}
+          onMembershipStatusChange={setIsMember}
+        />
         {shouldShowPostButton && (
           <>
             <Button
@@ -120,7 +115,7 @@ export default function RelayInfo({ url, className }: { url: string; className?:
             >
               {t('Share something on this Relay')}
             </Button>
-            <PostEditor open={open} setOpen={setOpen} openFrom={[relayInfo.url]} />
+            <PostEditor open={open} setOpen={setOpen} openFrom={[url]} />
           </>
         )}
       </div>

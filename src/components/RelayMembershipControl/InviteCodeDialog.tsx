@@ -17,18 +17,20 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import relayMembershipService from '@/services/relay-membership.service'
-import { TRelayInfo } from '@/types'
+import { RelayInfoDocument } from '@nostr/gadgets/relays'
 import { Check, Copy } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 export default function InviteCodeDialog({
+  url,
   relayInfo,
   showInviteCodeDialog,
   setShowInviteCodeDialog
 }: {
-  relayInfo: TRelayInfo
+  url: string
+  relayInfo: RelayInfoDocument
   showInviteCodeDialog: boolean
   setShowInviteCodeDialog: (open: boolean) => void
 }) {
@@ -48,10 +50,7 @@ export default function InviteCodeDialog({
       setIsFetching(true)
       try {
         if (relayInfo.pubkey) {
-          const code = await relayMembershipService.requestInviteCode(
-            relayInfo.url,
-            relayInfo.pubkey
-          )
+          const code = await relayMembershipService.requestInviteCode(url, relayInfo.self!)
           if (code) {
             setInviteCode(code)
           } else {

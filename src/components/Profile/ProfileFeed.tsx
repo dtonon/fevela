@@ -6,13 +6,13 @@ import { isTouchDevice } from '@/lib/utils'
 import { useKindFilter } from '@/providers/KindFilterProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import client from '@/services/client.service'
-import relayInfoService from '@/services/relay-info.service'
 import { TFeedSubRequest } from '@/types'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshButton } from '../RefreshButton'
 import { outbox, ready } from '@/services/outbox.service'
 import { loadPins } from '@nostr/gadgets/lists'
 import { useFeed } from '@/providers/FeedProvider'
+import { loadRelayInfo } from '@nostr/gadgets/relays'
 
 const TABS_THRESHOLD = 20
 
@@ -106,7 +106,7 @@ export default function ProfileFeed({
 
       if (search) {
         const writeRelays = relayList.write.slice(0, 8)
-        const relayInfos = await relayInfoService.getRelayInfos(writeRelays)
+        const relayInfos = await Promise.all(writeRelays.map((url) => loadRelayInfo(url)))
         const searchableRelays = writeRelays.filter((_, index) =>
           relayInfos[index]?.supported_nips?.includes(50)
         )

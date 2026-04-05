@@ -22,18 +22,17 @@ import { createJoinDraftEvent } from '@/lib/draft-event'
 import { useNostr } from '@/providers/NostrProvider'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import relayMembershipService from '@/services/relay-membership.service'
-import { TRelayInfo } from '@/types'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 
 export default function JoinDialog({
-  relayInfo,
+  url,
   showJoinDialog,
   setShowJoinDialog,
   onMembershipStatusChange
 }: {
-  relayInfo: TRelayInfo
+  url: string
   showJoinDialog: boolean
   setShowJoinDialog: (open: boolean) => void
   onMembershipStatusChange: (status: boolean) => void
@@ -49,10 +48,10 @@ export default function JoinDialog({
     try {
       const draftEvent = createJoinDraftEvent(inviteCode)
       const joinRequestEvent = await publish(draftEvent, {
-        specifiedRelayUrls: [relayInfo.url]
+        specifiedRelayUrls: [url]
       })
       toast.success(t('Join request sent successfully'))
-      await relayMembershipService.addNewMember(relayInfo.url, joinRequestEvent.pubkey)
+      await relayMembershipService.addNewMember(url, joinRequestEvent.pubkey)
       onMembershipStatusChange(true)
       setInviteCode('')
       setShowJoinDialog(false)

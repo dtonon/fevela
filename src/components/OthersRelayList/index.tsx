@@ -31,7 +31,7 @@ function RelayItem({ relay }: { relay: TMailboxRelay }) {
 
   return (
     <div className="p-4 rounded-lg border clickable space-y-1" onClick={() => push(toRelay(url))}>
-      <RelaySimpleInfo relayInfo={relayInfo} />
+      <RelaySimpleInfo url={relay.url} relayInfo={relayInfo} />
       <div className="flex gap-2">
         {['both', 'read'].includes(scope) && (
           <Badge className="bg-blue-400 hover:bg-blue-400/80">{t('Read')}</Badge>

@@ -1,25 +1,24 @@
 import { Button } from '@/components/ui/button'
 import { createJoinDraftEvent, createLeaveDraftEvent } from '@/lib/draft-event'
-import { checkNip43Support } from '@/lib/relay'
 import { useNostr } from '@/providers/NostrProvider'
 import relayMembershipService from '@/services/relay-membership.service'
-import { TRelayInfo } from '@/types'
 import { LogIn, LogOut, Mail } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import InviteCodeDialog from './InviteCodeDialog'
 import JoinDialog from './JoinDialog'
-
-interface RelayMembershipControlProps {
-  relayInfo: TRelayInfo
-  onMembershipStatusChange?: (status: boolean) => void
-}
+import { RelayInfoDocument } from '@nostr/gadgets/relays'
 
 export default function RelayMembershipControl({
   relayInfo,
+  url,
   onMembershipStatusChange
-}: RelayMembershipControlProps) {
+}: {
+  relayInfo: RelayInfoDocument
+  url: string
+  onMembershipStatusChange?: (status: boolean) => void
+}) {
   const { t } = useTranslation()
   const { pubkey, checkLogin, publish } = useNostr()
   const [isMember, setIsMember] = useState(false)
@@ -27,7 +26,7 @@ export default function RelayMembershipControl({
   const [isChecking, setIsChecking] = useState(false)
   const [showJoinDialog, setShowJoinDialog] = useState(false)
   const [showInviteCodeDialog, setShowInviteCodeDialog] = useState(false)
-  const supportsNip43 = useMemo(() => checkNip43Support(relayInfo), [relayInfo])
+  const supportsNip43 = relayInfo.supported_nips?.includes?.(43)
 
   useEffect(() => {
     if (!supportsNip43 || !pubkey) {
@@ -38,11 +37,7 @@ export default function RelayMembershipControl({
     const checkMembership = async () => {
       try {
         setIsChecking(true)
-        const status = await relayMembershipService.checkMembership(
-          relayInfo.url,
-          pubkey,
-          relayInfo.pubkey
-        )
+        const status = await relayMembershipService.checkMembership(url, pubkey, relayInfo.self)
         setIsMember(status)
       } finally {
         setIsChecking(false)
@@ -50,7 +45,7 @@ export default function RelayMembershipControl({
     }
 
     checkMembership()
-  }, [relayInfo.url, relayInfo.pubkey, pubkey, supportsNip43])
+  }, [url, relayInfo.self, pubkey, supportsNip43])
 
   useEffect(() => {
     if (onMembershipStatusChange) {
@@ -67,10 +62,10 @@ export default function RelayMembershipControl({
     try {
       const draftEvent = createJoinDraftEvent('')
       const joinRequestEvent = await publish(draftEvent, {
-        specifiedRelayUrls: [relayInfo.url]
+        specifiedRelayUrls: [url]
       })
       toast.success(t('Join request sent successfully'))
-      await relayMembershipService.addNewMember(relayInfo.url, joinRequestEvent.pubkey)
+      await relayMembershipService.addNewMember(url, joinRequestEvent.pubkey)
       onMembershipStatusChange?.(true)
     } catch {
       setShowJoinDialog(true)
@@ -92,10 +87,10 @@ export default function RelayMembershipControl({
     try {
       const draftEvent = createLeaveDraftEvent()
       const leaveRequestEvent = await publish(draftEvent, {
-        specifiedRelayUrls: [relayInfo.url]
+        specifiedRelayUrls: [url]
       })
       toast.success(t('Leave request sent successfully'))
-      await relayMembershipService.removeMember(relayInfo.url, leaveRequestEvent.pubkey)
+      await relayMembershipService.removeMember(url, leaveRequestEvent.pubkey)
       setIsMember(false)
     } catch (error: any) {
       const errors = error instanceof AggregateError ? error.errors : [error]
@@ -150,13 +145,14 @@ export default function RelayMembershipControl({
       )}
 
       <JoinDialog
-        relayInfo={relayInfo}
+        url={url}
         showJoinDialog={showJoinDialog}
         setShowJoinDialog={setShowJoinDialog}
         onMembershipStatusChange={setIsMember}
       />
 
       <InviteCodeDialog
+        url={url}
         relayInfo={relayInfo}
         showInviteCodeDialog={showInviteCodeDialog}
         setShowInviteCodeDialog={setShowInviteCodeDialog}

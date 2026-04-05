@@ -79,6 +79,7 @@ function RelayItem({ url, users }: { url: string; users: string[] }) {
   return (
     <RelaySimpleInfo
       key={url}
+      url={url}
       relayInfo={relayInfo}
       users={users}
       className="clickable p-4 border-b"

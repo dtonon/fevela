@@ -34,25 +34,6 @@ export type TMutedList = {
   private: string[]
 }
 
-export type TRelayInfo = {
-  url: string
-  shortUrl: string
-  name?: string
-  description?: string
-  icon?: string
-  pubkey?: string
-  contact?: string
-  supported_nips?: number[]
-  software?: string
-  version?: string
-  tags?: string[]
-  payments_url?: string
-  limitation?: {
-    auth_required?: boolean
-    payment_required?: boolean
-  }
-}
-
 export type TWebMetadata = {
   title?: string | null
   description?: string | null

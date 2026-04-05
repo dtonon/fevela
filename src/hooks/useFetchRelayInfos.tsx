@@ -1,10 +1,9 @@
-import relayInfoService from '@/services/relay-info.service'
-import { TRelayInfo } from '@/types'
+import { loadRelayInfo, RelayInfoDocument } from '@nostr/gadgets/relays'
 import { useEffect, useState } from 'react'
 
 export function useFetchRelayInfos(urls: string[]) {
   const [isFetching, setIsFetching] = useState(true)
-  const [relayInfos, setRelayInfos] = useState<(TRelayInfo | undefined)[]>([])
+  const [relayInfos, setRelayInfos] = useState<(RelayInfoDocument | null)[]>([])
   const [searchableRelayUrls, setSearchableRelayUrls] = useState<string[]>([])
   const urlsString = JSON.stringify(urls)
 
@@ -21,7 +20,7 @@ export function useFetchRelayInfos(urls: string[]) {
       }, 5000)
 
       try {
-        const relayInfos = await relayInfoService.getRelayInfos(urls)
+        const relayInfos = await Promise.all(urls.map((url) => loadRelayInfo(url)))
         setRelayInfos(relayInfos)
         setSearchableRelayUrls(
           relayInfos
