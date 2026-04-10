@@ -15,6 +15,7 @@ export default function MainNoteCard({
   className,
   reposters,
   embedded,
+  simple,
   originalNoteId,
   groupedNotesTotalCount,
   onAllNotesRead,
@@ -26,6 +27,7 @@ export default function MainNoteCard({
   className?: string
   reposters?: string[]
   embedded?: boolean
+  simple?: boolean
   originalNoteId?: string
   groupedNotesTotalCount?: number
   onAllNotesRead?: () => void
@@ -56,6 +58,7 @@ export default function MainNoteCard({
             className={embedded ? '' : 'px-4'}
             size={embedded ? 'small' : 'normal'}
             event={event}
+            simple={simple}
             originalNoteId={originalNoteId}
             displayScore={displayScore}
           />

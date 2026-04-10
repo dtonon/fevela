@@ -5,15 +5,23 @@ import { useTranslation } from 'react-i18next'
 import ClientSelect from '../ClientSelect'
 import MainNoteCard from '../NoteCard/MainNoteCard'
 
-export function EmbeddedNote({ noteId, className }: { noteId: string; className?: string }) {
+export function EmbeddedNote({
+  noteId,
+  className,
+  simple
+}: {
+  noteId: string
+  className?: string
+  simple?: boolean
+}) {
   const { event, isFetching } = useFetchEvent(noteId)
 
   if (isFetching) {
-    return <EmbeddedNoteSkeleton className={className} />
+    return simple ? null : <EmbeddedNoteSkeleton className={className} />
   }
 
   if (!event) {
-    return <EmbeddedNoteNotFound className={className} noteId={noteId} />
+    return simple ? null : <EmbeddedNoteNotFound className={className} noteId={noteId} />
   }
 
   return (
@@ -21,6 +29,7 @@ export function EmbeddedNote({ noteId, className }: { noteId: string; className?
       className={cn('w-full', className)}
       event={event}
       embedded
+      simple={simple}
       originalNoteId={noteId}
     />
   )

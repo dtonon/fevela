@@ -388,6 +388,7 @@ export default function ReplyNoteList({
                   highlightReply(parentEventKey, parentEventId)
                 }}
                 highlight={highlightReplyKey === currentReplyKey}
+                simpleEmbedId={event.id}
               />
             </div>
           )

@@ -21,12 +21,14 @@ export default function Content({
   event,
   content,
   className,
-  mustLoadMedia
+  mustLoadMedia,
+  simpleEmbedId
 }: {
   event?: Event
   content?: string
   className?: string
   mustLoadMedia?: boolean
+  simpleEmbedId?: string
 }) {
   const { linkPreviewMode } = useUserPreferences()
   const translatedEvent = useTranslatedEvent(event?.id)
@@ -126,6 +128,7 @@ export default function Content({
                 key={nodes.length}
                 noteId={neventEncode(block.pointer)}
                 className="mt-2"
+                simple={simpleEmbedId === block.pointer.id}
               />
             )
           } else if ('identifier' in block.pointer) {
@@ -157,7 +160,7 @@ export default function Content({
     }
 
     return nodes
-  }, [translatedEvent ?? event ?? content])
+  }, [translatedEvent ?? event ?? content, simpleEmbedId])
 
   return <div className={cn('text-wrap break-words whitespace-pre-wrap', className)}>{nodes}</div>
 }
