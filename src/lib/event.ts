@@ -1,9 +1,9 @@
-import { EMBEDDED_MENTION_REGEX, ExtendedKind } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import client from '@/services/client.service'
 import { TImetaInfo } from '@/types'
-import { LRUCache } from 'lru-cache'
 import { Event, NostrEvent, UnsignedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
+import { parse } from '@nostr/tools/nip27'
 import * as nip19 from '@nostr/tools/nip19'
 import { getPow } from '@nostr/tools/nip13'
 import { getEventHash } from '@nostr/tools/pure'
@@ -13,10 +13,6 @@ import {
   getImetaInfoFromImetaTag,
   tagNameEquals
 } from './tag'
-
-const EVENT_EMBEDDED_NOTES_CACHE = new LRUCache<string, string[]>({ max: 10000 })
-const EVENT_EMBEDDED_PUBKEYS_CACHE = new LRUCache<string, string[]>({ max: 10000 })
-const EVENT_IS_REPLY_NOTE_CACHE = new LRUCache<string, boolean>({ max: 10000 })
 
 export function isNsfwEvent(event: Event) {
   return event.tags.some(
@@ -31,11 +27,7 @@ export function isReplyNoteEvent(event: Event) {
   }
   if (event.kind !== kinds.ShortTextNote) return false
 
-  const cache = EVENT_IS_REPLY_NOTE_CACHE.get(event.id)
-  if (cache !== undefined) return cache
-
   const isReply = !!getParentTag(event)
-  EVENT_IS_REPLY_NOTE_CACHE.set(event.id, isReply)
   return isReply
 }
 
@@ -272,9 +264,6 @@ export function getImetaInfosFromEvent(event: Event) {
 }
 
 export function getEmbeddedNoteBech32Ids(event: Event) {
-  const cache = EVENT_EMBEDDED_NOTES_CACHE.get(event.id)
-  if (cache) return cache
-
   const embeddedNoteBech32Ids: string[] = []
   const embeddedNoteRegex = /nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+)/g
   ;(event.content.match(embeddedNoteRegex) || []).forEach((note) => {
@@ -289,30 +278,22 @@ export function getEmbeddedNoteBech32Ids(event: Event) {
       // ignore
     }
   })
-  EVENT_EMBEDDED_NOTES_CACHE.set(event.id, embeddedNoteBech32Ids)
   return embeddedNoteBech32Ids
 }
 
-export function getEmbeddedPubkeys(event: Event) {
-  const cache = EVENT_EMBEDDED_PUBKEYS_CACHE.get(event.id)
-  if (cache) return cache
-
-  const embeddedPubkeySet = new Set<string>()
-  ;(event.content.match(EMBEDDED_MENTION_REGEX) || []).forEach((mention) => {
-    try {
-      const { type, data } = nip19.decode(mention.split(':')[1])
-      if (type === 'npub') {
-        embeddedPubkeySet.add(data)
-      } else if (type === 'nprofile') {
-        embeddedPubkeySet.add(data.pubkey)
-      }
-    } catch {
-      // ignore
+export function eventMentionsPubKeyInContent(event: Event, pubkey: string) {
+  for (const block of parse(event)) {
+    if (
+      block.type === 'reference' &&
+      'pubkey' in block.pointer &&
+      !('identifier' in block.pointer) &&
+      block.pointer.pubkey === pubkey
+    ) {
+      return true
     }
-  })
-  const embeddedPubkeys = Array.from(embeddedPubkeySet)
-  EVENT_EMBEDDED_PUBKEYS_CACHE.set(event.id, embeddedPubkeys)
-  return embeddedPubkeys
+  }
+
+  return false
 }
 
 export function getReplaceableEventIdentifier(event: Event) {

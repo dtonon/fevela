@@ -24,17 +24,17 @@ export default function ReplyButton({ event }: { event: Event }) {
   const { replyCount, hasReplied } = useMemo(() => {
     const key = getEventKey(event)
     const hasReplied = pubkey
-      ? repliesMap.get(key)?.events.some((evt) => evt.pubkey === pubkey && !isEventDeleted(evt))
+      ? repliesMap.get(key)?.some((evt) => evt.pubkey === pubkey && !isEventDeleted(evt))
       : false
 
     let replyCount = 0
-    const replies = [...(repliesMap.get(key)?.events || [])]
+    const replies = [...(repliesMap.get(key) || [])]
     while (replies.length > 0) {
       const reply = replies.pop()
       if (!reply) break
 
       const replyKey = getEventKey(reply)
-      const nestedReplies = repliesMap.get(replyKey)?.events ?? []
+      const nestedReplies = repliesMap.get(replyKey) ?? []
       replies.push(...nestedReplies)
 
       if (isEventDeleted(reply)) {

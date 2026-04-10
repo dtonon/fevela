@@ -2,7 +2,7 @@ import * as kinds from '@nostr/tools/kinds'
 import { NostrEvent } from '@nostr/tools/wasm'
 
 import client from '@/services/client.service'
-import { getEmbeddedPubkeys, getParentETag, isMentioningMutedUsers } from './event'
+import { eventMentionsPubKeyInContent, getParentETag, isMentioningMutedUsers } from './event'
 import { tagNameEquals } from './tag'
 import { ExtendedKind } from '@/constants'
 
@@ -49,13 +49,10 @@ export const reactionKinds = [kinds.Repost, kinds.Reaction, kinds.Zap]
 
 // check if an event is a mention (explicit mention or direct reply)
 export async function isMention(event: NostrEvent, pubkey: string): Promise<boolean> {
-  // Check explicit mentions in content
-  const embeddedPubkeys = getEmbeddedPubkeys(event)
-  if (embeddedPubkeys.includes(pubkey)) {
-    return true
-  }
+  // check explicit mentions in content
+  if (eventMentionsPubKeyInContent(event, pubkey)) return true
 
-  // Check if this is a direct reply to user's note
+  // check if this is a direct reply to user's note
   const parentETag = getParentETag(event)
   if (parentETag) {
     // Try to get author from e-tag hint (5th element)

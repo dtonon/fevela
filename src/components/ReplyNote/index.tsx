@@ -26,12 +26,14 @@ export default function ReplyNote({
   event,
   parentEventId,
   onClickParent = () => {},
-  highlight = false
+  highlight = false,
+  simpleEmbedId
 }: {
   event: Event
   parentEventId?: string
   onClickParent?: () => void
   highlight?: boolean
+  simpleEmbedId?: string
 }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
@@ -97,7 +99,7 @@ export default function ReplyNote({
               />
             )}
             {show ? (
-              <Content className="mt-2" event={event} />
+              <Content className="mt-2" event={event} simpleEmbedId={simpleEmbedId} />
             ) : (
               <Button
                 variant="outline"

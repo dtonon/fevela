@@ -12,6 +12,7 @@ import { useMemo, useState } from 'react'
 import AudioPlayer from '../AudioPlayer'
 import ClientTag from '../ClientTag'
 import Content from '../Content'
+import ContentPreview from '../ContentPreview'
 import FollowingBadge from '../FollowingBadge'
 import PinBuryBadge from '../PinBuryBadge'
 import { FormattedTimestamp } from '../FormattedTimestamp'
@@ -45,6 +46,7 @@ export default function Note({
   hideParentNotePreview = false,
   showFull = false,
   hideHeader = false,
+  simple = false,
   displayScore
 }: {
   event: Event
@@ -55,6 +57,7 @@ export default function Note({
   hideParentNotePreview?: boolean
   showFull?: boolean
   hideHeader?: boolean
+  simple?: boolean
 }) {
   const { push } = useSecondaryPage()
   const { isSmallScreen } = useScreenSize()
@@ -68,7 +71,9 @@ export default function Note({
   const [showMuted, setShowMuted] = useState(false)
 
   let content: React.ReactNode
-  if (
+  if (simple) {
+    content = <div className="mt-2 truncate"><ContentPreview event={event} /></div>
+  } else if (
     ![
       ...SUPPORTED_KINDS,
       kinds.CommunityDefinition,
@@ -159,7 +164,7 @@ export default function Note({
         </div>
       )}
       <PendingUndoButton event={event} className="mt-1" />
-      {parentEventId && (
+      {!simple && parentEventId && (
         <ParentNotePreview
           eventId={parentEventId}
           className="mt-2"

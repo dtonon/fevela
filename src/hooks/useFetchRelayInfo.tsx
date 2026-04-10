@@ -1,10 +1,14 @@
+import { simplifyUrl } from '@/lib/url'
 import relayInfoService from '@/services/relay-info.service'
 import { TRelayInfo } from '@/types'
 import { useEffect, useState } from 'react'
 
-export function useFetchRelayInfo(url?: string) {
+export function useFetchRelayInfo(url: string) {
   const [isFetching, setIsFetching] = useState(true)
-  const [relayInfo, setRelayInfo] = useState<TRelayInfo | undefined>(undefined)
+  const [relayInfo, setRelayInfo] = useState<TRelayInfo>({
+    url,
+    shortUrl: simplifyUrl(url)
+  })
 
   useEffect(() => {
     if (!url) return
@@ -15,7 +19,7 @@ export function useFetchRelayInfo(url?: string) {
       }, 5000)
       try {
         const relayInfo = await relayInfoService.getRelayInfo(url)
-        setRelayInfo(relayInfo)
+        if (relayInfo) setRelayInfo(relayInfo)
       } catch (err) {
         console.error(err)
       } finally {
