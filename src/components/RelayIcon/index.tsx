@@ -13,7 +13,7 @@ export default function RelayIcon({
   className?: string
   iconSize?: number
 }) {
-  const { relayInfo } = useFetchRelayInfo(url)
+  const { relayInfo } = useFetchRelayInfo(url ?? '')
   const iconUrl = useMemo(() => {
     if (relayInfo?.icon) {
       return relayInfo.icon

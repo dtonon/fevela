@@ -28,7 +28,6 @@ import PostOptions from './PostOptions'
 import PostRelaySelector from './PostRelaySelector'
 import PostTextarea, { TPostTextareaHandle } from './PostTextarea'
 import Uploader from './Uploader'
-import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
 
 const PENDING_PUBLISH_MS = 10_000
 

@@ -12,7 +12,7 @@ export default function Relay({ url, className }: { url?: string; className?: st
   const { t } = useTranslation()
   const { addRelayUrls, removeRelayUrls } = useCurrentRelays()
   const normalizedUrl = useMemo(() => (url ? normalizeUrl(url) : undefined), [url])
-  const { relayInfo } = useFetchRelayInfo(normalizedUrl)
+  const { relayInfo } = useFetchRelayInfo(normalizedUrl ?? '')
   const [searchInput, setSearchInput] = useState('')
   const [debouncedInput, setDebouncedInput] = useState(searchInput)
 
