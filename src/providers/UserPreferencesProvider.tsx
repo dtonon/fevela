@@ -18,6 +18,9 @@ type TUserPreferencesContext = {
 
   linkPreviewMode: TLinkPreviewMode
   updateLinkPreviewMode: (mode: TLinkPreviewMode) => void
+
+  readRepliesFromInboxesOnly: boolean
+  updateReadRepliesFromInboxesOnly: (value: boolean) => void
 }
 
 const UserPreferencesContext = createContext<TUserPreferencesContext | undefined>(undefined)
@@ -41,6 +44,9 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.getEnableSingleColumnLayout()
   )
   const [linkPreviewMode, setLinkPreviewMode] = useState(storage.getLinkPreviewMode())
+  const [readRepliesFromInboxesOnly, setReadRepliesFromInboxesOnly] = useState(
+    storage.getReadRepliesFromInboxesOnly()
+  )
 
   useEffect(() => {
     if (!isSmallScreen && enableSingleColumnLayout) {
@@ -70,6 +76,11 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
     storage.setLinkPreviewMode(mode)
   }
 
+  const updateReadRepliesFromInboxesOnly = (value: boolean) => {
+    setReadRepliesFromInboxesOnly(value)
+    storage.setReadRepliesFromInboxesOnly(value)
+  }
+
   return (
     <UserPreferencesContext.Provider
       value={{
@@ -82,7 +93,9 @@ export function UserPreferencesProvider({ children }: { children: React.ReactNod
         enableSingleColumnLayout: isSmallScreen ? true : enableSingleColumnLayout,
         updateEnableSingleColumnLayout,
         linkPreviewMode,
-        updateLinkPreviewMode
+        updateLinkPreviewMode,
+        readRepliesFromInboxesOnly,
+        updateReadRepliesFromInboxesOnly
       }}
     >
       {children}

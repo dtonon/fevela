@@ -34,7 +34,8 @@ export const StorageKey = {
   ENABLE_SINGLE_COLUMN_LAYOUT: 'enableSingleColumnLayout',
   SHOW_LINK_PREVIEWS: 'showLinkPreviews',
   ACCOUNT_LAST_RELAY_MAP: 'accountLastRelayMap',
-  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents' // deprecated
+  HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents', // deprecated
+  READ_REPLIES_FROM_INBOXES_ONLY: 'readRepliesFromInboxesOnly'
 }
 
 export const ApplicationDataKey = {

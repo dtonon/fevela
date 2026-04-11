@@ -50,6 +50,7 @@ class LocalStorageService {
   private primaryColor: TPrimaryColor = 'DEFAULT'
   private enableSingleColumnLayout: boolean = false
   private linkPreviewMode: TLinkPreviewMode = LINK_PREVIEW_MODE.ENABLED
+  private readRepliesFromInboxesOnly: boolean = true
   private accountLastRelayMap: Record<string, string | undefined> = {}
 
   constructor() {
@@ -206,6 +207,9 @@ class LocalStorageService {
     const accountLastRelayMapStr =
       window.localStorage.getItem(StorageKey.ACCOUNT_LAST_RELAY_MAP) ?? '{}'
     this.accountLastRelayMap = JSON.parse(accountLastRelayMapStr)
+
+    this.readRepliesFromInboxesOnly =
+      window.localStorage.getItem(StorageKey.READ_REPLIES_FROM_INBOXES_ONLY) !== 'false'
   }
 
   getRelaySets() {
@@ -484,6 +488,15 @@ class LocalStorageService {
       StorageKey.ACCOUNT_LAST_RELAY_MAP,
       JSON.stringify(this.accountLastRelayMap)
     )
+  }
+
+  getReadRepliesFromInboxesOnly() {
+    return this.readRepliesFromInboxesOnly
+  }
+
+  setReadRepliesFromInboxesOnly(value: boolean) {
+    this.readRepliesFromInboxesOnly = value
+    window.localStorage.setItem(StorageKey.READ_REPLIES_FROM_INBOXES_ONLY, value.toString())
   }
 }
 
