@@ -22,6 +22,7 @@ export function useFetchProfile(input?: string) {
 
     if (currentAccountProfile && bare.pubkey === currentAccountProfile.pubkey) {
       setProfile(currentAccountProfile)
+      setIsFetching(false)
       return
     }
 
