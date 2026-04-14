@@ -24,9 +24,6 @@ export function MentionNotification({
   const { notificationListStyle } = useUserPreferences()
   const isMention = pubkey ? eventMentionsPubKeyInContent(notification, pubkey) : false
   const parentEventId = useMemo(() => getParentBech32Id(notification), [notification])
-  const isPost = useMemo(() => {
-    return notification.pubkey == pubkey
-  }, [pubkey, notification])
 
   return (
     <Notification
@@ -36,7 +33,7 @@ export function MentionNotification({
           <AtSign size={24} className="text-pink-400" />
         ) : parentEventId ? (
           <MessageCircle size={24} className="text-blue-400" />
-        ) : isPost ? (
+        ) : notification.pubkey == pubkey ? (
           <MessageCircle size={24} className="text-pink-400" />
         ) : (
           <Quote size={24} className="text-green-400" />
@@ -59,7 +56,11 @@ export function MentionNotification({
         )
       }
       description={
-        isMention ? t('mentioned you in a note') : parentEventId ? '' : t('quoted your note')
+        isMention
+          ? t('mentioned you in a note')
+          : parentEventId || notification.pubkey == pubkey
+            ? ''
+            : t('quoted your note')
       }
       isNew={isNew}
       showStats
