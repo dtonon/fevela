@@ -96,7 +96,7 @@ export function usePrimaryPage() {
 export function useSecondaryPage() {
   const context = useContext(SecondaryPageContext)
   if (!context) {
-    throw new Error('usePrimaryPage must be used within a SecondaryPageContext.Provider')
+    throw new Error('useSecondaryPage must be used within a SecondaryPageContext.Provider')
   }
   return context
 }

@@ -17,6 +17,7 @@ import {
   SetStateAction,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState
 } from 'react'
@@ -50,40 +51,41 @@ const NoteListPage = forwardRef((_, ref) => {
     }
   }, [relayUrls])
 
-  let content: React.ReactNode = null
-  if (!isReady) {
-    content = <div className="text-center text-sm text-muted-foreground">{t('loading...')}</div>
-  } else if (feedInfo.feedType === 'following' && !pubkey) {
-    content = (
-      <div className="flex justify-center w-full">
-        <Button size="lg" onClick={() => checkLogin()}>
-          {t('Please login to view following feed')}
-        </Button>
-      </div>
-    )
-  } else if (feedInfo.feedType === 'following') {
-    content = <FollowingFeed />
-  } else {
-    content = (
-      <>
-        {showRelayDetails && feedInfo.feedType === 'relay' && !!feedInfo.id && (
-          <RelayInfo url={feedInfo.id!} className="mb-2 pt-3" />
-        )}
-        <NormalFeed
-          subRequests={[
-            {
-              source: 'relays' as const,
-              urls: relayUrls,
-              filter: {
-                kinds: SUPPORTED_KINDS
+  const content: React.ReactNode = useMemo(() => {
+    if (!isReady) {
+      return <div className="text-center text-sm text-muted-foreground">{t('loading...')}</div>
+    } else if (feedInfo.feedType === 'following' && !pubkey) {
+      return (
+        <div className="flex justify-center w-full">
+          <Button size="lg" onClick={() => checkLogin()}>
+            {t('Please login to view following feed')}
+          </Button>
+        </div>
+      )
+    } else if (feedInfo.feedType === 'following') {
+      return <FollowingFeed />
+    } else {
+      return (
+        <>
+          {showRelayDetails && feedInfo.feedType === 'relay' && !!feedInfo.id && (
+            <RelayInfo url={feedInfo.id!} className="mb-2 pt-3" />
+          )}
+          <NormalFeed
+            subRequests={[
+              {
+                source: 'relays' as const,
+                urls: relayUrls,
+                filter: {
+                  kinds: SUPPORTED_KINDS
+                }
               }
-            }
-          ]}
-          showRelayCloseReason
-        />
-      </>
-    )
-  }
+            ]}
+            showRelayCloseReason
+          />
+        </>
+      )
+    }
+  }, [feedInfo, relayUrls, pubkey])
 
   return (
     <PrimaryPageLayout
