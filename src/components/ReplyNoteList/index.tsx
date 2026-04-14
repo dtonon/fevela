@@ -27,6 +27,7 @@ import { LoadingBar } from '../LoadingBar'
 import ReplyNote, { ReplyNoteSkeleton } from '../ReplyNote'
 import { SubCloser } from '@nostr/tools/abstract-pool'
 import { TFeedSubRequest } from '@/types'
+import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 
 const LIMIT = 100
 const SHOW_COUNT = 20
@@ -48,6 +49,7 @@ export default function ReplyNoteList({
   const { mutePubkeySet } = useMuteList()
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const { isEventDeleted } = useDeletedEvent()
+  const { readRepliesFromInboxesOnly } = useUserPreferences()
   const [subRequests, setSubRequests] = useState<TFeedSubRequest[]>([])
   const { repliesMap, addReplies, reset } = useReply()
   const replies = useMemo(() => {
@@ -189,7 +191,9 @@ export default function ReplyNoteList({
             source: 'relays',
             urls: selectedRelayUrls.length
               ? relays
-              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+              : relays
+                  .concat(readRepliesFromInboxesOnly ? [] : window.fevela.universe.bigRelayUrls)
+                  .slice(0, 8),
             filter
           },
           ...(!selectedRelayUrls.length
@@ -204,7 +208,9 @@ export default function ReplyNoteList({
             source: 'relays',
             urls: selectedRelayUrls.length
               ? relays
-              : relays.concat(window.fevela.universe.bigRelayUrls).slice(0, 8),
+              : relays
+                  .concat(readRepliesFromInboxesOnly ? [] : window.fevela.universe.bigRelayUrls)
+                  .slice(0, 8),
             filter: quoteFilter
           },
           ...(!selectedRelayUrls.length

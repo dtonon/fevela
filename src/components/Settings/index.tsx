@@ -79,7 +79,7 @@ export default function Settings() {
         <SettingItem className="clickable" onClick={() => push(toPostSettings())}>
           <div className="flex items-center gap-4">
             <PencilLine />
-            <div>{t('Post settings')}</div>
+            <div>{t('Protocol')}</div>
           </div>
           <ChevronRight />
         </SettingItem>
