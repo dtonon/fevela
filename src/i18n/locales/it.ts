@@ -517,6 +517,8 @@ export default {
     Remote: 'Remoto',
     'Encrypted Key': 'Chiave Crittografata',
     'Private Key': 'Chiave Privata',
-    Synching: 'Sincronizzazione {{current}}/{{total}} profili'
+    Synching: 'Sincronizzazione {{current}}/{{total}} profili',
+    'Protected event (NIP-70)': 'Evento protetto (NIP-70)',
+    Protected: 'Protetto'
   }
 }

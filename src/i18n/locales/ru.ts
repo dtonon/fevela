@@ -520,6 +520,8 @@ export default {
     Remote: 'Удалённый',
     'Encrypted Key': 'Зашифрованный ключ',
     'Private Key': 'Приватный ключ',
-    Synching: 'Синхронизация {{current}}/{{total}} профилей'
+    Synching: 'Синхронизация {{current}}/{{total}} профилей',
+    'Protected event (NIP-70)': 'Защищённое событие (NIP-70)',
+    Protected: 'Защищённый'
   }
 }

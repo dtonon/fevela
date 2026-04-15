@@ -508,6 +508,8 @@ export default {
     Remote: 'عن بُعد',
     'Encrypted Key': 'مفتاح مشفر',
     'Private Key': 'مفتاح خاص',
-    Synching: 'المزامنة {{current}}/{{total}} ملفات تعريف'
+    Synching: 'المزامنة {{current}}/{{total}} ملفات تعريف',
+    'Protected event (NIP-70)': 'حدث محمي (NIP-70)',
+    Protected: 'محمي'
   }
 }

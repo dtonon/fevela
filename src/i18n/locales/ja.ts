@@ -512,6 +512,8 @@ export default {
     Remote: 'リモート',
     'Encrypted Key': '暗号化キー',
     'Private Key': '暗号化されたキー',
-    Synching: '同期中 {{current}}/{{total}} プロフィール'
+    Synching: '同期中 {{current}}/{{total}} プロフィール',
+    'Protected event (NIP-70)': '保護されたイベント (NIP-70)',
+    Protected: '保護'
   }
 }

@@ -512,6 +512,8 @@ export default {
     Remote: 'از راه دور',
     'Encrypted Key': 'رمزگذاری شده کلید',
     'Private Key': 'کلید خصوصی',
-    Synching: 'همگام‌سازی {{current}}/{{total}} نمایه'
+    Synching: 'همگام‌سازی {{current}}/{{total}} نمایه',
+    'Protected event (NIP-70)': 'رویداد محافظت‌شده (NIP-70)',
+    Protected: 'محافظت‌شده'
   }
 }

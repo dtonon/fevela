@@ -515,6 +515,8 @@ export default {
     Remote: 'रिमोट',
     'Encrypted Key': 'एन्क्रिप्टेड की',
     'Private Key': 'प्राइवेट की',
-    Synching: 'सिंक हो रहा है {{current}}/{{total}} प्रोफाइल'
+    Synching: 'सिंक हो रहा है {{current}}/{{total}} प्रोफाइल',
+    'Protected event (NIP-70)': 'संरक्षित इवेंट (NIP-70)',
+    Protected: 'संरक्षित'
   }
 }

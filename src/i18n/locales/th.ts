@@ -506,6 +506,8 @@ export default {
     Remote: 'ระยะไกล',
     'Encrypted Key': 'คีย์ที่เข้ารหัส',
     'Private Key': 'คีย์ส่วนตัว',
-    Synching: 'กำลังซิงค์ {{current}}/{{total}} โปรไฟล์'
+    Synching: 'กำลังซิงค์ {{current}}/{{total}} โปรไฟล์',
+    'Protected event (NIP-70)': 'เหตุการณ์ที่ได้รับการป้องกัน (NIP-70)',
+    Protected: 'ป้องกัน'
   }
 }

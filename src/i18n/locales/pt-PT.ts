@@ -518,6 +518,8 @@ export default {
     Remote: 'Remoto',
     'Encrypted Key': 'Chave Criptografada',
     'Private Key': 'Chave Privada',
-    Synching: 'A sincronizar {{current}}/{{total}} perfis'
+    Synching: 'A sincronizar {{current}}/{{total}} perfis',
+    'Protected event (NIP-70)': 'Evento protegido (NIP-70)',
+    Protected: 'Protegido'
   }
 }
