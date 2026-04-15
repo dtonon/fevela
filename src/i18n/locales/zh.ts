@@ -91,7 +91,7 @@ export default {
     'Add an Account': '添加账户',
     'More options': '更多选项',
     'Add client tag': '添加客户端标签',
-    'Show others this was sent via Fevela': '告诉别人这是通过 Fevela 发送的',
+    "Show that you're using Fevela in your notes": '显示你在笔记中使用 Fevela',
     'Are you sure you want to logout?': '确定要退出登录吗？',
     'relay sets': '服务器组',
     edit: '编辑',

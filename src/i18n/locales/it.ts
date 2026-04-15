@@ -92,8 +92,7 @@ export default {
     'Add an Account': 'Aggiungi un Account',
     'More options': 'Più opzioni',
     'Add client tag': 'Aggiungi etichetta del client',
-    'Show others this was sent via Fevela':
-      'Mostra agli altri che questo è stato inviato tramite Fevela',
+    "Show that you're using Fevela in your notes": 'Mostra che stai usando Fevela nelle tue note',
     'Are you sure you want to logout?': 'Sei sicuro di volerti scollegare?',
     'relay sets': 'set di relay',
     edit: 'modifica',

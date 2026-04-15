@@ -93,8 +93,8 @@ export default {
     'Add an Account': 'Добавить аккаунт',
     'More options': 'Больше опций',
     'Add client tag': 'Добавить тег клиента',
-    'Show others this was sent via Fevela':
-      'Показать другим, что сообщение отправлено через Fevela',
+    "Show that you're using Fevela in your notes":
+      'Показывать, что вы используете Fevela в своих заметках',
     'Are you sure you want to logout?': 'Вы уверены, что хотите выйти?',
     'relay sets': 'наборы ретрансляторов',
     edit: 'редактировать',

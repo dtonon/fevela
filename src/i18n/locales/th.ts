@@ -92,7 +92,7 @@ export default {
     'Add an Account': 'เพิ่มบัญชี',
     'More options': 'ตัวเลือกเพิ่มเติม',
     'Add client tag': 'เพิ่มแท็กไคลเอนต์',
-    'Show others this was sent via Fevela': 'แสดงให้ผู้อื่นเห็นว่าส่งผ่าน Fevela',
+    "Show that you're using Fevela in your notes": 'แสดงว่าคุณกำลังใช้ Fevela ในโน้ตของคุณ',
     'Are you sure you want to logout?': 'คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?',
     'relay sets': 'ชุดรีเลย์',
     edit: 'แก้ไข',

@@ -95,7 +95,7 @@ export default {
     'Quiet reply': 'Quiet reply',
     'Publish this reply as kind:1111 using NIP-22 tags':
       'Publish this reply as kind:1111 using NIP-22 tags',
-    'Show others this was sent via Fevela': 'Show others this was sent via Fevela',
+    "Show that you're using Fevela in your notes": "Show that you're using Fevela in your notes",
     'Are you sure you want to logout?': 'Are you sure you want to logout?',
     'relay sets': 'relay sets',
     edit: 'edit',
