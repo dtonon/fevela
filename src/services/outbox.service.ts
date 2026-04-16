@@ -84,7 +84,9 @@ export async function start(account: string, followings: string[], signal: Abort
   liveTargets = [account, ...followings]
   startSignal = signal
 
+  clearInterval(refreshTimer)
   startInternal()
+  refreshTimer = setInterval(restart, 1000 * 60 * 10 /* 10 minutes */)
 }
 
 async function startInternal() {
