@@ -10,7 +10,6 @@ import ReactionList from '../ReactionList'
 import ReplyNoteList from '../ReplyNoteList'
 import { Tabs, TTabValue } from './Tabs'
 import PostRelaySelector from '../PostEditor/PostRelaySelector'
-import { DropdownMenuTrigger } from '@radix-ui/react-dropdown-menu'
 import { simplifyUrl } from '@/lib/url'
 
 export default function NoteInteractions({
@@ -65,21 +64,19 @@ export default function NoteInteractions({
           )}
           <PostRelaySelector setAdditionalRelayUrls={setSelectedRelayUrls} parentEvent={event}>
             <div className="size-10 flex items-center justify-center">
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  title={
-                    selectedRelayUrls.length
-                      ? `${t('Relays')}: ${selectedRelayUrls.map(simplifyUrl).join(', ')}`
-                      : t('Relays')
-                  }
-                >
-                  <Radio
-                    className={selectedRelayUrls.length ? 'text-primary' : 'text-muted-foreground'}
-                  />
-                </Button>
-              </DropdownMenuTrigger>
+              <Button
+                variant="ghost"
+                size="icon"
+                title={
+                  selectedRelayUrls.length
+                    ? `${t('Relays')}: ${selectedRelayUrls.map(simplifyUrl).join(', ')}`
+                    : t('Relays')
+                }
+              >
+                <Radio
+                  className={selectedRelayUrls.length ? 'text-primary' : 'text-muted-foreground'}
+                />
+              </Button>
             </div>
           </PostRelaySelector>
           <div className="size-10 flex items-center justify-center">

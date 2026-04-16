@@ -259,21 +259,23 @@ export default function PostRelaySelector({
     )
   }, [postTargetItems, relaySets, selectableRelays])
 
-  const triggerContent = children || (
-    <div className="flex items-center gap-2">
-      {t('Post to')}
-      <DropdownMenuTrigger asChild>
-        <Button variant="outline" className="px-2 flex-1 max-w-fit justify-start">
-          <div className="truncate">{description}</div>
-        </Button>
-      </DropdownMenuTrigger>
-    </div>
-  )
-
   if (isSmallScreen) {
     return (
       <>
-        {triggerContent}
+        {children ? (
+          <div onClick={() => setIsDrawerOpen(true)}>{children}</div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {t('Post to')}
+            <Button
+              variant="outline"
+              className="px-2 flex-1 max-w-fit justify-start"
+              onClick={() => setIsDrawerOpen(true)}
+            >
+              <div className="truncate">{description}</div>
+            </Button>
+          </div>
+        )}
         <Drawer open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
           <DrawerOverlay onClick={() => setIsDrawerOpen(false)} />
           <DrawerContent className="max-h-[80vh]" hideOverlay>
@@ -291,7 +293,18 @@ export default function PostRelaySelector({
 
   return (
     <DropdownMenu>
-      {triggerContent}
+      {children ? (
+        <DropdownMenuTrigger asChild>{children}</DropdownMenuTrigger>
+      ) : (
+        <div className="flex items-center gap-2">
+          {t('Post to')}
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" className="px-2 flex-1 max-w-fit justify-start">
+              <div className="truncate">{description}</div>
+            </Button>
+          </DropdownMenuTrigger>
+        </div>
+      )}
       <DropdownMenuContent align="start" className="max-w-96 max-h-[50vh]" showScrollButtons>
         {content}
       </DropdownMenuContent>
