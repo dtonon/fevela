@@ -187,7 +187,11 @@ export default function CompactedEventCard({
                 <div
                   className={`flex items-center space-x-2 flex-1 ${!isSelected && isLastNoteRead && 'text-muted-foreground/70 grayscale'}`}
                 >
-                  <UserAvatar userId={event.pubkey} size="normal" />
+                  <UserAvatar
+                    userId={event.pubkey}
+                    size="normal"
+                    className={!isSelected && isLastNoteRead ? 'opacity-50' : undefined}
+                  />
                   <div className="flex-1 w-0">
                     <div className="flex gap-2 items-center">
                       <Username
@@ -215,7 +219,13 @@ export default function CompactedEventCard({
                       {isReply && (
                         <>
                           <span className="shrink-0">{t('Replying')}</span>
-                          {repliedPubkey && <UserAvatar userId={repliedPubkey} size="xSmall" />}
+                          {repliedPubkey && (
+                            <UserAvatar
+                              userId={repliedPubkey}
+                              size="xSmall"
+                              className={!isSelected && isLastNoteRead ? 'opacity-50' : undefined}
+                            />
+                          )}
                           <SimpleUsername userId={repliedPubkey} className="line-clamp-1" />
                         </>
                       )}
@@ -223,7 +233,11 @@ export default function CompactedEventCard({
                         <>
                           <span className="shrink-0 hidden md:block">Reposting</span>
                           <Repeat2 size={16} className="shrink-0 block md:hidden" />
-                          <UserAvatar userId={targetEvent.pubkey} size="xSmall" />
+                          <UserAvatar
+                            userId={targetEvent.pubkey}
+                            size="xSmall"
+                            className={!isSelected && isLastNoteRead ? 'opacity-50' : undefined}
+                          />
                           <SimpleUsername userId={targetEvent.pubkey} className="line-clamp-1" />
                         </>
                       )}
