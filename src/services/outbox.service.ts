@@ -44,11 +44,8 @@ export function restart() {
 
   resetPromises()
 
-  clearInterval(refreshTimer)
   outbox.close()
   startInternal()
-
-  refreshTimer = setInterval(restart, 1000 * 60 * 10 /* 10 minutes */)
 }
 
 export const current: {
