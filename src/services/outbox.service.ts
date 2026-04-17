@@ -36,11 +36,19 @@ export function end() {
 }
 
 let liveTargets: string[] = []
+let startSignal: AbortSignal | undefined
+let refreshTimer: ReturnType<typeof setInterval> | undefined
 
 export function restart() {
   if (!liveTargets.length) return
+
+  resetPromises()
+
+  clearInterval(refreshTimer)
   outbox.close()
-  outbox.live(liveTargets, { signal: undefined })
+  startInternal()
+
+  refreshTimer = setInterval(restart, 1000 * 60 * 10 /* 10 minutes */)
 }
 
 export const current: {
@@ -69,19 +77,25 @@ export function onStarted(cb: (len: number) => void) {
 }
 
 export async function start(account: string, followings: string[], signal: AbortSignal) {
-  // reset promises for new sync session
+  ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
+
   resetPromises()
 
-  signal.onabort = () => {
+  liveTargets = [account, ...followings]
+  startSignal = signal
+
+  clearInterval(refreshTimer)
+  startInternal()
+  refreshTimer = setInterval(restart, 1000 * 60 * 10 /* 10 minutes */)
+}
+
+async function startInternal() {
+  startSignal!.onabort = () => {
     status.syncing = undefined
   }
 
   status.syncing = true
-  ;(status as Extract<typeof status, { syncing: true }>).pubkey = account
-
-  const targets = [account, ...followings]
-  liveTargets = targets
-  startedListeners.forEach((cb) => cb(targets.length))
+  startedListeners.forEach((cb) => cb(liveTargets.length))
 
   if (0 === (await store.queryEvents({}, 1)).length) {
     // this means the database has no events.
@@ -90,8 +104,8 @@ export async function start(account: string, followings: string[], signal: Abort
     await new Promise((resolve) => setTimeout(resolve, 15000))
   }
 
-  const hasNew = await outbox.sync(targets, {
-    signal
+  const hasNew = await outbox.sync(liveTargets, {
+    signal: startSignal!
   })
 
   if (hasNew) {
@@ -103,5 +117,5 @@ export async function start(account: string, followings: string[], signal: Abort
   status.syncing = false
   isReady()
 
-  outbox.live(targets, { signal: undefined })
+  outbox.live(liveTargets, { signal: undefined })
 }
