@@ -425,7 +425,7 @@ class ClientService extends EventTarget {
         if (!newestEvent || newestEvent.created_at < Date.now() / 1000 - 60 * 60 * 24 * 7) {
           const events: NostrEvent[] = []
           preliminarySub = pool.subscribeMap(
-            await outboxFilterRelayBatch(allAuthors, { ...localFilters[0], limit: 10 }),
+            await outboxFilterRelayBatch(allAuthors, [{ ...localFilters[0], limit: 10 }]),
             {
               label: `f-temporary`,
               onevent(event) {
