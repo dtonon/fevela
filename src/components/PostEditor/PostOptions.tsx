@@ -12,8 +12,6 @@ export default function PostOptions({
   canQuietReply,
   quietReply,
   setQuietReply,
-  addClientTag,
-  setAddClientTag,
   isNsfw,
   setIsNsfw,
   minPow,
@@ -25,8 +23,6 @@ export default function PostOptions({
   canQuietReply: boolean
   quietReply: boolean
   setQuietReply: Dispatch<SetStateAction<boolean>>
-  addClientTag: boolean
-  setAddClientTag: Dispatch<SetStateAction<boolean>>
   isNsfw: boolean
   setIsNsfw: Dispatch<SetStateAction<boolean>>
   minPow: number
@@ -35,18 +31,12 @@ export default function PostOptions({
   const { t } = useTranslation()
 
   useEffect(() => {
-    setAddClientTag(window.localStorage.getItem(StorageKey.ADD_CLIENT_TAG) === 'true')
     if (isReply && canQuietReply) {
       setQuietReply(window.localStorage.getItem(StorageKey.QUIET_REPLY) === 'true')
     }
   }, [])
 
   if (!show) return null
-
-  const onAddClientTagChange = (checked: boolean) => {
-    setAddClientTag(checked)
-    window.localStorage.setItem(StorageKey.ADD_CLIENT_TAG, checked.toString())
-  }
 
   const onNsfwChange = (checked: boolean) => {
     setIsNsfw(checked)
@@ -59,21 +49,6 @@ export default function PostOptions({
 
   return (
     <div className="space-y-4">
-      <div className="space-y-2">
-        <div className="flex items-center space-x-2">
-          <Label htmlFor="add-client-tag">{t('Add client tag')}</Label>
-          <Switch
-            id="add-client-tag"
-            checked={addClientTag}
-            onCheckedChange={onAddClientTagChange}
-            disabled={posting}
-          />
-        </div>
-        <div className="text-muted-foreground text-xs">
-          {t('Show others this was sent via Fevela')}
-        </div>
-      </div>
-
       {isReply && canQuietReply && (
         <div className="space-y-2">
           <div className="flex items-center space-x-2">

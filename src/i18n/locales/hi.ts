@@ -92,8 +92,8 @@ export default {
     'Add an Account': 'अकाउंट जोड़ें',
     'More options': 'अधिक विकल्प',
     'Add client tag': 'क्लाइंट टैग जोड़ें',
-    'Show others this was sent via Fevela':
-      'दूसरों को दिखाएं कि यह Fevela के माध्यम से भेजा गया था',
+    "Show that you're using Fevela in your notes":
+      'दिखाएं कि आप अपनी नोट्स में Fevela का उपयोग कर रहे हैं',
     'Are you sure you want to logout?': 'क्या आप वाकई लॉगआउट करना चाहते हैं?',
     'relay sets': 'रिले सेट',
     edit: 'संपादित करें',

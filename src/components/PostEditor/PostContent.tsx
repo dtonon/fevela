@@ -1,6 +1,7 @@
 import Note from '@/components/Note'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
+import { StorageKey } from '@/constants'
 import {
   createCommentDraftEvent,
   createPollDraftEvent,
@@ -148,9 +149,9 @@ export default function PostContent({
             relays: []
           }
         )
-        setAddClientTag(cachedSettings.addClientTag ?? false)
         setQuietReply(cachedSettings.quietReply ?? false)
       }
+      setAddClientTag(window.localStorage.getItem(StorageKey.ADD_CLIENT_TAG) === 'true')
       return
     }
     postEditorCache.setPostSettingsCache(
@@ -159,11 +160,10 @@ export default function PostContent({
         isNsfw,
         isPoll,
         pollCreateData,
-        addClientTag,
         quietReply
       }
     )
-  }, [defaultContent, parentEvent, isNsfw, isPoll, pollCreateData, addClientTag, quietReply])
+  }, [defaultContent, parentEvent, isNsfw, isPoll, pollCreateData, quietReply])
 
   const post = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -436,8 +436,6 @@ export default function PostContent({
         canQuietReply={parentEvent?.kind === kinds.ShortTextNote}
         quietReply={quietReply}
         setQuietReply={setQuietReply}
-        addClientTag={addClientTag}
-        setAddClientTag={setAddClientTag}
         isNsfw={isNsfw}
         setIsNsfw={setIsNsfw}
         minPow={minPow}

@@ -1,7 +1,7 @@
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { LINK_PREVIEW_MODE, MEDIA_AUTO_LOAD_POLICY } from '@/constants'
+import { LINK_PREVIEW_MODE, MEDIA_AUTO_LOAD_POLICY, StorageKey } from '@/constants'
 import { LocalizedLanguageNames, TLanguage } from '@/i18n'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { cn, isSupportCheckConnectionType } from '@/lib/utils'
@@ -19,6 +19,9 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t, i18n } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const [language, setLanguage] = useState<TLanguage>(i18n.language as TLanguage)
+  const [addClientTag, setAddClientTag] = useState(
+    () => window.localStorage.getItem(StorageKey.ADD_CLIENT_TAG) === 'true'
+  )
   const {
     autoplay,
     setAutoplay,
@@ -125,6 +128,22 @@ const GeneralSettingsPage = forwardRef(({ index }: { index?: number }, ref) => {
             id="hide-content-mentioning-muted-users"
             checked={hideContentMentioningMutedUsers}
             onCheckedChange={setHideContentMentioningMutedUsers}
+          />
+        </SettingItem>
+        <SettingItem>
+          <Label htmlFor="add-client-tag" className="text-base font-normal">
+            <div>{t('Add client tag')}</div>
+            <div className="text-muted-foreground">
+              {t("Show that you're using Fevela in your notes")}
+            </div>
+          </Label>
+          <Switch
+            id="add-client-tag"
+            checked={addClientTag}
+            onCheckedChange={(checked) => {
+              setAddClientTag(checked)
+              window.localStorage.setItem(StorageKey.ADD_CLIENT_TAG, checked.toString())
+            }}
           />
         </SettingItem>
         <SettingItem>

@@ -92,7 +92,8 @@ export default {
     'Add an Account': 'افزودن حساب',
     'More options': 'گزینه‌های بیشتر',
     'Add client tag': 'افزودن برچسب کلاینت',
-    'Show others this was sent via Fevela': 'به دیگران نشان دهید که از طریق Fevela ارسال شده',
+    "Show that you're using Fevela in your notes":
+      'نشان دهید که در یادداشت های خود از Fevela استفاده می کنید',
     'Are you sure you want to logout?': 'آیا مطمئن هستید که می‌خواهید خارج شوید؟',
     'relay sets': 'مجموعه‌های رله',
     edit: 'ویرایش',
