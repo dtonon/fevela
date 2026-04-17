@@ -555,6 +555,8 @@ export default {
     'Failed to get invite code from relay': 'Fehler beim Abrufen des Einladungscodes vom Relay',
     'Failed to get invite code': 'Fehler beim Abrufen des Einladungscodes',
     'Invite code copied to clipboard': 'Einladungscode in die Zwischenablage kopiert',
-    Synching: 'Synchronisierung {{current}}/{{total}} Profile'
+    Synching: 'Synchronisierung {{current}}/{{total}} Profile',
+    'Protected event (NIP-70)': 'Geschütztes Ereignis (NIP-70)',
+    Protected: 'Geschützt'
   }
 }
