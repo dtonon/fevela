@@ -510,6 +510,7 @@ export default {
     'Private Key': 'مفتاح خاص',
     Synching: 'المزامنة {{current}}/{{total}} ملفات تعريف',
     'Protected event (NIP-70)': 'حدث محمي (NIP-70)',
-    Protected: 'محمي'
+    Protected: 'محمي',
+    Replying: 'يرد'
   }
 }

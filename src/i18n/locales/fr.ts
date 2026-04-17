@@ -526,6 +526,7 @@ export default {
     'Private Key': 'Clé privée',
     Synching: 'Synchronisation {{current}}/{{total}} profils',
     'Protected event (NIP-70)': 'Événement protégé (NIP-70)',
-    Protected: 'Protégé'
+    Protected: 'Protégé',
+    Replying: 'En réponse'
   }
 }

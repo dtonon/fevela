@@ -514,6 +514,7 @@ export default {
     'Private Key': '개인 키',
     Synching: '동기화 중 {{current}}/{{total}} 프로필',
     'Protected event (NIP-70)': '보호된 이벤트 (NIP-70)',
-    Protected: '보호됨'
+    Protected: '보호됨',
+    Replying: '답글 중'
   }
 }

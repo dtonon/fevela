@@ -514,6 +514,7 @@ export default {
     'Private Key': '暗号化されたキー',
     Synching: '同期中 {{current}}/{{total}} プロフィール',
     'Protected event (NIP-70)': '保護されたイベント (NIP-70)',
-    Protected: '保護'
+    Protected: '保護',
+    Replying: '返信中'
   }
 }

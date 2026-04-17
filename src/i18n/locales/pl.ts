@@ -520,6 +520,7 @@ export default {
     'Private Key': 'Zaszyfrowany Klucz',
     Synching: 'Synchronizacja {{current}}/{{total}} profile',
     'Protected event (NIP-70)': 'Chronione zdarzenie (NIP-70)',
-    Protected: 'Chronione'
+    Protected: 'Chronione',
+    Replying: 'Odpowiadając'
   }
 }

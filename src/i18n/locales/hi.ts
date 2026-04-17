@@ -517,6 +517,7 @@ export default {
     'Private Key': 'प्राइवेट की',
     Synching: 'सिंक हो रहा है {{current}}/{{total}} प्रोफाइल',
     'Protected event (NIP-70)': 'संरक्षित इवेंट (NIP-70)',
-    Protected: 'संरक्षित'
+    Protected: 'संरक्षित',
+    Replying: 'जवाब दे रहे हैं'
   }
 }

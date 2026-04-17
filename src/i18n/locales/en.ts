@@ -550,6 +550,7 @@ export default {
     'Invite code copied to clipboard': 'Invite code copied to clipboard',
     Synching: 'Downloading from {{current}}/{{total}} profiles',
     'Protected event (NIP-70)': 'Protected event (NIP-70)',
-    Protected: 'Protected'
+    Protected: 'Protected',
+    Replying: 'Replying'
   }
 }

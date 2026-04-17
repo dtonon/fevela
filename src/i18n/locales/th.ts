@@ -508,6 +508,7 @@ export default {
     'Private Key': 'คีย์ส่วนตัว',
     Synching: 'กำลังซิงค์ {{current}}/{{total}} โปรไฟล์',
     'Protected event (NIP-70)': 'เหตุการณ์ที่ได้รับการป้องกัน (NIP-70)',
-    Protected: 'ป้องกัน'
+    Protected: 'ป้องกัน',
+    Replying: 'กำลังตอบกลับ'
   }
 }

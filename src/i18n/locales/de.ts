@@ -557,6 +557,7 @@ export default {
     'Invite code copied to clipboard': 'Einladungscode in die Zwischenablage kopiert',
     Synching: 'Synchronisierung {{current}}/{{total}} Profile',
     'Protected event (NIP-70)': 'Geschütztes Ereignis (NIP-70)',
-    Protected: 'Geschützt'
+    Protected: 'Geschützt',
+    Replying: 'Antwortet'
   }
 }

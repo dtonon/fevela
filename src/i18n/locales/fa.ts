@@ -515,6 +515,7 @@ export default {
     'Private Key': 'کلید خصوصی',
     Synching: 'همگام‌سازی {{current}}/{{total}} نمایه',
     'Protected event (NIP-70)': 'رویداد محافظت‌شده (NIP-70)',
-    Protected: 'محافظت‌شده'
+    Protected: 'محافظت‌شده',
+    Replying: 'در حال پاسخ'
   }
 }

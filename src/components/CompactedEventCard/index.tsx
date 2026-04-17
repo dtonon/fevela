@@ -61,6 +61,7 @@ export default function CompactedEventCard({
   const { hideContentMentioningMutedUsers } = useContentPolicy()
   const { settings: feedSettings } = useFeed()
   const [targetEvent, setTargetEvent] = useState<Event | null>(null)
+  const [repliedPubkey, setRepliedPubkey] = useState<string | undefined>(undefined)
   const [previewText, setPreviewText] = useState<string | null>(null)
 
   const isRepost = variant === 'repost'
@@ -138,6 +139,11 @@ export default function CompactedEventCard({
     fetch()
   }, [event, isRepost])
 
+  useEffect(() => {
+    if (!isReply) return
+    setRepliedPubkey(event.tags.find(tagNameEquals('p'))?.[1])
+  }, [event, isReply])
+
   const shouldHide = useMemo(() => {
     if (!isRepost) return false
     if (!targetEvent) return true
@@ -192,25 +198,29 @@ export default function CompactedEventCard({
                       <PinBuryBadge pubkey={event.pubkey} />
                     </div>
                     <div className="flex items-center gap-1 text-sm">
-                      <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
                       {typeof displayScore === 'number' && (
                         <>
-                          <span>·</span>
                           <span className="shrink-0 text-primary font-medium flex items-center gap-0.5">
                             <Sparkles size={14} />
                             {Math.round(displayScore)}
                           </span>
+                          <span>·</span>
+                        </>
+                      )}
+                      {!isReply && !isRepost && (
+                        <>
+                          <FormattedTimestamp timestamp={event.created_at} className="shrink-0" />
                         </>
                       )}
                       {isReply && (
                         <>
-                          <span>·</span>
-                          <span className="shrink-0">{t('Reply')}</span>
+                          <span className="shrink-0">{t('Replying')}</span>
+                          {repliedPubkey && <UserAvatar userId={repliedPubkey} size="xSmall" />}
+                          <SimpleUsername userId={repliedPubkey} className="line-clamp-1" />
                         </>
                       )}
                       {isRepost && targetEvent && (
                         <>
-                          <span>·</span>
                           <span className="shrink-0 hidden md:block">Reposting</span>
                           <Repeat2 size={16} className="shrink-0 block md:hidden" />
                           <UserAvatar userId={targetEvent.pubkey} size="xSmall" />

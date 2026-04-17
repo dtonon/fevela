@@ -522,6 +522,7 @@ export default {
     'Private Key': 'Приватный ключ',
     Synching: 'Синхронизация {{current}}/{{total}} профилей',
     'Protected event (NIP-70)': 'Защищённое событие (NIP-70)',
-    Protected: 'Защищённый'
+    Protected: 'Защищённый',
+    Replying: 'Отвечает'
   }
 }

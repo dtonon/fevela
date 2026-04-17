@@ -504,6 +504,7 @@ export default {
     'Private Key': '私钥',
     Synching: '同步中 {{current}}/{{total}} 个资料',
     'Protected event (NIP-70)': '受保护的事件 (NIP-70)',
-    Protected: '受保护'
+    Protected: '受保护',
+    Replying: '回复中'
   }
 }
