@@ -7,20 +7,18 @@ export function useFetchProfile(input?: string) {
   const { profile: currentAccountProfile } = useNostr()
   const [isFetching, setIsFetching] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [profile, setProfile] = useState<NostrUser | null>(null)
+  const [profile, setProfile] = useState<NostrUser | undefined>(
+    input ? bareNostrUser(input) : undefined
+  )
 
   useEffect(() => {
-    setProfile(null)
-
     if (!input) {
       setIsFetching(false)
       setError(new Error('No input provided'))
       return
     }
 
-    const bare = bareNostrUser(input)
-
-    if (currentAccountProfile && bare.pubkey === currentAccountProfile.pubkey) {
+    if (currentAccountProfile && profile?.pubkey === currentAccountProfile.pubkey) {
       setProfile(currentAccountProfile)
       setIsFetching(false)
       return
