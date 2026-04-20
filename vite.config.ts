@@ -38,7 +38,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src')
     },
-    conditions: ['source', 'import', 'module', 'browser', 'default', 'require']
+    conditions: ['source', 'import', 'module', 'browser', 'default']
   },
   plugins: [
     react(),
