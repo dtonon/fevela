@@ -7,6 +7,7 @@ import { useFetchProfile } from '@/hooks'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import dayjs from 'dayjs'
 import { Loader, Lock, Unlock } from 'lucide-react'
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -16,46 +17,53 @@ import { username } from '@/lib/event-metadata'
 const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
   const { profile, pubkey } = useNostr()
-  const { getMutePubkeys } = useMuteList()
-  const mutePubkeys = useMemo(() => getMutePubkeys(), [pubkey])
-  const [visibleMutePubkeys, setVisibleMutePubkeys] = useState<string[]>([])
+  const { getMutePubkeys, getMuteType, muteListEvent } = useMuteList()
+  const allPubkeys = useMemo(() => getMutePubkeys(), [pubkey])
+  const publicPubkeys = useMemo(
+    () => allPubkeys.filter((p) => getMuteType(p) === 'public'),
+    [allPubkeys, getMuteType]
+  )
+  const privatePubkeys = useMemo(
+    () => allPubkeys.filter((p) => getMuteType(p) === 'private'),
+    [allPubkeys, getMuteType]
+  )
+  const [visiblePublic, setVisiblePublic] = useState<string[]>([])
+  const [visiblePrivate, setVisiblePrivate] = useState<string[]>([])
   const bottomRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    setVisibleMutePubkeys(mutePubkeys.slice(0, 10))
-  }, [mutePubkeys])
+    setVisiblePublic(publicPubkeys.slice(0, 10))
+    setVisiblePrivate(privatePubkeys.slice(0, 10))
+  }, [allPubkeys])
 
   useEffect(() => {
-    const options = {
-      root: null,
-      rootMargin: '10px',
-      threshold: 1
-    }
-
-    const observerInstance = new IntersectionObserver((entries) => {
-      if (entries[0].isIntersecting && mutePubkeys.length > visibleMutePubkeys.length) {
-        setVisibleMutePubkeys((prev) => [
-          ...prev,
-          ...mutePubkeys.slice(prev.length, prev.length + 10)
-        ])
-      }
-    }, options)
-
-    const currentBottomRef = bottomRef.current
-    if (currentBottomRef) {
-      observerInstance.observe(currentBottomRef)
-    }
-
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (!entries[0].isIntersecting) return
+        if (publicPubkeys.length > visiblePublic.length) {
+          setVisiblePublic((prev) => [...prev, ...publicPubkeys.slice(prev.length, prev.length + 10)])
+        } else if (privatePubkeys.length > visiblePrivate.length) {
+          setVisiblePrivate((prev) => [
+            ...prev,
+            ...privatePubkeys.slice(prev.length, prev.length + 10)
+          ])
+        }
+      },
+      { rootMargin: '10px', threshold: 1 }
+    )
+    const el = bottomRef.current
+    if (el) observer.observe(el)
     return () => {
-      if (observerInstance && currentBottomRef) {
-        observerInstance.unobserve(currentBottomRef)
-      }
+      if (el) observer.unobserve(el)
     }
-  }, [visibleMutePubkeys, mutePubkeys])
+  }, [visiblePublic, visiblePrivate, publicPubkeys, privatePubkeys])
 
   if (!profile) {
     return <NotFoundPage />
   }
+
+  const hasMore =
+    publicPubkeys.length > visiblePublic.length || privatePubkeys.length > visiblePrivate.length
 
   return (
     <SecondaryPageLayout
@@ -64,11 +72,56 @@ const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
       title={t("username's muted", { username: username(profile) })}
       displayScrollToTopButton
     >
-      <div className="space-y-2 px-4 pt-2">
-        {visibleMutePubkeys.map((pubkey, index) => (
-          <UserItem key={`${index}-${pubkey}`} pubkey={pubkey} />
-        ))}
-        {mutePubkeys.length > visibleMutePubkeys.length && <div ref={bottomRef} />}
+      <div className="space-y-4 px-4 pt-2">
+        {muteListEvent && (
+          <div className="text-xs text-muted-foreground border rounded-lg p-3 space-y-1 font-mono">
+            <div>
+              <span className="text-foreground/50">event </span>
+              {muteListEvent.id}
+            </div>
+            <div>
+              <span className="text-foreground/50">created </span>
+              {dayjs.unix(muteListEvent.created_at).format('YYYY-MM-DD HH:mm:ss')}
+            </div>
+            <div>
+              <span className="text-foreground/50">public </span>
+              {publicPubkeys.length}
+              <span className="text-foreground/50 ml-3">private </span>
+              {privatePubkeys.length}
+            </div>
+          </div>
+        )}
+        {!muteListEvent && allPubkeys.length === 0 && (
+          <div className="text-sm text-muted-foreground">
+            {t('No mute list event found')}
+          </div>
+        )}
+
+        {publicPubkeys.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Unlock className="size-3" />
+              {t('Public')} ({publicPubkeys.length})
+            </div>
+            {visiblePublic.map((pubkey, index) => (
+              <UserItem key={`pub-${index}-${pubkey}`} pubkey={pubkey} />
+            ))}
+          </div>
+        )}
+
+        {privatePubkeys.length > 0 && (
+          <div className="space-y-2">
+            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+              <Lock className="size-3" />
+              {t('Private')} ({privatePubkeys.length})
+            </div>
+            {visiblePrivate.map((pubkey, index) => (
+              <UserItem key={`priv-${index}-${pubkey}`} pubkey={pubkey} />
+            ))}
+          </div>
+        )}
+
+        {hasMore && <div ref={bottomRef} />}
       </div>
     </SecondaryPageLayout>
   )
@@ -105,7 +158,6 @@ function UserItem({ pubkey }: { pubkey: string }) {
             size="icon"
             onClick={() => {
               if (switching) return
-
               setSwitching(true)
               mutePublicly(pubkey).finally(() => setSwitching(false))
             }}
@@ -119,7 +171,6 @@ function UserItem({ pubkey }: { pubkey: string }) {
             size="icon"
             onClick={() => {
               if (switching) return
-
               setSwitching(true)
               mutePrivately(pubkey).finally(() => setSwitching(false))
             }}

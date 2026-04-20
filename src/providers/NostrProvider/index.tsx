@@ -25,7 +25,7 @@ import {
 } from '@/types'
 import { hexToBytes } from '@noble/hashes/utils.js'
 import dayjs from 'dayjs'
-import { Event, VerifiedEvent } from '@nostr/tools/wasm'
+import { Event, NostrEvent, VerifiedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import * as nip49 from '@nostr/tools/nip49'
@@ -58,6 +58,7 @@ type TNostrContext = {
   relayList: TRelayList | null
   followList: string[]
   muteList: TMutedList
+  muteListEvent: NostrEvent | null
   bookmarkList: string[]
   favoriteRelays: (string | AddressPointer)[]
   userEmojiList: (TEmoji | AddressPointer)[]
@@ -127,6 +128,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [relayList, setRelayList] = useState<TRelayList | null>(null)
   const [followList, setFollowList] = useState<string[]>([])
   const [muteList, setMuteList] = useState<TMutedList>({ private: [], public: [] })
+  const [muteListEvent, setMuteListEvent] = useState<NostrEvent | null>(null)
   const [bookmarkList, setBookmarkList] = useState<string[]>([])
   const [favoriteRelays, setFavoriteRelays] = useState<(string | AddressPointer)[]>([])
   const [userEmojiList, setUserEmojiList] = useState<(TEmoji | AddressPointer)[]>([])
@@ -212,7 +214,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
       loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
       loadPins(account.pubkey).then(({ items }) => setPinList(items))
-      client.fetchMuteList(account.pubkey, nip04Decrypt).then(setMuteList)
+      client.fetchMuteList(account.pubkey, nip04Decrypt).then(({ list, event }) => {
+        setMuteList(list)
+        setMuteListEvent(event)
+      })
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
       loadFollowsList(account.pubkey, [], true).then(async (list) => {
@@ -652,9 +657,10 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
     setFollowList(items)
   }
 
-  const updateMuteListEvent = async (muteListEvent: Event) => {
-    const muteList = await client.fetchMuteList(muteListEvent.pubkey, nip04Decrypt, muteListEvent)
-    setMuteList(muteList)
+  const updateMuteListEvent = async (event: Event) => {
+    const { list } = await client.fetchMuteList(event.pubkey, nip04Decrypt, event)
+    setMuteList(list)
+    setMuteListEvent(event)
   }
 
   const updateBookmarkListEvent = async (bookmarkListEvent: Event) => {
@@ -704,6 +710,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         relayList,
         followList,
         muteList,
+        muteListEvent,
         bookmarkList,
         favoriteRelays,
         userEmojiList,

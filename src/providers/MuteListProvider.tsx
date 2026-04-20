@@ -6,10 +6,12 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useNostr } from './NostrProvider'
 import { TMutedList } from '@/types'
+import { NostrEvent } from '@nostr/tools/wasm'
 
 type TMuteListContext = {
   changing: boolean
   mutePubkeySet: Set<string>
+  muteListEvent: NostrEvent | null
   getMutePubkeys: () => string[]
   getMuteType: (pubkey: string) => 'public' | 'private' | null
   mutePublicly: (pubkey: string) => Promise<void>
@@ -32,6 +34,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
   const {
     pubkey: accountPubkey,
     muteList,
+    muteListEvent,
     publish,
     updateMuteListEvent,
     nip04Encrypt,
@@ -92,7 +95,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const muteList = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
       checkMuteList(muteList)
 
       if (!muteList.public.includes(pubkey)) {
@@ -121,7 +124,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const muteList = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
       checkMuteList(muteList)
 
       if (!muteList.private.includes(pubkey)) {
@@ -150,7 +153,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const muteList = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
       checkMuteList(muteList)
 
       let modified = false
@@ -181,6 +184,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
     <MuteListContext.Provider
       value={{
         mutePubkeySet,
+        muteListEvent,
         changing,
         getMutePubkeys,
         getMuteType,

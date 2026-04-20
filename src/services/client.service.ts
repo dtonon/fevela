@@ -901,7 +901,7 @@ class ClientService extends EventTarget {
     pubkey: string,
     nip04Decrypt: undefined | ((pubkey: string, content: string) => Promise<string>),
     forceUpdate: boolean | NostrEvent = false
-  ): Promise<TMutedList> {
+  ): Promise<{ list: TMutedList; event: NostrEvent | null }> {
     const muteList: TMutedList = {
       public: [],
       private: []
@@ -929,7 +929,7 @@ class ClientService extends EventTarget {
       }
     }
 
-    return muteList
+    return { list: muteList, event: result.event ?? null }
   }
 
   /** =========== Following favorite relays =========== */

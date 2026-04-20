@@ -3,6 +3,7 @@ import Donation from '@/components/Donation'
 import {
   toAppearanceSettings,
   toGeneralSettings,
+  toMuteList,
   toPostSettings,
   toRelaySettings,
   toTranslation,
@@ -11,6 +12,7 @@ import {
 import { cn } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
+import { useMuteList } from '@/providers/MuteListProvider'
 import {
   Check,
   ChevronRight,
@@ -22,6 +24,7 @@ import {
   PencilLine,
   Server,
   Settings2,
+  VolumeX,
   Wallet
 } from 'lucide-react'
 import { forwardRef, HTMLProps, useState } from 'react'
@@ -30,6 +33,7 @@ import { useTranslation } from 'react-i18next'
 export default function Settings() {
   const { t } = useTranslation()
   const { pubkey, nsec, ncryptsec } = useNostr()
+  const { mutePubkeySet } = useMuteList()
   const { push } = useSecondaryPage()
   const [copiedNsec, setCopiedNsec] = useState(false)
   const [copiedNcryptsec, setCopiedNcryptsec] = useState(false)
@@ -82,6 +86,20 @@ export default function Settings() {
             <div>{t('Protocol')}</div>
           </div>
           <ChevronRight />
+        </SettingItem>
+      )}
+      {!!pubkey && (
+        <SettingItem className="clickable" onClick={() => push(toMuteList())}>
+          <div className="flex items-center gap-4">
+            <VolumeX />
+            <div>{t('Muted users')}</div>
+          </div>
+          <div className="flex gap-2 items-center">
+            {mutePubkeySet.size > 0 && (
+              <div className="text-muted-foreground">{mutePubkeySet.size}</div>
+            )}
+            <ChevronRight />
+          </div>
         </SettingItem>
       )}
       {!!nsec && (
