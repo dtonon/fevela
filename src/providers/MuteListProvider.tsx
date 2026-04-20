@@ -63,6 +63,8 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
   const publishNewMuteListEvent = async (list: TMutedList) => {
     if (!accountPubkey) return
 
+    console.debug('[mute] publishing:', { public: list.public.length, private: list.private.length })
+
     const tags = list.public.map((pubkey) => ['p', pubkey])
     const content = await nip04Encrypt(
       accountPubkey,
@@ -74,6 +76,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
     }
     const newMuteListDraftEvent = createMuteListDraftEvent(tags, content)
     const event = await publish(newMuteListDraftEvent)
+    console.debug('[mute] published event:', event.id, 'created_at:', event.created_at)
     toast.success(t('Successfully updated mute list'))
     setLastPublished(dayjs().unix())
     updateMuteListEvent(event)
@@ -99,20 +102,13 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
       checkMuteList(muteList)
 
       if (!muteList.public.includes(pubkey)) {
-        // add to public
         muteList.public.push(pubkey)
-
-        {
-          // and remove from private
-          const idx = muteList.private.indexOf(pubkey)
-          if (idx !== -1) {
-            muteList.private.splice(idx, 1)
-          }
-        }
-
-        publishNewMuteListEvent(muteList)
+        const idx = muteList.private.indexOf(pubkey)
+        if (idx !== -1) muteList.private.splice(idx, 1)
+        await publishNewMuteListEvent(muteList)
       }
     } catch (error) {
+      console.error('[mute] mutePublicly failed:', error)
       toast.error(t('Failed to mute user publicly') + ': ' + (error as Error).message)
     } finally {
       setChanging(false)
@@ -128,20 +124,13 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
       checkMuteList(muteList)
 
       if (!muteList.private.includes(pubkey)) {
-        // add to private
         muteList.private.push(pubkey)
-
-        {
-          // and remove from public
-          const idx = muteList.public.indexOf(pubkey)
-          if (idx !== -1) {
-            muteList.public.splice(idx, 1)
-          }
-        }
-
-        publishNewMuteListEvent(muteList)
+        const idx = muteList.public.indexOf(pubkey)
+        if (idx !== -1) muteList.public.splice(idx, 1)
+        await publishNewMuteListEvent(muteList)
       }
     } catch (error) {
+      console.error('[mute] mutePrivately failed:', error)
       toast.error(t('Failed to mute user privately') + ': ' + (error as Error).message)
     } finally {
       setChanging(false)
@@ -157,24 +146,23 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
       checkMuteList(muteList)
 
       let modified = false
-      {
-        const idx = muteList.private.indexOf(pubkey)
-        if (idx !== -1) {
-          muteList.private.splice(idx, 1)
-          modified = true
-        }
+      const privateIdx = muteList.private.indexOf(pubkey)
+      if (privateIdx !== -1) {
+        muteList.private.splice(privateIdx, 1)
+        modified = true
       }
-      {
-        const idx = muteList.public.indexOf(pubkey)
-        if (idx !== -1) {
-          muteList.public.splice(idx, 1)
-          modified = true
-        }
+      const publicIdx = muteList.public.indexOf(pubkey)
+      if (publicIdx !== -1) {
+        muteList.public.splice(publicIdx, 1)
+        modified = true
       }
 
       if (modified) {
-        publishNewMuteListEvent(muteList)
+        await publishNewMuteListEvent(muteList)
       }
+    } catch (error) {
+      console.error('[mute] unmute failed:', error)
+      toast.error(t('Failed to unmute user') + ': ' + (error as Error).message)
     } finally {
       setChanging(false)
     }

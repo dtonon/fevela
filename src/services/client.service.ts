@@ -908,6 +908,11 @@ class ClientService extends EventTarget {
     }
 
     const result = await loadMuteList(pubkey, [], forceUpdate)
+    console.debug('[mute] loadMuteList result:', {
+      eventId: result.event?.id,
+      createdAt: result.event?.created_at,
+      itemsCount: result.items.length
+    })
 
     muteList.public = result.items
       .filter((item) => item.label === 'pubkey')
@@ -915,7 +920,10 @@ class ClientService extends EventTarget {
 
     if (result.event && nip04Decrypt) {
       try {
-        const plainText = await nip04Decrypt(pubkey, result.event.content)
+        const timeout = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('nip04Decrypt timeout')), 5000)
+        )
+        const plainText = await Promise.race([nip04Decrypt(pubkey, result.event.content), timeout])
         const privateTags = z.array(z.array(z.string())).parse(JSON.parse(plainText))
 
         for (let i = 0; i < privateTags.length; i++) {
@@ -924,11 +932,15 @@ class ClientService extends EventTarget {
             muteList.private.push(tag[1])
           }
         }
-      } catch (_) {
-        /***/
+      } catch (e) {
+        console.error('[mute] nip04Decrypt failed:', e)
       }
     }
 
+    console.debug('[mute] fetchMuteList result:', {
+      public: muteList.public.length,
+      private: muteList.private.length
+    })
     return { list: muteList, event: result.event ?? null }
   }
 
