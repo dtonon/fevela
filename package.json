@@ -91,6 +91,10 @@
     "yet-another-react-lightbox": "^3.21.7",
     "zod": "^3.24.1"
   },
+  "overrides": {
+    "nostr-tools": ">=2.23.1",
+    "@jsr/nostr__tools": ">=2.23.1"
+  },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
     "@types/node": "^22.10.2",
