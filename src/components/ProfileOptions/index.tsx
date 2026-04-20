@@ -15,7 +15,7 @@ import { useTranslation } from 'react-i18next'
 export default function ProfileOptions({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { pubkey: accountPubkey } = useNostr()
-  const { mutePubkeySet, mutePrivately, mutePublicly, unmute } = useMuteList()
+  const { mutePubkeySet, mutePrivately, mutePublicly, unmute, supportsEncryption } = useMuteList()
   const isMuted = useMemo(() => mutePubkeySet.has(pubkey), [mutePubkeySet, pubkey])
 
   if (pubkey === accountPubkey) return null
@@ -43,8 +43,10 @@ export default function ProfileOptions({ pubkey }: { pubkey: string }) {
         ) : (
           <>
             <DropdownMenuItem
-              onClick={() => mutePrivately(pubkey)}
+              onClick={() => { if (supportsEncryption) mutePrivately(pubkey) }}
               className="text-destructive focus:text-destructive"
+              disabled={!supportsEncryption}
+              title={!supportsEncryption ? t('Your login method does not support encryption') : undefined}
             >
               <BellOff />
               {t('Mute user privately')}

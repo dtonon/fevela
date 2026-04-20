@@ -29,7 +29,7 @@ import { Event, NostrEvent, VerifiedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import * as nip19 from '@nostr/tools/nip19'
 import * as nip49 from '@nostr/tools/nip49'
-import { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import { useDeletedEvent } from '../DeletedEventProvider'
@@ -87,6 +87,7 @@ type TNostrContext = {
   attemptDelete: (targetEvent: Event) => Promise<void>
   signHttpAuth: (url: string, method: string) => Promise<string>
   signEvent: (draftEvent: TDraftEvent) => Promise<VerifiedEvent>
+  supportsEncryption: boolean
   nip04Encrypt: (pubkey: string, plainText: string) => Promise<string>
   nip04Decrypt: (pubkey: string, cipherText: string) => Promise<string>
   startLogin: () => void
@@ -136,6 +137,8 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const [notificationsSeenAt, setNotificationsSeenAt] = useState(-1)
   const [isInitialized, setIsInitialized] = useState(false)
   const [isReady, setIsReady] = useState(false)
+  const [supportsEncryption, setSupportsEncryption] = useState(true)
+  const encryptionProbeRef = useRef<Promise<boolean> | null>(null)
 
   useEffect(() => {
     const init = async () => {
@@ -214,9 +217,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadBookmarks(account.pubkey).then(({ items }) => setBookmarkList(items))
       loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
       loadPins(account.pubkey).then(({ items }) => setPinList(items))
-      client.fetchMuteList(account.pubkey, nip04Decrypt).then(({ list, event }) => {
-        setMuteList(list)
-        setMuteListEvent(event)
+      ;(encryptionProbeRef.current ?? Promise.resolve(true)).then((encryptionSupported) => {
+        client.fetchMuteList(account.pubkey, encryptionSupported ? nip04Decrypt : undefined).then(
+          ({ list, event }) => {
+            setMuteList(list)
+            setMuteListEvent(event)
+          }
+        )
       })
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
@@ -333,6 +340,34 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
 
   const login = async (signer: ISigner, act: TAccount) => {
     setIsReady(false)
+
+    if (act.signerType === 'npub') {
+      console.debug('[encryption] npub: no encryption support')
+      setSupportsEncryption(false)
+      encryptionProbeRef.current = Promise.resolve(false)
+    } else if (act.signerType === 'bunker') {
+      console.debug('[encryption] bunker: probing nip04...')
+      setSupportsEncryption(false)
+      encryptionProbeRef.current = (async () => {
+        try {
+          const timeout = new Promise<never>((_, reject) =>
+            setTimeout(() => reject(new Error('timeout')), 5000)
+          )
+          const result = await Promise.race([signer.nip04Encrypt(act.pubkey, ''), timeout])
+          console.debug('[encryption] bunker probe succeeded:', result)
+          setSupportsEncryption(true)
+          return true
+        } catch (e) {
+          console.debug('[encryption] bunker probe failed:', e)
+          setSupportsEncryption(false)
+          return false
+        }
+      })()
+    } else {
+      console.debug('[encryption] signerType', act.signerType, ': encryption supported')
+      setSupportsEncryption(true)
+      encryptionProbeRef.current = Promise.resolve(true)
+    }
 
     const newAccounts = storage.addAccount(act)
     setAccounts(newAccounts)
@@ -658,7 +693,11 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   }
 
   const updateMuteListEvent = async (event: Event) => {
-    const { list } = await client.fetchMuteList(event.pubkey, nip04Decrypt, event)
+    const { list } = await client.fetchMuteList(
+      event.pubkey,
+      supportsEncryption ? nip04Decrypt : undefined,
+      event
+    )
     setMuteList(list)
     setMuteListEvent(event)
   }
@@ -732,6 +771,7 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         publish,
         attemptDelete,
         signHttpAuth,
+        supportsEncryption,
         nip04Encrypt,
         nip04Decrypt,
         startLogin: () => setOpenLoginDialog(true),

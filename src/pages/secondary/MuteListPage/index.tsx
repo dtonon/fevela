@@ -8,7 +8,7 @@ import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import dayjs from 'dayjs'
-import { Loader, Lock, Unlock } from 'lucide-react'
+import { Loader, Lock, TriangleAlert, Unlock } from 'lucide-react'
 import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFoundPage from '../NotFoundPage'
@@ -17,7 +17,7 @@ import { username } from '@/lib/event-metadata'
 const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
   const { t } = useTranslation()
   const { profile, pubkey } = useNostr()
-  const { getMutePubkeys, getMuteType, muteListEvent } = useMuteList()
+  const { getMutePubkeys, getMuteType, muteListEvent, supportsEncryption } = useMuteList()
   const allPubkeys = useMemo(() => getMutePubkeys(), [pubkey])
   const publicPubkeys = useMemo(
     () => allPubkeys.filter((p) => getMuteType(p) === 'public'),
@@ -89,6 +89,12 @@ const MuteListPage = forwardRef(({ index }: { index?: number }, ref) => {
               <span className="text-foreground/50 ml-3">private </span>
               {privatePubkeys.length}
             </div>
+          </div>
+        )}
+        {!supportsEncryption && (
+          <div className="flex items-start gap-2 text-sm text-amber-500 border border-amber-500/30 rounded-lg p-3">
+            <TriangleAlert className="size-4 shrink-0 mt-0.5" />
+            <span>{t('Your login method does not support encryption. Private muting is unavailable.')}</span>
           </div>
         )}
         {!muteListEvent && allPubkeys.length === 0 && (

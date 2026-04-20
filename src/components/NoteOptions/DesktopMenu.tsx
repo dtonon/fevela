@@ -50,7 +50,12 @@ export function DesktopMenu({ menuActions, trigger }: DesktopMenuProps) {
                   </DropdownMenuSubContent>
                 </DropdownMenuSub>
               ) : (
-                <DropdownMenuItem onClick={action.onClick} className={action.className}>
+                <DropdownMenuItem
+                  onClick={action.onClick}
+                  className={action.className}
+                  disabled={action.disabled}
+                  title={action.title}
+                >
                   <Icon />
                   {action.label}
                 </DropdownMenuItem>

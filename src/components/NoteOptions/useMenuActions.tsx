@@ -45,6 +45,8 @@ export interface MenuAction {
   className?: string
   separator?: boolean
   subMenu?: SubMenuAction[]
+  disabled?: boolean
+  title?: string
 }
 
 interface UseMenuActionsProps {
@@ -71,7 +73,7 @@ export function useMenuActions({
   const relayUrls = useMemo(() => {
     return Array.from(new Set(currentBrowsingRelayUrls.concat(urls)))
   }, [currentBrowsingRelayUrls, urls])
-  const { mutePublicly, mutePrivately, unmute, mutePubkeySet } = useMuteList()
+  const { mutePublicly, mutePrivately, unmute, mutePubkeySet, supportsEncryption } = useMuteList()
   const { pinList, pin, unpin } = usePinList()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
   const { settings: feedSettings } = useFeed()
@@ -319,11 +321,14 @@ export function useMenuActions({
             icon: BellOff,
             label: t('Mute user privately'),
             onClick: () => {
+              if (!supportsEncryption) return
               closeDrawer()
               mutePrivately(event.pubkey)
             },
             className: 'text-destructive focus:text-destructive',
-            separator: true
+            separator: true,
+            disabled: !supportsEncryption,
+            title: !supportsEncryption ? t('Your login method does not support encryption') : undefined
           },
           {
             icon: BellOff,
@@ -368,6 +373,7 @@ export function useMenuActions({
     mutePrivately,
     mutePublicly,
     unmute,
+    supportsEncryption,
     setPinned,
     setBuried,
     clearState

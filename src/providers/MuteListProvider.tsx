@@ -10,6 +10,7 @@ import { NostrEvent } from '@nostr/tools/wasm'
 
 type TMuteListContext = {
   changing: boolean
+  supportsEncryption: boolean
   mutePubkeySet: Set<string>
   muteListEvent: NostrEvent | null
   getMutePubkeys: () => string[]
@@ -37,6 +38,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
     muteListEvent,
     publish,
     updateMuteListEvent,
+    supportsEncryption,
     nip04Encrypt,
     nip04Decrypt
   } = useNostr()
@@ -66,10 +68,9 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
     console.debug('[mute] publishing:', { public: list.public.length, private: list.private.length })
 
     const tags = list.public.map((pubkey) => ['p', pubkey])
-    const content = await nip04Encrypt(
-      accountPubkey,
-      JSON.stringify(list.private.map((pubkey) => ['p', pubkey]))
-    )
+    const content = supportsEncryption
+      ? await nip04Encrypt(accountPubkey, JSON.stringify(list.private.map((pubkey) => ['p', pubkey])))
+      : ''
 
     if (dayjs().unix() === lastPublished) {
       await new Promise((resolve) => setTimeout(resolve, 1000))
@@ -98,7 +99,10 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(
+        accountPubkey,
+        supportsEncryption ? nip04Decrypt : undefined
+      )
       checkMuteList(muteList)
 
       if (!muteList.public.includes(pubkey)) {
@@ -120,7 +124,10 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(
+        accountPubkey,
+        supportsEncryption ? nip04Decrypt : undefined
+      )
       checkMuteList(muteList)
 
       if (!muteList.private.includes(pubkey)) {
@@ -142,7 +149,10 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
 
     setChanging(true)
     try {
-      const { list: muteList } = await client.fetchMuteList(accountPubkey, nip04Decrypt)
+      const { list: muteList } = await client.fetchMuteList(
+        accountPubkey,
+        supportsEncryption ? nip04Decrypt : undefined
+      )
       checkMuteList(muteList)
 
       let modified = false
@@ -174,6 +184,7 @@ export function MuteListProvider({ children }: { children: React.ReactNode }) {
         mutePubkeySet,
         muteListEvent,
         changing,
+        supportsEncryption,
         getMutePubkeys,
         getMuteType,
         mutePublicly,

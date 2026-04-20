@@ -42,6 +42,8 @@ export function MobileMenu({
                     onClick={action.onClick}
                     className={`w-full p-6 justify-start text-lg gap-4 [&_svg]:size-5 ${action.className || ''}`}
                     variant="ghost"
+                    disabled={action.disabled}
+                    title={action.title}
                   >
                     <Icon />
                     {action.label}

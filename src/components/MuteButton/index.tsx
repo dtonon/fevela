@@ -18,7 +18,8 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
   const { t } = useTranslation()
   const { isSmallScreen } = useScreenSize()
   const { pubkey: accountPubkey, checkLogin } = useNostr()
-  const { mutePubkeySet, changing, mutePrivately, mutePublicly, unmute } = useMuteList()
+  const { mutePubkeySet, changing, supportsEncryption, mutePrivately, mutePublicly, unmute } =
+    useMuteList()
   const [updating, setUpdating] = useState(false)
   const isMuted = useMemo(() => mutePubkeySet.has(pubkey), [mutePubkeySet, pubkey])
 
@@ -26,6 +27,7 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
 
   const handleMute = async (e: React.MouseEvent, isPrivate = true) => {
     e.stopPropagation()
+    if (isPrivate && !supportsEncryption) return
     checkLogin(async () => {
       if (isMuted) return
 
@@ -83,6 +85,10 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
     </Button>
   )
 
+  const encryptionUnsupportedTitle = !supportsEncryption
+    ? t('Your login method does not support encryption')
+    : undefined
+
   if (isSmallScreen) {
     return (
       <Drawer>
@@ -93,7 +99,8 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
               className="w-full p-6 justify-start text-destructive text-lg gap-4 [&_svg]:size-5 focus:text-destructive"
               variant="ghost"
               onClick={(e) => handleMute(e, true)}
-              disabled={updating || changing}
+              disabled={updating || changing || !supportsEncryption}
+              title={encryptionUnsupportedTitle}
             >
               {updating ? <Loader className="animate-spin" /> : t('Mute user privately')}
             </Button>
@@ -118,6 +125,8 @@ export default function MuteButton({ pubkey }: { pubkey: string }) {
         <DropdownMenuItem
           onClick={(e) => handleMute(e, true)}
           className="text-destructive focus:text-destructive"
+          disabled={!supportsEncryption}
+          title={encryptionUnsupportedTitle}
         >
           <BellOff />
           {t('Mute user privately')}
