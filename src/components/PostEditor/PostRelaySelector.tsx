@@ -16,7 +16,7 @@ import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import client from '@/services/client.service'
 import { Check } from 'lucide-react'
 import { NostrEvent } from '@nostr/tools/wasm'
-import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useState } from 'react'
+import { Dispatch, SetStateAction, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import RelayIcon from '../RelayIcon'
 
@@ -39,6 +39,7 @@ type TPostTargetItem =
 
 export default function PostRelaySelector({
   children,
+  defaultIncludeTheirReadRelays = false,
   parentEvent,
   openFrom,
   setIsProtectedEvent,
@@ -47,6 +48,7 @@ export default function PostRelaySelector({
   setIncludeTheirReadRelays
 }: {
   children?: React.ReactNode
+  defaultIncludeTheirReadRelays?: boolean
   parentEvent?: NostrEvent
   openFrom?: string[]
   setAdditionalRelayUrls: Dispatch<SetStateAction<string[]>>
@@ -60,6 +62,7 @@ export default function PostRelaySelector({
   const { relayUrls } = useCurrentRelays()
   const { relaySets, urls } = useFavoriteRelays()
   const [postTargetItems, setPostTargetItems] = useState<TPostTargetItem[]>([])
+  const previousDefaultIncludeTheirReadRelays = useRef(defaultIncludeTheirReadRelays)
 
   const parentEventSeenOnRelays = useMemo(() => {
     if (!parentEvent || !isProtectedEvent(parentEvent)) {
@@ -131,8 +134,49 @@ export default function PostRelaySelector({
       setPostTargetItems(parentEventSeenOnRelays.map((url) => ({ type: 'relay', url })))
       return
     }
-    setPostTargetItems([{ type: 'ourWriteRelays' }, { type: 'theirReadRelays' }])
+
+    const initialTargets: TPostTargetItem[] = [{ type: 'ourWriteRelays' }]
+    if (defaultIncludeTheirReadRelays) {
+      initialTargets.push({ type: 'theirReadRelays' })
+    }
+
+    setPostTargetItems(initialTargets)
   }, [openFrom, parentEventSeenOnRelays])
+
+  useEffect(() => {
+    if (openFrom?.length || parentEventSeenOnRelays.length) {
+      previousDefaultIncludeTheirReadRelays.current = defaultIncludeTheirReadRelays
+      return
+    }
+
+    setPostTargetItems((prev) => {
+      const hadOnlyOurWriteRelays = prev.length === 1 && prev[0]?.type === 'ourWriteRelays'
+      const hadOnlyDefaultReplyTargets =
+        prev.length === 2 &&
+        prev.some((item) => item.type === 'ourWriteRelays') &&
+        prev.some((item) => item.type === 'theirReadRelays')
+
+      if (
+        !previousDefaultIncludeTheirReadRelays.current &&
+        defaultIncludeTheirReadRelays &&
+        hadOnlyOurWriteRelays
+      ) {
+        return [...prev, { type: 'theirReadRelays' }]
+      }
+
+      if (
+        previousDefaultIncludeTheirReadRelays.current &&
+        !defaultIncludeTheirReadRelays &&
+        hadOnlyDefaultReplyTargets
+      ) {
+        return prev.filter((item) => item.type !== 'theirReadRelays')
+      }
+
+      return prev
+    })
+
+    previousDefaultIncludeTheirReadRelays.current = defaultIncludeTheirReadRelays
+  }, [defaultIncludeTheirReadRelays, openFrom, parentEventSeenOnRelays])
 
   useEffect(() => {
     const includeOurWriteRelays = postTargetItems.some((item) => item.type === 'ourWriteRelays')

@@ -23,7 +23,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import EmojiPickerDialog from '../EmojiPickerDialog'
-import Mentions from './Mentions'
+import Mentions, { extractMentions } from './Mentions'
 import PollEditor from './PollEditor'
 import PostOptions from './PostOptions'
 import PostRelaySelector from './PostRelaySelector'
@@ -102,7 +102,8 @@ export default function PostContent({
   const [isProtectedEvent, setIsProtectedEvent] = useState(false)
   const [additionalRelayUrls, setAdditionalRelayUrls] = useState<string[]>([])
   const [includeOurWriteRelays, setIncludeOurWriteRelays] = useState(true)
-  const [includeTheirReadRelays, setIncludeTheirReadRelays] = useState(true)
+  const [includeTheirReadRelays, setIncludeTheirReadRelays] = useState(false)
+  const [hasExplicitMentions, setHasExplicitMentions] = useState(!!parentEvent)
   const [pollCreateData, setPollCreateData] = useState<TPollCreateData>({
     isMultipleChoice: false,
     options: ['', ''],
@@ -164,6 +165,24 @@ export default function PostContent({
       }
     )
   }, [defaultContent, parentEvent, isNsfw, isPoll, pollCreateData, quietReply])
+
+  useEffect(() => {
+    let cancelled = false
+
+    void extractMentions(text, parentEvent).then(({ pubkeys }) => {
+      if (cancelled) {
+        return
+      }
+
+      setHasExplicitMentions(
+        !!parentEvent || pubkeys.some((mentionedPubkey) => mentionedPubkey !== pubkey)
+      )
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [text, parentEvent, pubkey])
 
   const post = async (e?: React.MouseEvent) => {
     e?.stopPropagation()
@@ -351,6 +370,7 @@ export default function PostContent({
           setAdditionalRelayUrls={setAdditionalRelayUrls}
           setIncludeOurWriteRelays={setIncludeOurWriteRelays}
           setIncludeTheirReadRelays={setIncludeTheirReadRelays}
+          defaultIncludeTheirReadRelays={hasExplicitMentions}
           parentEvent={parentEvent}
           openFrom={openFrom}
         />
