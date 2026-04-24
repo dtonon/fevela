@@ -77,10 +77,12 @@ export function SimpleUserAvatar({
 
   const { metadata, pubkey } = profile || {}
   const avatar = metadata?.picture
+  const imageSrc = avatar ?? defaultAvatar
 
   return (
     <Image
-      image={{ url: avatar ?? defaultAvatar, pubkey }}
+      key={`${pubkey}-${imageSrc}`}
+      image={{ url: imageSrc, pubkey }}
       errorPlaceholder={defaultAvatar}
       className="object-cover object-center"
       classNames={{

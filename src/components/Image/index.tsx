@@ -50,7 +50,7 @@ export default function Image({
     } else {
       setImageUrl(url)
     }
-  }, [url])
+  }, [url, pubkey])
 
   if (hideIfError && hasError) return null
 
