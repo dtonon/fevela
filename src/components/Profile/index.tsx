@@ -32,7 +32,7 @@ import { normalizeHttpUrl } from '@/lib/url'
 export default function Profile({ id }: { id?: string }) {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
-  const { profile } = useFetchProfile(id)
+  const { profile, isFetching } = useFetchProfile(id)
   const { pubkey: accountPubkey } = useNostr()
   const { mutePubkeySet } = useMuteList()
   const [searchInput, setSearchInput] = useState('')
@@ -66,10 +66,11 @@ export default function Profile({ id }: { id?: string }) {
   }, [searchInput])
 
   useEffect(() => {
+    if (isFetching) return
     if (!profile?.pubkey) return
     if (Object.keys(profile?.metadata).length > 0) return
     client.fetchProfile(profile.pubkey, true)
-  }, [profile?.pubkey])
+  }, [isFetching, profile])
 
   useEffect(() => {
     if (!topContainer) return

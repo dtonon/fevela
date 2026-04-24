@@ -7,18 +7,22 @@ export function useFetchProfile(input?: string) {
   const { profile: currentAccountProfile } = useNostr()
   const [isFetching, setIsFetching] = useState(true)
   const [error, setError] = useState<Error | null>(null)
-  const [profile, setProfile] = useState<NostrUser | undefined>(
-    input ? bareNostrUser(input) : undefined
-  )
+  const [profile, setProfile] = useState<NostrUser | null>(null)
+  const bare = input ? bareNostrUser(input) : undefined
+  const resolvedProfile = bare && profile?.pubkey === bare.pubkey ? profile : null
 
   useEffect(() => {
     if (!input) {
+      setProfile(null)
       setIsFetching(false)
       setError(new Error('No input provided'))
       return
     }
 
-    if (currentAccountProfile && profile?.pubkey === currentAccountProfile.pubkey) {
+    setError(null)
+    setProfile(null)
+
+    if (currentAccountProfile && bare?.pubkey === currentAccountProfile.pubkey) {
       setProfile(currentAccountProfile)
       setIsFetching(false)
       return
@@ -35,7 +39,7 @@ export function useFetchProfile(input?: string) {
         setIsFetching(false)
       }
     })()
-  }, [input])
+  }, [input, currentAccountProfile])
 
-  return { isFetching, error, profile }
+  return { isFetching, error, profile: resolvedProfile ?? bare }
 }
