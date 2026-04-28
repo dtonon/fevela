@@ -282,6 +282,9 @@ const NoteList = forwardRef(
             } else if (pubkey && newEvent.pubkey === pubkey) {
               // our own notes are also inserted regardless of any concern
               appended.push(newEvent)
+            } else if (shouldHideEvent(newEvent)) {
+              // filtered-out notes are stored silently so they appear if the filter changes
+              appended.push(newEvent)
             } else {
               // any other "new" notes that would be inserted above, make them be pending in the modal thingie
               pending.push(newEvent)
