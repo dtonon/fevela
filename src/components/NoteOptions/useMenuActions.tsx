@@ -12,6 +12,7 @@ import client from '@/services/client.service'
 import {
   Bell,
   BellOff,
+  CloudUpload,
   Code,
   Copy,
   Link,
@@ -30,6 +31,8 @@ import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import RelayIcon from '../RelayIcon'
 import { useFeed } from '@/providers/FeedProvider'
+import { usePending } from '@/providers/PendingProvider'
+import { usePendingPublishMap } from '@/lib/pendingPublish'
 
 export interface SubMenuAction {
   label: React.ReactNode
@@ -77,8 +80,15 @@ export function useMenuActions({
   const { pinList, pin, unpin } = usePinList()
   const { getPinBuryState, setPinned, setBuried, clearState } = usePinBury()
   const { settings: feedSettings } = useFeed()
+  const { pendingIds, discardPendingEvent, savePendingEvent } = usePending()
+  const pendingPublishMap = usePendingPublishMap()
   const isMuted = useMemo(() => mutePubkeySet.has(event.pubkey), [mutePubkeySet, event])
   const pinBuryState = useMemo(() => getPinBuryState(event.pubkey), [getPinBuryState, event.pubkey])
+
+  const isPending = useMemo(
+    () => pendingIds.includes(event.id) || pendingPublishMap.has(event.id),
+    [pendingIds, pendingPublishMap, event.id]
+  )
 
   const broadcastSubMenu: SubMenuAction[] = useMemo(() => {
     const items = []
@@ -91,17 +101,18 @@ export function useMenuActions({
             const relays = await client.determineTargetRelays(event)
             if (relays?.length) {
               await client.publishEvent(relays, event)
+              discardPendingEvent(event.id)
             }
           }
           toast.promise(promise, {
-            loading: t('Republishing...'),
+            loading: t('Publishing...'),
             success: () => {
-              return t('Successfully republish to your write relays')
+              return t('Post successful')
             },
             error: (err) => {
-              return t('Failed to republish to your write relays: {{error}}', {
-                error: err.message
-              })
+              savePendingEvent(event)
+              toast.error(t('Saved as pending'))
+              return t('Failed to post') + ': ' + err.message
             }
           })
         }
@@ -116,17 +127,19 @@ export function useMenuActions({
             label: <div className="text-left truncate">{set.name}</div>,
             onClick: async () => {
               closeDrawer()
-              const promise = client.publishEvent(set.relayUrls, event)
+              const promise = (async () => {
+                await client.publishEvent(set.relayUrls, event)
+                discardPendingEvent(event.id)
+              })()
               toast.promise(promise, {
-                loading: t('Republishing...'),
+                loading: t('Publishing...'),
                 success: () => {
-                  return t('Successfully republish to relay set: {{name}}', { name: set.name })
+                  return t('Post successful')
                 },
                 error: (err) => {
-                  return t('Failed to republish to relay set: {{name}}. Error: {{error}}', {
-                    name: set.name,
-                    error: err.message
-                  })
+                  savePendingEvent(event)
+                  toast.error(t('Saved as pending'))
+                  return t('Failed to post') + ': ' + err.message
                 }
               })
             },
@@ -146,17 +159,19 @@ export function useMenuActions({
           ),
           onClick: async () => {
             closeDrawer()
-            const promise = client.publishEvent([relay], event)
+            const promise = (async () => {
+              await client.publishEvent([relay], event)
+              discardPendingEvent(event.id)
+            })()
             toast.promise(promise, {
-              loading: t('Republishing...'),
+              loading: t('Publishing...'),
               success: () => {
-                return t('Successfully republish to relay: {{url}}', { url: simplifyUrl(relay) })
+                return t('Post successful')
               },
               error: (err) => {
-                return t('Failed to republish to relay: {{url}}. Error: {{error}}', {
-                  url: simplifyUrl(relay),
-                  error: err.message
-                })
+                savePendingEvent(event)
+                toast.error(t('Saved as pending'))
+                return t('Failed to post') + ': ' + err.message
               }
             })
           },
@@ -166,7 +181,7 @@ export function useMenuActions({
     }
 
     return items
-  }, [pubkey, relayUrls, relaySets])
+  }, [pubkey, relayUrls, relaySets, event, t, closeDrawer])
 
   const menuActions: MenuAction[] = useMemo(() => {
     const actions: MenuAction[] = []
@@ -229,49 +244,55 @@ export function useMenuActions({
 
     // Standard actions
     actions.push(
-      {
-        icon: Copy,
-        label: t('Copy event ID'),
-        onClick: () => {
-          navigator.clipboard.writeText(getNoteBech32Id(event))
-          closeDrawer()
+      ...([
+        {
+          icon: Copy,
+          label: t('Copy event ID'),
+          onClick: () => {
+            navigator.clipboard.writeText(getNoteBech32Id(event))
+            closeDrawer()
+          },
+          separator: feedSettings.grouped // Only add separator if pin/bury actions were shown
         },
-        separator: feedSettings.grouped // Only add separator if pin/bury actions were shown
-      },
-      {
-        icon: Copy,
-        label: t('Copy user ID'),
-        onClick: () => {
-          navigator.clipboard.writeText(npubEncode(event.pubkey) ?? '')
-          closeDrawer()
-        }
-      },
-      {
-        icon: Link,
-        label: t('Copy share link'),
-        onClick: () => {
-          navigator.clipboard.writeText(toNjump(getNoteBech32Id(event)))
-          closeDrawer()
-        }
-      },
-      {
-        icon: Code,
-        label: t('View raw event'),
-        onClick: () => {
-          closeDrawer()
-          setIsRawEventDialogOpen(true)
+        {
+          icon: Copy,
+          label: t('Copy user ID'),
+          onClick: () => {
+            navigator.clipboard.writeText(npubEncode(event.pubkey) ?? '')
+            closeDrawer()
+          }
         },
-        separator: true
-      }
+        !isPending && {
+          icon: Link,
+          label: t('Copy share link'),
+          onClick: () => {
+            navigator.clipboard.writeText(toNjump(getNoteBech32Id(event)))
+            closeDrawer()
+          }
+        },
+        {
+          icon: Code,
+          label: t('View raw event'),
+          onClick: () => {
+            closeDrawer()
+            setIsRawEventDialogOpen(true)
+          },
+          separator: true
+        }
+      ].filter(Boolean) as MenuAction[])
     )
 
     const isProtected = isProtectedEvent(event)
     if (!isProtected || event.pubkey === pubkey) {
       actions.push({
         icon: SatelliteDish,
-        label: t('Republish to ...'),
+        label: isPending ? t('Publish to ...') : t('Republish to ...'),
         onClick: isSmallScreen
-          ? () => showSubMenuActions(broadcastSubMenu, t('Republish to ...'))
+          ? () =>
+              showSubMenuActions(
+                broadcastSubMenu,
+                isPending ? t('Publish to ...') : t('Republish to ...')
+              )
           : undefined,
         subMenu: isSmallScreen ? undefined : broadcastSubMenu,
         separator: true
@@ -328,7 +349,9 @@ export function useMenuActions({
             className: 'text-destructive focus:text-destructive',
             separator: true,
             disabled: !supportsEncryption,
-            title: !supportsEncryption ? t('Your login method does not support encryption') : undefined
+            title: !supportsEncryption
+              ? t('Your login method does not support encryption')
+              : undefined
           },
           {
             icon: BellOff,
@@ -345,11 +368,27 @@ export function useMenuActions({
 
     if (pubkey && event.pubkey === pubkey) {
       actions.push({
-        icon: Trash2,
-        label: t('Try deleting this note'),
-        onClick: () => {
+        icon: isPending ? CloudUpload : Trash2,
+        label: isPending ? t('Publish this note') : t('Try deleting this note'),
+        onClick: async () => {
           closeDrawer()
-          attemptDelete(event)
+          if (isPending) {
+            const promise = (async () => {
+              const relays = await client.determineTargetRelays(event)
+              await client.publishEvent(relays, event)
+              discardPendingEvent(event.id)
+            })()
+            toast.promise(promise, {
+              loading: t('Publishing...'),
+              success: () => t('Post successful'),
+              error: (err) => {
+                savePendingEvent(event)
+                return t('Failed to post') + ': ' + err.message
+              }
+            })
+          } else {
+            attemptDelete(event)
+          }
         },
         className: 'text-destructive focus:text-destructive',
         separator: true
@@ -362,6 +401,7 @@ export function useMenuActions({
     event,
     pubkey,
     isMuted,
+    isPending,
     isSmallScreen,
     broadcastSubMenu,
     pinList,

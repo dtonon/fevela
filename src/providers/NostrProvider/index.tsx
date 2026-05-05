@@ -13,6 +13,7 @@ import client from '@/services/client.service'
 import customEmojiService from '@/services/custom-emoji.service'
 import storage from '@/services/local-storage.service'
 import noteStatsService from '@/services/note-stats.service'
+import { usePending } from '@/providers/PendingProvider'
 import {
   ISigner,
   TAccount,
@@ -115,6 +116,7 @@ export const useNostr = () => {
 }
 
 export function NostrProvider({ children }: { children: React.ReactNode }) {
+  const { savePendingEvent } = usePending()
   const { t } = useTranslation()
   const { addDeletedEvent } = useDeletedEvent()
   const [accounts, setAccounts] = useState<TAccountPointer[]>(
@@ -218,12 +220,12 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
       loadEmojis(account.pubkey).then(({ items }) => setUserEmojiList(items))
       loadPins(account.pubkey).then(({ items }) => setPinList(items))
       ;(encryptionProbeRef.current ?? Promise.resolve(true)).then((encryptionSupported) => {
-        client.fetchMuteList(account.pubkey, encryptionSupported ? nip04Decrypt : undefined).then(
-          ({ list, event }) => {
+        client
+          .fetchMuteList(account.pubkey, encryptionSupported ? nip04Decrypt : undefined)
+          .then(({ list, event }) => {
             setMuteList(list)
             setMuteListEvent(event)
-          }
-        )
+          })
       })
       loadFavoriteRelays(account.pubkey).then(({ items }) => setFavoriteRelays(items))
 
@@ -623,7 +625,13 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
   const publish = async (draftEvent: TDraftEvent, options: TPublishOptions = {}) => {
     const { event, relayUrls } = await preparePublish(draftEvent, options)
 
-    await client.publishEvent(relayUrls, event)
+    try {
+      await client.publishEvent(relayUrls, event)
+    } catch (error) {
+      savePendingEvent(event)
+      throw error
+    }
+
     return event
   }
 

@@ -15,6 +15,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
 import postEditorCache from '@/services/post-editor-cache.service'
+import { usePending } from '@/providers/PendingProvider'
 import { TPollCreateData } from '@/types'
 import { ImageUp, ListTodo, LoaderCircle, Settings, Smile, X } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
@@ -23,7 +24,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
 import EmojiPickerDialog from '../EmojiPickerDialog'
-import Mentions, { extractMentions } from './Mentions'
+import { extractMentions } from './Mentions'
 import PollEditor from './PollEditor'
 import PostOptions from './PostOptions'
 import PostRelaySelector from './PostRelaySelector'
@@ -84,7 +85,7 @@ export default function PostContent({
   openFrom?: string[]
 }) {
   const { t } = useTranslation()
-  const { pubkey, preparePublish, checkLogin } = useNostr()
+  const { pubkey, signEvent, preparePublish, checkLogin } = useNostr()
   const { addReplies } = useReply()
   const { addDeletedEvent } = useDeletedEvent()
   const [text, setText] = useState('')
@@ -96,7 +97,7 @@ export default function PostContent({
   const [showMoreOptions, setShowMoreOptions] = useState(false)
   const [addClientTag, setAddClientTag] = useState(false)
   const [quietReply, setQuietReply] = useState(false)
-  const [mentions, setMentions] = useState<string[]>([])
+  const [mentions, _setMentions] = useState<string[]>([])
   const [isNsfw, setIsNsfw] = useState(false)
   const [isPoll, setIsPoll] = useState(false)
   const [isProtectedEvent, setIsProtectedEvent] = useState(false)
@@ -111,6 +112,7 @@ export default function PostContent({
     relays: []
   })
   const [minPow, setMinPow] = useState(0)
+  const { savePendingEvent } = usePending()
   const isFirstRender = useRef(true)
   const canPost = useMemo(() => {
     return (
@@ -262,7 +264,8 @@ export default function PostContent({
               return
             }
 
-            addDeletedEvent(newEvent)
+            savePendingEvent(newEvent)
+            toast.error(t('Saved as pending'))
             const errors = error instanceof AggregateError ? error.errors : [error]
             errors.forEach((err) => {
               toast.error(
@@ -283,6 +286,50 @@ export default function PostContent({
           console.error(err)
         })
         return
+      } finally {
+        setPosting(false)
+      }
+    })
+  }
+
+  async function saveForLater(e?: React.MouseEvent) {
+    e?.stopPropagation()
+    checkLogin(async () => {
+      if (!canPost) return
+
+      setPosting(true)
+      try {
+        const shouldPublishAsComment =
+          !!parentEvent && (parentEvent.kind !== kinds.ShortTextNote || quietReply)
+        const draftEvent = shouldPublishAsComment
+          ? await createCommentDraftEvent(text, parentEvent!, mentions, {
+              addClientTag,
+              protectedEvent: isProtectedEvent,
+              isNsfw
+            })
+          : isPoll
+            ? await createPollDraftEvent(pubkey!, text, mentions, pollCreateData, {
+                addClientTag,
+                isNsfw
+              })
+            : await createShortTextNoteDraftEvent(text, mentions, {
+                parentEvent,
+                addClientTag,
+                protectedEvent: isProtectedEvent,
+                isNsfw
+              })
+
+        const signedEvent = await signEvent(draftEvent)
+        savePendingEvent(signedEvent)
+        postEditorCache.clearPostCache({ defaultContent, parentEvent })
+        deleteDraftEventCache(draftEvent)
+        addReplies([signedEvent])
+        close()
+        toast.success(t('Saved for later'))
+      } catch (error) {
+        toast.error(
+          `${t('Failed to save draft')}: ${error instanceof Error ? error.message : String(error)}`
+        )
       } finally {
         setPosting(false)
       }
@@ -426,13 +473,10 @@ export default function PostContent({
           </Button>
         </div>
         <div className="flex gap-2 items-center">
-          <Mentions
-            content={text}
-            parentEvent={parentEvent}
-            mentions={mentions}
-            setMentions={setMentions}
-          />
           <div className="flex gap-2 items-center max-sm:hidden">
+            <Button variant="secondary" disabled={!canPost || posting} onClick={saveForLater}>
+              {t('Save for later')}
+            </Button>
             <Button
               variant="secondary"
               onClick={(e) => {
@@ -461,17 +505,27 @@ export default function PostContent({
         minPow={minPow}
         setMinPow={setMinPow}
       />
-      <div className="flex gap-2 items-center justify-around sm:hidden">
-        <Button
-          className="w-full"
-          variant="secondary"
-          onClick={(e) => {
-            e.stopPropagation()
-            close()
-          }}
-        >
-          {t('Cancel')}
-        </Button>
+      <div className="flex flex-col gap-2 sm:hidden">
+        <div className="flex gap-2">
+          <Button
+            className="w-full"
+            variant="secondary"
+            disabled={!canPost || posting}
+            onClick={saveForLater}
+          >
+            {t('Save for later')}
+          </Button>
+          <Button
+            className="w-full"
+            variant="secondary"
+            onClick={(e) => {
+              e.stopPropagation()
+              close()
+            }}
+          >
+            {t('Cancel')}
+          </Button>
+        </div>
         <Button className="w-full" type="submit" disabled={!canPost} onClick={post}>
           {posting && <LoaderCircle className="animate-spin" />}
           {parentEvent ? t('Reply') : t('Post')}

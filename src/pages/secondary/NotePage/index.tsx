@@ -41,6 +41,8 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
   const { isFetching: isFetchingRootEvent, event: rootEvent } = useFetchEvent(rootEventId)
   const { isFetching: isFetchingParentEvent, event: parentEvent } = useFetchEvent(parentEventId)
 
+  const controls = undefined
+
   if (!event && isFetching) {
     return (
       <SecondaryPageLayout ref={ref} index={index} title={t('Note')}>
@@ -70,7 +72,13 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
   }
   if (!event) {
     return (
-      <SecondaryPageLayout ref={ref} index={index} title={t('Note')} displayScrollToTopButton>
+      <SecondaryPageLayout
+        ref={ref}
+        index={index}
+        title={t('Note')}
+        controls={controls}
+        displayScrollToTopButton
+      >
         <NotFound bech32Id={id} />
       </SecondaryPageLayout>
     )
@@ -98,7 +106,13 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
   }
 
   return (
-    <SecondaryPageLayout ref={ref} index={index} title={t('Note')} displayScrollToTopButton>
+    <SecondaryPageLayout
+      ref={ref}
+      index={index}
+      title={t('Note')}
+      controls={controls}
+      displayScrollToTopButton
+    >
       <div className="px-4 pt-3">
         {rootITag && <ExternalRoot value={rootITag[1]} />}
         {rootEventId && rootEventId !== parentEventId && (
