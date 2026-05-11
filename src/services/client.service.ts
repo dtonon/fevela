@@ -161,31 +161,33 @@ class ClientService extends EventTarget {
                 !!that.signer
               ) {
                 return relay
-
                   .auth(((authEvt: EventTemplate) => that.signer!.signEvent(authEvt)) as any)
                   .then(() => relay.publish(event))
+                  .then(() => {
+                    this.trackEventSeenOn(event.id, relay)
+                    successCount++
+                  })
               } else {
                 errors.push({ url, error })
               }
             })
             .finally(() => {
-              // If one third of the relays have accepted the event, consider it a success
-              const isSuccess = successCount >= uniqueRelayUrls.length / 3
-              if (isSuccess) {
-                this.emitNewEvent(event)
-                resolve()
-              }
               if (++finishedCount >= uniqueRelayUrls.length) {
-                reject(
-                  new AggregateError(
-                    errors.map(
-                      ({ url, error }) =>
-                        new Error(
-                          `${url}: ${error instanceof Error ? error.message : String(error)}`
-                        )
+                if (successCount > 0) {
+                  this.emitNewEvent(event)
+                  resolve()
+                } else {
+                  reject(
+                    new AggregateError(
+                      errors.map(
+                        ({ url, error }) =>
+                          new Error(
+                            `${url}: ${error instanceof Error ? error.message : String(error)}`
+                          )
+                      )
                     )
                   )
-                )
+                }
               }
             })
         })

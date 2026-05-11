@@ -13,6 +13,7 @@ import { KindFilterProvider } from '@/providers/KindFilterProvider'
 import { LinkPreviewHoverProvider } from '@/providers/LinkPreviewHoverProvider'
 import { MuteListProvider } from '@/providers/MuteListProvider'
 import { NostrProvider } from '@/providers/NostrProvider'
+import { PendingProvider } from '@/providers/PendingProvider'
 import { OutboxProvider } from '@/providers/OutboxProvider'
 import { PinBuryProvider } from '@/providers/PinBuryProvider'
 import { PinListProvider } from '@/providers/PinListProvider'
@@ -33,9 +34,10 @@ export default function App(): JSX.Element {
           <ThemeProvider>
             <ContentPolicyProvider>
               <DeletedEventProvider>
-                <NostrProvider>
-                  <OutboxProvider>
-                    <ZapProvider>
+                <PendingProvider>
+                  <NostrProvider>
+                    <OutboxProvider>
+                      <ZapProvider>
                       <TranslationServiceProvider>
                         <FavoriteRelaysProvider>
                           <FollowListProvider>
@@ -64,8 +66,9 @@ export default function App(): JSX.Element {
                     </ZapProvider>
                   </OutboxProvider>
                 </NostrProvider>
-              </DeletedEventProvider>
-            </ContentPolicyProvider>
+              </PendingProvider>
+            </DeletedEventProvider>
+          </ContentPolicyProvider>
           </ThemeProvider>
         </LinkPreviewHoverProvider>
       </UserPreferencesProvider>

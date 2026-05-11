@@ -35,7 +35,8 @@ export const StorageKey = {
   SHOW_LINK_PREVIEWS: 'showLinkPreviews',
   ACCOUNT_LAST_RELAY_MAP: 'accountLastRelayMap',
   HIDE_UNTRUSTED_EVENTS: 'hideUntrustedEvents', // deprecated
-  READ_REPLIES_FROM_INBOXES_ONLY: 'readRepliesFromInboxesOnly'
+  READ_REPLIES_FROM_INBOXES_ONLY: 'readRepliesFromInboxesOnly',
+  PENDING: 'pending'
 }
 
 export const ApplicationDataKey = {

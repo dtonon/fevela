@@ -5,7 +5,11 @@ import SidebarItem from './SidebarItem'
 
 export default function BookmarkButton({ collapse }: { collapse: boolean }) {
   const { navigate, current, display } = usePrimaryPage()
-  const { checkLogin } = useNostr()
+  const { checkLogin, bookmarkList } = useNostr()
+
+  if (bookmarkList.length === 0) {
+    return null
+  }
 
   return (
     <SidebarItem

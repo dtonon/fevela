@@ -27,6 +27,7 @@ import ProfilePage from './pages/primary/ProfilePage'
 import RelayPage from './pages/primary/RelayPage'
 import SearchPage from './pages/primary/SearchPage'
 import SettingsPage from './pages/primary/SettingsPage'
+import PendingPage from './pages/primary/PendingPage'
 import { NotificationProvider } from './providers/NotificationProvider'
 import { useScreenSize } from './providers/ScreenSizeProvider'
 import { useTheme } from './providers/ThemeProvider'
@@ -65,7 +66,8 @@ const PRIMARY_PAGE_REF_MAP = {
   relay: createRef<TPageRef>(),
   search: createRef<TPageRef>(),
   bookmark: createRef<TPageRef>(),
-  settings: createRef<TPageRef>()
+  settings: createRef<TPageRef>(),
+  pending: createRef<TPageRef>()
 }
 
 const PRIMARY_PAGE_MAP = {
@@ -78,7 +80,8 @@ const PRIMARY_PAGE_MAP = {
   relay: <RelayPage ref={PRIMARY_PAGE_REF_MAP.relay} />,
   search: <SearchPage ref={PRIMARY_PAGE_REF_MAP.search} />,
   bookmark: <BookmarkPage ref={PRIMARY_PAGE_REF_MAP.bookmark} />,
-  settings: <SettingsPage ref={PRIMARY_PAGE_REF_MAP.settings} />
+  settings: <SettingsPage ref={PRIMARY_PAGE_REF_MAP.settings} />,
+  pending: <PendingPage ref={PRIMARY_PAGE_REF_MAP.pending} />
 }
 
 const PrimaryPageContext = createContext<TPrimaryPageContext | undefined>(undefined)
