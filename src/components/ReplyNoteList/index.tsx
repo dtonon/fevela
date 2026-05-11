@@ -108,7 +108,9 @@ export default function ReplyNoteList({
       const filters: Filter[] = []
       const relays: string[] = selectedRelayUrls.length
         ? selectedRelayUrls
-        : client.getSeenEventRelayUrls(event.id, event)
+        : readRepliesFromInboxesOnly && !event.tags.find((t) => t[0] === '-')
+          ? []
+          : client.getSeenEventRelayUrls(event.id, event)
 
       const hint = rootTag[2]
       if (hint && !selectedRelayUrls.length) relays.push(hint)
