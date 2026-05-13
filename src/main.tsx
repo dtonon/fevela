@@ -22,8 +22,11 @@ initNostrWasm()
   .then((nw) => {
     setNostrWasm(nw)
     setPool(
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new AbstractSimplePool({ verifyEvent, enableReconnect: true, maxWaitForConnection: 3000 }) as any
+      new AbstractSimplePool({
+        verifyEvent,
+        enableReconnect: true,
+        maxWaitForConnection: 3000
+      }) as any
     )
     pool.trackRelays = true
     setReplaceableStore(store)
@@ -40,7 +43,6 @@ initNostrWasm()
     })
 
     document.addEventListener('visibilitychange', () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const relays = (pool as any).relays as Map<string, { connected: boolean }>
       if (document.visibilityState === 'visible' && relays.size > 0) {
         // Wait for WebSocket close events to propagate before checking state.

@@ -65,6 +65,17 @@ class ClientService extends EventTarget {
     } catch (err) {
       console.warn('no profiles to index?', err)
     }
+
+    pool.automaticallyAuth = (_relay: string) => async (authEvt: EventTemplate) => {
+      if (this.signer) {
+        const evt = await this.signer!.signEvent(authEvt)
+        if (!evt) {
+          throw new Error('sign event failed')
+        }
+        return evt as any
+      }
+      throw new Error("<not logged in, can't automatically auth>")
+    }
   }
 
   async determineTargetRelays(
