@@ -2,6 +2,7 @@ import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { Ellipsis } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import { useState } from 'react'
+import PostEditor from '../PostEditor'
 import { DesktopMenu } from './DesktopMenu'
 import { MobileMenu } from './MobileMenu'
 import RawEventDialog from './RawEventDialog'
@@ -16,6 +17,8 @@ export default function NoteOptions({ event, className }: { event: Event; classN
   const [showSubMenu, setShowSubMenu] = useState(false)
   const [activeSubMenu, setActiveSubMenu] = useState<SubMenuAction[]>([])
   const [subMenuTitle, setSubMenuTitle] = useState('')
+  const [isEditorOpen, setIsEditorOpen] = useState(false)
+  const [editingEvent, setEditingEvent] = useState<Event | undefined>()
 
   const closeDrawer = () => {
     setIsDrawerOpen(false)
@@ -32,9 +35,22 @@ export default function NoteOptions({ event, className }: { event: Event; classN
     setShowSubMenu(true)
   }
 
+  const openEditor = () => {
+    setEditingEvent(event)
+    setIsEditorOpen(true)
+  }
+
+  const closeEditor = (open: boolean) => {
+    setIsEditorOpen(open)
+    if (!open) {
+      setEditingEvent(undefined)
+    }
+  }
+
   const menuActions = useMenuActions({
     event,
     closeDrawer,
+    openEditor,
     showSubMenuActions,
     setIsRawEventDialogOpen,
     setIsReportDialogOpen,
@@ -77,6 +93,12 @@ export default function NoteOptions({ event, className }: { event: Event; classN
         event={event}
         isOpen={isReportDialogOpen}
         closeDialog={() => setIsReportDialogOpen(false)}
+      />
+      <PostEditor
+        defaultContent={editingEvent?.content}
+        editingEvent={editingEvent}
+        open={isEditorOpen}
+        setOpen={closeEditor}
       />
     </div>
   )
