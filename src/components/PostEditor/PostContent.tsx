@@ -73,12 +73,14 @@ function PendingPublishToast({ endAt, onUndo }: { endAt: number; onUndo: () => v
 
 export default function PostContent({
   defaultContent = '',
+  editingEvent,
   parentEvent,
   close,
   open,
   openFrom
 }: {
   defaultContent?: string
+  editingEvent?: Event
   parentEvent?: Event
   close: () => void
   open: (content?: string) => void
@@ -112,7 +114,7 @@ export default function PostContent({
     relays: []
   })
   const [minPow, setMinPow] = useState(0)
-  const { savePendingEvent } = usePending()
+  const { savePendingEvent, discardPendingEvent } = usePending()
   const isFirstRender = useRef(true)
   const canPost = useMemo(() => {
     return (
@@ -221,6 +223,10 @@ export default function PostContent({
           minPow
         })
 
+        if (editingEvent) {
+          await discardPendingEvent(editingEvent.id)
+        }
+
         client.addEventToCache(newEvent)
         client.emitEphemeralEvent(newEvent)
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
@@ -320,7 +326,11 @@ export default function PostContent({
               })
 
         const signedEvent = await signEvent(draftEvent)
-        savePendingEvent(signedEvent)
+        if (editingEvent) {
+          await discardPendingEvent(editingEvent.id)
+        }
+
+        await savePendingEvent(signedEvent)
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
         deleteDraftEventCache(draftEvent)
         addReplies([signedEvent])
@@ -475,7 +485,7 @@ export default function PostContent({
         <div className="flex gap-2 items-center">
           <div className="flex gap-2 items-center max-sm:hidden">
             <Button variant="secondary" disabled={!canPost || posting} onClick={saveForLater}>
-              {t('Save for later')}
+              {editingEvent ? t('Save') : t('Save for later')}
             </Button>
             <Button
               variant="secondary"
@@ -513,7 +523,7 @@ export default function PostContent({
             disabled={!canPost || posting}
             onClick={saveForLater}
           >
-            {t('Save for later')}
+            {editingEvent ? t('Save') : t('Save for later')}
           </Button>
           <Button
             className="w-full"

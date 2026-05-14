@@ -1,5 +1,5 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { parseEditorJsonToText } from '@/lib/tiptap'
+import { parseEditorJsonToText, parseTextToEditorContent } from '@/lib/tiptap'
 import { cn } from '@/lib/utils'
 import customEmojiService from '@/services/custom-emoji.service'
 import postEditorCache from '@/services/post-editor-cache.service'
@@ -104,7 +104,9 @@ const PostTextarea = forwardRef<
           return parseEditorJsonToText(content.toJSON())
         }
       },
-      content: postEditorCache.getPostContentCache({ defaultContent, parentEvent }),
+      content: parseTextToEditorContent(
+        postEditorCache.getPostContentCache({ defaultContent, parentEvent })
+      ),
       onUpdate(props) {
         setText(parseEditorJsonToText(props.editor.getJSON()))
         postEditorCache.setPostContentCache({ defaultContent, parentEvent }, props.editor.getJSON())

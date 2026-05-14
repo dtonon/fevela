@@ -15,6 +15,7 @@ import {
   CloudUpload,
   Code,
   Copy,
+  FilePen,
   Link,
   Pin,
   PinOff,
@@ -55,6 +56,7 @@ export interface MenuAction {
 interface UseMenuActionsProps {
   event: Event
   closeDrawer: () => void
+  openEditor: () => void
   showSubMenuActions: (subMenu: SubMenuAction[], title: string) => void
   setIsRawEventDialogOpen: (open: boolean) => void
   setIsReportDialogOpen: (open: boolean) => void
@@ -64,6 +66,7 @@ interface UseMenuActionsProps {
 export function useMenuActions({
   event,
   closeDrawer,
+  openEditor,
   showSubMenuActions,
   setIsRawEventDialogOpen,
   setIsReportDialogOpen,
@@ -367,6 +370,19 @@ export function useMenuActions({
     }
 
     if (pubkey && event.pubkey === pubkey) {
+      if (isPending) {
+        actions.push({
+          icon: FilePen,
+          label: t('Edit'),
+          onClick: () => {
+            closeDrawer()
+            openEditor()
+          },
+          className: 'text-black focus:text-black dark:text-black dark:focus:text-black',
+          separator: true
+        })
+      }
+
       actions.push({
         icon: isPending ? CloudUpload : Trash2,
         label: isPending ? t('Publish this note') : t('Try deleting this note'),
@@ -408,6 +424,7 @@ export function useMenuActions({
     pinBuryState,
     feedSettings.grouped,
     closeDrawer,
+    openEditor,
     showSubMenuActions,
     setIsRawEventDialogOpen,
     mutePrivately,
