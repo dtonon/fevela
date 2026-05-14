@@ -3,7 +3,7 @@ import { createReactionDraftEvent } from '@/lib/draft-event'
 import { useNostr } from '@/providers/NostrProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
-import noteStatsService from '@/services/note-stats.service'
+import noteStatsService, { NEGATIVE_REACTIONS } from '@/services/note-stats.service'
 import { Heart, Loader } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import { useMemo, useState } from 'react'
@@ -19,11 +19,20 @@ export default function LikeButton({ event }: { event: Event }) {
   const noteStats = useNoteStatsById(event.id)
   const { didLike, likeCount } = useMemo(() => {
     const stats = noteStats || {}
-    const didLike = !!stats.likes?.some((like) => like.pubkey === pubkey)
-    const likes = hideUntrustedInteractions
-      ? stats.likes?.filter((like) => isUserTrusted(like.pubkey))
-      : stats.likes
-    return { didLike, likeCount: likes?.length }
+    // Exclude negative reactions (e.g. '-', '❌') from the like count and
+    // from the user's own "didLike" state, so the like button still works
+    // for users who previously sent a downvote/rejection reaction.
+    const positiveLikes = (stats.likes ?? []).filter(
+      (like) =>
+        !NEGATIVE_REACTIONS.has(
+          like.emoji as string /* if it's not a string it will fail the check anyway */
+        )
+    )
+    const didLike = positiveLikes.some((like) => like.pubkey === pubkey)
+    const visibleLikes = hideUntrustedInteractions
+      ? positiveLikes.filter((like) => isUserTrusted(like.pubkey))
+      : positiveLikes
+    return { didLike, likeCount: visibleLikes.length }
   }, [noteStats, pubkey, hideUntrustedInteractions, isUserTrusted])
 
   const like = async () => {

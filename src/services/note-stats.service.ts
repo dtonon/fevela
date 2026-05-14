@@ -20,6 +20,41 @@ export type TNoteStats = {
   updatedAt?: number
 }
 
+// Reactions that should NOT be counted as "likes" (i.e. negative reactions per NIP-25
+// and explicit rejection emojis). All reactions are still stored, this just excludes
+// them from the count shown next to the like button.
+export const NEGATIVE_REACTIONS: ReadonlySet<string> = new Set([
+  '-',
+  '😠', // angry face
+  '😡', // pouting / red angry face
+  '🤬', // face with symbols on mouth
+  '🤢', // nauseated face
+  '🤮', // face vomiting
+  '👎', // thumbs down
+  '🖕', // middle finger
+  '❌' // cross mark
+])
+
+// Per NIP-25: content can be '+', '-', '' (treated as '+'), a unicode emoji,
+// or ':shortcode:' referencing an emoji tag.
+function parseReactionEmoji(evt: Event): TEmoji | string {
+  const content = evt.content
+  if (!content || content === '+') return '+'
+
+  const shortcodeMatch = content.match(/^:([a-zA-Z0-9]+):$/)
+  if (shortcodeMatch) {
+    const shortcode = shortcodeMatch[1]
+    const emojiTag = evt.tags.find(
+      (tag) => tagNameEquals('emoji')(tag) && tag[1] === shortcode && !!tag[2]
+    )
+    if (emojiTag) {
+      return { shortcode, url: emojiTag[2] }
+    }
+  }
+
+  return content
+}
+
 class NoteStatsService {
   static instance: NoteStatsService
   private noteStatsMap: Map<string, Partial<TNoteStats>> = new Map()
@@ -242,7 +277,7 @@ class NoteStatsService {
     const likes = old.likes || []
     if (likeIdSet.has(evt.id)) return
 
-    const emoji: TEmoji | string = '+'
+    const emoji = parseReactionEmoji(evt)
 
     likeIdSet.add(evt.id)
     likes.push({ id: evt.id, pubkey: evt.pubkey, created_at: evt.created_at, emoji })
