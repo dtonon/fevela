@@ -6,7 +6,8 @@ import { toProfile } from '@/lib/link'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
-import { TFeedSubRequest } from '@/types'
+import { parseReactionEmoji } from '@/services/note-stats.service'
+import { TEmoji, TFeedSubRequest } from '@/types'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import { Event } from '@nostr/tools/wasm'
@@ -29,7 +30,7 @@ type TReactionItem =
       id: string
       pubkey: string
       created_at: number
-      emoji: string
+      emoji: TEmoji | string
     }
   | {
       type: 'repost'
@@ -78,7 +79,7 @@ export default function ReactionList({
             id: evt.id,
             pubkey: evt.pubkey,
             created_at: evt.created_at,
-            emoji: '+'
+            emoji: parseReactionEmoji(evt)
           })
           break
         }

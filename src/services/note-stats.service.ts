@@ -37,13 +37,12 @@ export const NEGATIVE_REACTIONS: ReadonlySet<string> = new Set([
 
 // Per NIP-25: content can be '+', '-', '' (treated as '+'), a unicode emoji,
 // or ':shortcode:' referencing an emoji tag.
-function parseReactionEmoji(evt: Event): TEmoji | string {
+export function parseReactionEmoji(evt: Event): TEmoji | string {
   const content = evt.content
   if (!content || content === '+') return '+'
 
-  const shortcodeMatch = content.match(/^:([a-zA-Z0-9]+):$/)
-  if (shortcodeMatch) {
-    const shortcode = shortcodeMatch[1]
+  if (evt.content.startsWith(':') && evt.content.endsWith(':')) {
+    const shortcode = evt.content.slice(1, -1)
     const emojiTag = evt.tags.find(
       (tag) => tagNameEquals('emoji')(tag) && tag[1] === shortcode && !!tag[2]
     )
