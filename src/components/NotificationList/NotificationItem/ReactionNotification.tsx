@@ -1,7 +1,5 @@
-import Image from '@/components/Image'
 import { useFetchEvent } from '@/hooks'
 import { generateBech32IdFromATag, generateBech32IdFromETag, tagNameEquals } from '@/lib/tag'
-import { useNostr } from '@/providers/NostrProvider'
 import { Heart } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import { useMemo } from 'react'
@@ -16,7 +14,6 @@ export function ReactionNotification({
   isNew?: boolean
 }) {
   const { t } = useTranslation()
-  const { pubkey } = useNostr()
   const eventId = useMemo(() => {
     const aTag = notification.tags.findLast(tagNameEquals('a'))
     if (aTag) {
@@ -24,31 +21,9 @@ export function ReactionNotification({
     }
     const eTag = notification.tags.findLast(tagNameEquals('e'))
     return eTag ? generateBech32IdFromETag(eTag) : undefined
-  }, [notification, pubkey])
-  const { event } = useFetchEvent(eventId)
-  const reaction = useMemo(() => {
-    if (!notification.content || notification.content === '+') {
-      return <Heart size={24} className="text-red-400" />
-    }
-
-    const emojiName = /^:([^:]+):$/.exec(notification.content)?.[1]
-    if (emojiName) {
-      const emojiTag = notification.tags.find((tag) => tag[0] === 'emoji' && tag[1] === emojiName)
-      const emojiUrl = emojiTag?.[2]
-      if (emojiUrl) {
-        return (
-          <Image
-            image={{ url: emojiUrl, pubkey: notification.pubkey }}
-            alt={emojiName}
-            className="w-6 h-6"
-            classNames={{ errorPlaceholder: 'bg-transparent' }}
-            errorPlaceholder={<Heart size={24} className="text-red-400" />}
-          />
-        )
-      }
-    }
-    return notification.content
   }, [notification])
+  const { event } = useFetchEvent(eventId)
+  const reaction = useMemo(() => <Heart size={24} className="text-red-400" />, [])
 
   if (!event || !eventId) {
     return null

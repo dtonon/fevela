@@ -6,6 +6,7 @@ import { toProfile } from '@/lib/link'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
+import { parseReactionEmoji } from '@/services/note-stats.service'
 import { TEmoji, TFeedSubRequest } from '@/types'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
@@ -73,23 +74,12 @@ export default function ReactionList({
 
       switch (evt.kind) {
         case kinds.Reaction: {
-          let emoji: TEmoji | string
-          if (evt.content.startsWith(':') && evt.content.endsWith(':')) {
-            const shortcode = evt.content.slice(1, -1)
-            const emojiTag = evt.tags.find(
-              ([tagName, tagShortcode]) => tagName === 'emoji' && tagShortcode === shortcode
-            )
-            emoji = emojiTag ? { url: emojiTag[2], shortcode } : '+'
-          } else {
-            emoji = evt.content
-          }
-
           items.push({
             type: 'reaction',
             id: evt.id,
             pubkey: evt.pubkey,
             created_at: evt.created_at,
-            emoji
+            emoji: parseReactionEmoji(evt)
           })
           break
         }

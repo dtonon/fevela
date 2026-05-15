@@ -140,7 +140,7 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
           originalNoteId={id}
           showFull
         />
-        <NoteStats className="mt-3" event={event} fetchIfNotExisting displayTopZapsAndLikes />
+        <NoteStats className="mt-3" event={event} fetchIfNotExisting displayTopZaps />
       </div>
       <Separator className="mt-4" />
       <NoteInteractions key={`note-interactions-${event.id}`} pageIndex={index} event={event} />

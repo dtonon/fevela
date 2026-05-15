@@ -1,57 +1,53 @@
-import { Drawer, DrawerContent, DrawerOverlay } from '@/components/ui/drawer'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger
-} from '@/components/ui/dropdown-menu'
 import { useNoteStatsById } from '@/hooks/useNoteStatsById'
 import { createReactionDraftEvent } from '@/lib/draft-event'
 import { useNostr } from '@/providers/NostrProvider'
-import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
-import noteStatsService from '@/services/note-stats.service'
-import { TEmoji } from '@/types'
-import { Loader, SmilePlus } from 'lucide-react'
+import noteStatsService, { NEGATIVE_REACTIONS } from '@/services/note-stats.service'
+import { Heart, Loader } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import Emoji from '../Emoji'
-import EmojiPicker from '../EmojiPicker'
-import SuggestedEmojis from '../SuggestedEmojis'
 import { formatCount } from './utils'
 
 export default function LikeButton({ event }: { event: Event }) {
   const { t } = useTranslation()
-  const { isSmallScreen } = useScreenSize()
   const { pubkey, publish, checkLogin } = useNostr()
   const { hideUntrustedInteractions, isUserTrusted } = useUserTrust()
   const [liking, setLiking] = useState(false)
-  const [isEmojiReactionsOpen, setIsEmojiReactionsOpen] = useState(false)
-  const [isPickerOpen, setIsPickerOpen] = useState(false)
   const noteStats = useNoteStatsById(event.id)
-  const { myLastEmoji, likeCount } = useMemo(() => {
+  const { didLike, likeCount } = useMemo(() => {
     const stats = noteStats || {}
-    const myLike = stats.likes?.find((like) => like.pubkey === pubkey)
-    const likes = hideUntrustedInteractions
-      ? stats.likes?.filter((like) => isUserTrusted(like.pubkey))
-      : stats.likes
-    return { myLastEmoji: myLike?.emoji, likeCount: likes?.length }
-  }, [noteStats, pubkey, hideUntrustedInteractions])
+    // Exclude negative reactions (e.g. '-', '❌') from the like count and
+    // from the user's own "didLike" state, so the like button still works
+    // for users who previously sent a downvote/rejection reaction.
+    const positiveLikes = (stats.likes ?? []).filter(
+      (like) =>
+        !NEGATIVE_REACTIONS.has(
+          like.emoji as string /* if it's not a string it will fail the check anyway */
+        )
+    )
+    const didLike = positiveLikes.some((like) => like.pubkey === pubkey)
+    const visibleLikes = hideUntrustedInteractions
+      ? positiveLikes.filter((like) => isUserTrusted(like.pubkey))
+      : positiveLikes
+    return { didLike, likeCount: visibleLikes.length }
+  }, [noteStats, pubkey, hideUntrustedInteractions, isUserTrusted])
 
-  const like = async (emoji: string | TEmoji) => {
+  const like = async () => {
     checkLogin(async () => {
       if (liking || !pubkey) return
 
       setLiking(true)
-      const timer = setTimeout(() => setLiking(false), 10_000)
+      const timer = setTimeout(() => setLiking(false), 5_000)
 
       try {
         if (!noteStats?.updatedAt) {
           await noteStatsService.fetchNoteStats(event, pubkey)
         }
 
-        const reaction = createReactionDraftEvent(event, emoji)
+        const reaction = createReactionDraftEvent(event, '+')
         const seenOn = client.getSeenEventRelayUrls(event.id, event)
         const evt = await publish(reaction, { additionalRelayUrls: seenOn })
         noteStatsService.updateNoteStatsByEvents([evt])
@@ -69,83 +65,23 @@ export default function LikeButton({ event }: { event: Event }) {
       className="flex items-center enabled:hover:text-primary gap-1 px-3 h-full text-muted-foreground"
       title={t('Like')}
       disabled={liking}
-      onClick={() => {
-        if (isSmallScreen) {
-          setIsEmojiReactionsOpen(true)
-        }
-      }}
+      onClick={like}
     >
       {liking ? (
         <Loader className="animate-spin" />
-      ) : myLastEmoji ? (
+      ) : didLike ? (
         <>
-          <Emoji emoji={myLastEmoji} classNames={{ img: 'size-4' }} />
+          <Emoji emoji="+" classNames={{ img: 'size-4' }} />
           {!!likeCount && <div className="text-sm">{formatCount(likeCount)}</div>}
         </>
       ) : (
         <>
-          <SmilePlus />
+          <Heart className="size-4" />
           {!!likeCount && <div className="text-sm">{formatCount(likeCount)}</div>}
         </>
       )}
     </button>
   )
 
-  if (isSmallScreen) {
-    return (
-      <>
-        {trigger}
-        <Drawer open={isEmojiReactionsOpen} onOpenChange={setIsEmojiReactionsOpen}>
-          <DrawerOverlay onClick={() => setIsEmojiReactionsOpen(false)} />
-          <DrawerContent hideOverlay>
-            <EmojiPicker
-              onEmojiClick={(emoji) => {
-                setIsEmojiReactionsOpen(false)
-                if (!emoji) return
-
-                like(emoji)
-              }}
-            />
-          </DrawerContent>
-        </Drawer>
-      </>
-    )
-  }
-
-  return (
-    <DropdownMenu
-      open={isEmojiReactionsOpen}
-      onOpenChange={(open) => {
-        setIsEmojiReactionsOpen(open)
-        if (open) {
-          setIsPickerOpen(false)
-        }
-      }}
-    >
-      <DropdownMenuTrigger asChild>{trigger}</DropdownMenuTrigger>
-      <DropdownMenuContent side="top" className="p-0 w-fit">
-        {isPickerOpen ? (
-          <EmojiPicker
-            onEmojiClick={(emoji, e) => {
-              e.stopPropagation()
-              setIsEmojiReactionsOpen(false)
-              if (!emoji) return
-
-              like(emoji)
-            }}
-          />
-        ) : (
-          <SuggestedEmojis
-            onEmojiClick={(emoji) => {
-              setIsEmojiReactionsOpen(false)
-              like(emoji)
-            }}
-            onMoreButtonClick={() => {
-              setIsPickerOpen(true)
-            }}
-          />
-        )}
-      </DropdownMenuContent>
-    </DropdownMenu>
-  )
+  return trigger
 }

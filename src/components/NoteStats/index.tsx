@@ -6,7 +6,6 @@ import { Event } from '@nostr/tools/wasm'
 import { useEffect, useState } from 'react'
 import BookmarkButton from '../BookmarkButton'
 import LikeButton from './LikeButton'
-import Likes from './Likes'
 import ReplyButton from './ReplyButton'
 import RepostButton from './RepostButton'
 import SeenOnButton from './SeenOnButton'
@@ -18,7 +17,7 @@ export default function NoteStats({
   className,
   classNames,
   fetchIfNotExisting = false,
-  displayTopZapsAndLikes = false
+  displayTopZaps = false
 }: {
   event: Event
   className?: string
@@ -26,7 +25,7 @@ export default function NoteStats({
     buttonBar?: string
   }
   fetchIfNotExisting?: boolean
-  displayTopZapsAndLikes?: boolean
+  displayTopZaps?: boolean
 }) {
   const { isSmallScreen } = useScreenSize()
   const { pubkey } = useNostr()
@@ -41,12 +40,7 @@ export default function NoteStats({
   if (isSmallScreen) {
     return (
       <div className={cn('select-none overflow-visible', className)}>
-        {displayTopZapsAndLikes && (
-          <>
-            <TopZaps event={event} />
-            <Likes event={event} />
-          </>
-        )}
+        {displayTopZaps && <TopZaps event={event} />}
         <div
           className={cn(
             'flex justify-between items-center h-5 [&_svg]:size-5',
@@ -68,12 +62,7 @@ export default function NoteStats({
 
   return (
     <div className={cn('select-none overflow-visible', className)}>
-      {displayTopZapsAndLikes && (
-        <>
-          <TopZaps event={event} />
-          <Likes event={event} />
-        </>
-      )}
+      {displayTopZaps && <TopZaps event={event} />}
       <div className="flex justify-between h-5 [&_svg]:size-4">
         <div
           className={cn('flex items-center', loading ? 'animate-pulse' : '')}
