@@ -78,14 +78,7 @@ export default function Note({
         <ContentPreview event={event} />
       </div>
     )
-  } else if (
-    ![
-      ...SUPPORTED_KINDS,
-      kinds.CommunityDefinition,
-      kinds.LiveEvent,
-      ExtendedKind.GROUP_METADATA
-    ].includes(event.kind)
-  ) {
+  } else if (!SUPPORTED_KINDS.includes(event.kind)) {
     content = <UnknownNote className="mt-2" event={event} />
   } else if (mutePubkeySet.has(event.pubkey) && !showMuted) {
     content = <MutedNote show={() => setShowMuted(true)} />

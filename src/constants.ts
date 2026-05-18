@@ -58,7 +58,7 @@ export const ExtendedKind = {
   GROUP_METADATA: 39000
 }
 
-export const SUPPORTED_KINDS = [
+export const FEED_KINDS = [
   kinds.ShortTextNote,
   kinds.Repost,
   ExtendedKind.PICTURE,
@@ -69,8 +69,14 @@ export const SUPPORTED_KINDS = [
   ExtendedKind.VOICE,
   ExtendedKind.VOICE_COMMENT,
   kinds.Highlights,
-  kinds.LongFormArticle,
-  ExtendedKind.RELAY_REVIEW
+  kinds.LongFormArticle
+]
+
+export const SUPPORTED_KINDS = [
+  ...FEED_KINDS,
+  ExtendedKind.RELAY_REVIEW,
+  kinds.CommunityDefinition,
+  kinds.LiveEvent
 ]
 
 export const EMBEDDED_EVENT_REGEX = /nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/g
