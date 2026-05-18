@@ -141,7 +141,11 @@ export default function CompactedEventCard({
 
   useEffect(() => {
     if (!isReply) return
-    setRepliedPubkey(event.tags.find(tagNameEquals('p'))?.[1])
+    setRepliedPubkey(
+      event.tags.findLast(
+        (tag: string[]) => tag[0] === 'p' && !!tag[1] && tag[1] !== event.pubkey
+      )?.[1]
+    )
   }, [event, isReply])
 
   const shouldHide = useMemo(() => {
