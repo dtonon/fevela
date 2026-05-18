@@ -565,6 +565,6 @@ export default {
     Synching: 'Downloading from {{current}}/{{total}} profiles',
     'Protected event (NIP-70)': 'Protected event (NIP-70)',
     Protected: 'Protected',
-    Replying: 'Replying'
+    Replying: 'Replying to'
   }
 }

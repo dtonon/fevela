@@ -22,13 +22,14 @@ export function isNsfwEvent(event: Event) {
 }
 
 export function isReplyNoteEvent(event: Event) {
-  if ([ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT].includes(event.kind)) {
-    return true
+  if (
+    event.kind === kinds.ShortTextNote ||
+    event.kind === ExtendedKind.COMMENT ||
+    event.kind === ExtendedKind.VOICE_COMMENT
+  ) {
+    const isReply = !!getParentTag(event)
+    return isReply
   }
-  if (event.kind !== kinds.ShortTextNote) return false
-
-  const isReply = !!getParentTag(event)
-  return isReply
 }
 
 export function isFirstLevelReply(event: Event) {
