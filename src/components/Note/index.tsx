@@ -1,5 +1,5 @@
 import { useSecondaryPage } from '@/PageManager'
-import { ExtendedKind, SUPPORTED_KINDS } from '@/constants'
+import { ExtendedKind } from '@/constants'
 import { getParentBech32Id, isNsfwEvent } from '@/lib/event'
 import { toNote } from '@/lib/link'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
@@ -78,43 +78,57 @@ export default function Note({
         <ContentPreview event={event} />
       </div>
     )
-  } else if (!SUPPORTED_KINDS.includes(event.kind)) {
-    content = <UnknownNote className="mt-2" event={event} />
   } else if (mutePubkeySet.has(event.pubkey) && !showMuted) {
     content = <MutedNote show={() => setShowMuted(true)} />
   } else if (!defaultShowNsfw && isNsfwEvent(event) && !showNsfw) {
     content = <NsfwNote show={() => setShowNsfw(true)} />
-  } else if (event.kind === kinds.Highlights) {
-    content = <Highlight className="mt-2" event={event} />
-  } else if (event.kind === kinds.LongFormArticle) {
-    content = showFull ? (
-      <LongFormArticle className="mt-2" event={event} />
-    ) : (
-      <LongFormArticlePreview className="mt-2" event={event} />
-    )
-  } else if (event.kind === kinds.LiveEvent) {
-    content = <LiveEvent className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.GROUP_METADATA) {
-    content = <GroupMetadata className="mt-2" event={event} originalNoteId={originalNoteId} />
-  } else if (event.kind === kinds.CommunityDefinition) {
-    content = <CommunityDefinition className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.POLL) {
-    content = (
-      <>
-        <Content className="mt-2" event={event} />
-        <Poll className="mt-2" event={event} />
-      </>
-    )
-  } else if (event.kind === ExtendedKind.VOICE || event.kind === ExtendedKind.VOICE_COMMENT) {
-    content = <AudioPlayer className="mt-2" src={event.content} />
-  } else if (event.kind === ExtendedKind.PICTURE) {
-    content = <PictureNote className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.VIDEO || event.kind === ExtendedKind.SHORT_VIDEO) {
-    content = <VideoNote className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.RELAY_REVIEW) {
-    content = <RelayReview className="mt-2" event={event} />
   } else {
-    content = <Content className="mt-2" event={event} />
+    switch (event.kind) {
+      case kinds.Highlights:
+        content = <Highlight className="mt-2" event={event} />
+        break
+      case kinds.LongFormArticle:
+        content = showFull ? (
+          <LongFormArticle className="mt-2" event={event} />
+        ) : (
+          <LongFormArticlePreview className="mt-2" event={event} />
+        )
+        break
+      case kinds.LiveEvent:
+        content = <LiveEvent className="mt-2" event={event} />
+        break
+      case ExtendedKind.GROUP_METADATA:
+        content = <GroupMetadata className="mt-2" event={event} originalNoteId={originalNoteId} />
+        break
+      case kinds.CommunityDefinition:
+        content = <CommunityDefinition className="mt-2" event={event} />
+        break
+      case ExtendedKind.POLL:
+        content = (
+          <>
+            <Content className="mt-2" event={event} />
+            <Poll className="mt-2" event={event} />
+          </>
+        )
+        break
+      case ExtendedKind.VOICE:
+      case ExtendedKind.VOICE_COMMENT:
+        content = <AudioPlayer className="mt-2" src={event.content} />
+        break
+      case ExtendedKind.PICTURE:
+        content = <PictureNote className="mt-2" event={event} />
+        break
+      case ExtendedKind.VIDEO:
+      case ExtendedKind.SHORT_VIDEO:
+        content = <VideoNote className="mt-2" event={event} />
+        break
+      case ExtendedKind.RELAY_REVIEW:
+        content = <RelayReview className="mt-2" event={event} />
+        break
+      default:
+        content = <UnknownNote className="mt-2" event={event} />
+        break
+    }
   }
 
   return (

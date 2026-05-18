@@ -72,13 +72,6 @@ export const FEED_KINDS = [
   kinds.LongFormArticle
 ]
 
-export const SUPPORTED_KINDS = [
-  ...FEED_KINDS,
-  ExtendedKind.RELAY_REVIEW,
-  kinds.CommunityDefinition,
-  kinds.LiveEvent
-]
-
 export const EMBEDDED_EVENT_REGEX = /nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/g
 export const LN_INVOICE_REGEX = /(ln(?:bc|tb|bcrt))([0-9]+[munp]?)?1([02-9ac-hj-np-z]+)/g
 export const YOUTUBE_URL_REGEX =
