@@ -12,11 +12,10 @@ import { ExtendedKind } from '@/constants'
 import { useFetchEvent } from '@/hooks'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import {
+  getEventThreadBech32Ids,
   getEventKey,
   getEventKeyFromTag,
-  getParentBech32Id,
-  getParentTag,
-  getRootBech32Id
+  getParentTag
 } from '@/lib/event'
 import { toNote, toNoteList } from '@/lib/link'
 import { tagNameEquals } from '@/lib/tag'
@@ -32,12 +31,12 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
   const { t } = useTranslation()
   const { event, isFetching } = useFetchEvent(id)
   const [repostTargetEvent, setRepostTargetEvent] = useState<Event | null>(null)
-  const parentEventId = useMemo(() => getParentBech32Id(event), [event])
-  const rootEventId = useMemo(() => getRootBech32Id(event), [event])
   const rootITag = useMemo(
     () => (event?.kind === ExtendedKind.COMMENT ? event.tags.find(tagNameEquals('I')) : undefined),
     [event]
   )
+
+  const { parentId: parentEventId, rootId: rootEventId } = getEventThreadBech32Ids(event)
   const { isFetching: isFetchingRootEvent, event: rootEvent } = useFetchEvent(rootEventId)
   const { isFetching: isFetchingParentEvent, event: parentEvent } = useFetchEvent(parentEventId)
 
