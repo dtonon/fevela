@@ -1,4 +1,4 @@
-import { SUPPORTED_KINDS } from '@/constants'
+import { FEED_KINDS } from '@/constants'
 import { pool } from '@nostr/gadgets/global'
 import { OutboxManager } from '@nostr/gadgets/outbox'
 import { NostrEvent } from '@nostr/tools/core'
@@ -6,7 +6,7 @@ import { store } from './store.service'
 
 export let outbox: OutboxManager
 setTimeout(() => {
-  outbox = new OutboxManager([{ kinds: SUPPORTED_KINDS }], store, {
+  outbox = new OutboxManager([{ kinds: FEED_KINDS }], store, {
     pool,
     label: 'fevela',
     onsyncupdate(pubkey) {
