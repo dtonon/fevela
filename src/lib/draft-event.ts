@@ -141,9 +141,38 @@ export async function createShortTextNoteDraftEvent(
     tags.push(parentETag)
   }
 
+  const alreadyAdded = (pubkey: string) => !!tags.find((tag) => tag[1] === pubkey)
+
   // p tags
+  if (options.parentEvent) {
+    // p tag of root note author
+    const _rootETag = getRootETag(options.parentEvent)
+    if (_rootETag?.[4] && !alreadyAdded(_rootETag[4])) {
+      tags.push(buildPTag(_rootETag[4]))
+    } else if (_rootETag) {
+      // fallback to first p tag from parent (NIP-10 convention)
+      const firstPTag = options.parentEvent.tags.find(tagNameEquals('p'))
+      if (firstPTag?.[1] && !alreadyAdded(firstPTag[1])) {
+        tags.push(buildPTag(firstPTag[1]))
+      }
+    }
+
+    // last two p tags from parent (skip duplicates)
+    const parentPTags = options.parentEvent.tags.filter(tagNameEquals('p'))
+    for (const tag of parentPTags.slice(-2)) {
+      if (!alreadyAdded(tag[1])) {
+        tags.push(buildPTag(tag[1]))
+      }
+    }
+
+    // p tag of direct parent author (last, skip if duplicate)
+    if (!alreadyAdded(options.parentEvent.pubkey)) {
+      tags.push(buildPTag(options.parentEvent.pubkey))
+    }
+  }
+
   tags.push(
-    ...mentions.filter((pubkey) => pubkey !== client.pubkey).map((pubkey) => buildPTag(pubkey))
+    ...mentions.filter((pubkey) => !alreadyAdded(pubkey)).map((pubkey) => buildPTag(pubkey))
   )
 
   if (options.addClientTag) {
@@ -163,6 +192,7 @@ export async function createShortTextNoteDraftEvent(
     content: transformedEmojisContent,
     tags
   }
+
   return setDraftEventCache(baseDraft)
 }
 
@@ -213,9 +243,7 @@ export async function createCommentDraftEvent(
   }
 
   tags.push(
-    ...mentions
-      .filter((pubkey) => pubkey !== parentEvent.pubkey && pubkey !== client.pubkey)
-      .map((pubkey) => buildPTag(pubkey))
+    ...mentions.filter((pubkey) => pubkey !== parentEvent.pubkey).map((pubkey) => buildPTag(pubkey))
   )
 
   if (rootCoordinateTag) {
