@@ -3,6 +3,7 @@ import { getZapInfoFromEvent } from '@/lib/event-metadata'
 import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { getActualId, tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
+import storage from '@/services/local-storage.service'
 import { TEmoji } from '@/types'
 import dayjs from 'dayjs'
 import { Event } from '@nostr/tools/wasm'
@@ -173,7 +174,7 @@ class NoteStatsService {
     await new Promise<void>((resolve) => {
       const subc = pool.subscribeMap(
         relayList.read
-          .concat(window.fevela.universe.bigRelayUrls)
+          .concat(storage.getReadRepliesFromInboxesOnly() ? [] : window.fevela.universe.bigRelayUrls)
           .filter((r) => purgatory.allowConnectingToRelay(r, ['read', filters]))
           .slice(0, 3)
           .flatMap((url) => filters.map((filter) => ({ url, filter }))),

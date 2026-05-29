@@ -134,7 +134,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         const subCloser = pool.subscribe(
           relayList.read.length > 0
             ? relayList.read.slice(0, 5)
-            : window.fevela.universe.bigRelayUrls,
+            : storage.getReadRepliesFromInboxesOnly()
+              ? []
+              : window.fevela.universe.bigRelayUrls,
           {
             kinds: [...replyKinds, ...reactionKinds],
             '#p': [pubkey],
@@ -158,9 +160,9 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
                     return prev
                   }
 
-                  client.emitNewEvent(evt)
                   return [evt, ...prev]
                 })
+                client.emitNewEvent(evt)
               }
             },
             onclose: (reasons) => {

@@ -133,21 +133,17 @@ const NotificationList = forwardRef((_, ref) => {
   }, [events, notificationType, pubkey])
 
   useEffect(() => {
-    ;(async () => {
-      if (!pubkey || !filter) return
+    if (!pubkey || !filter) return
 
+    // Start with local DB immediately, no waiting for relay list fetch
+    setSubRequests([{ source: 'local', filter }])
+
+    ;(async () => {
       const relays = await client.fetchRelayList(pubkey)
 
       setSubRequests([
-        {
-          source: 'relays',
-          urls: relays.read,
-          filter
-        },
-        {
-          source: 'local',
-          filter
-        }
+        { source: 'relays', urls: relays.read, filter },
+        { source: 'local', filter }
       ])
     })()
   }, [pubkey, filter])
