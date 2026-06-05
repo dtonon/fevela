@@ -2,6 +2,7 @@ import * as kinds from '@nostr/tools/kinds'
 import { NostrEvent } from '@nostr/tools/wasm'
 
 import client from '@/services/client.service'
+import storage from '@/services/local-storage.service'
 import { eventMentionsPubKeyInContent, getParentETag, isMentioningMutedUsers } from './event'
 import { tagNameEquals } from './tag'
 import { ExtendedKind } from '@/constants'
@@ -62,7 +63,7 @@ export async function isMention(event: NostrEvent, pubkey: string): Promise<bool
     }
 
     // If no hint or hint doesn't match, fetch the parent event
-    if (!parentAuthorFromTag) {
+    if (!parentAuthorFromTag && !storage.getReadRepliesFromInboxesOnly()) {
       try {
         const parentEventHexId = parentETag[1]
         const parentEvent = await client.fetchEvent(parentEventHexId)

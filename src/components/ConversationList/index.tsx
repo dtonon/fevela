@@ -105,16 +105,61 @@ const ConversationList = forwardRef((_, ref) => {
       return
     }
 
-    let subc: SubCloser | undefined
-    ;(async () => {
-      setLoading(true)
-      setConversations([])
-      setShowCount(SHOW_COUNT)
-      setLastReadTime(getNotificationsSeenAt())
+    setLoading(true)
+    setConversations([])
+    setShowCount(SHOW_COUNT)
+    setLastReadTime(getNotificationsSeenAt())
 
+    let subc: SubCloser | undefined
+
+    // Start with local DB immediately, no waiting for relay list fetch
+    const localSubRequests: TFeedSubRequest[] = [
+      {
+        source: 'local',
+        filter: {
+          '#p': [pubkey],
+          kinds: replyKinds
+        }
+      },
+      {
+        source: 'local',
+        filter: {
+          authors: [pubkey],
+          kinds: replyKinds
+        }
+      }
+    ]
+
+    subc = client.subscribeTimeline(
+      localSubRequests,
+      { limit: LIMIT },
+      {
+        onEvents: (events, isFinal) => {
+          if (events.length > 0) {
+            const conversations = events.filter(
+              (evt) => evt.pubkey == pubkey || !eventMentionsPubkey(evt, pubkey)
+            )
+            setConversations(conversations)
+          }
+
+          if (isFinal) {
+            setUntil(events.length > 0 ? events[events.length - 1].created_at - 1 : undefined)
+            noteStatsService.updateNoteStatsByEvents(events)
+          }
+        },
+        onNew: (event) => {
+          if (event.pubkey == pubkey || !eventMentionsPubkey(event, pubkey)) handleNewEvent(event)
+        }
+      }
+    )
+
+    // Then add relay sources when relay list is available
+    ;(async () => {
       const relayList = await client.fetchRelayList(pubkey)
 
-      const subRequests: TFeedSubRequest[] = [
+      subc?.close()
+
+      const fullSubRequests: TFeedSubRequest[] = [
         {
           source: 'relays',
           urls: relayList.read,
@@ -139,13 +184,10 @@ const ConversationList = forwardRef((_, ref) => {
         }
       ]
 
-      setSubRequests(subRequests)
-
-      // Check if an event is an explicit mention in content (but not user's own post)
-      // (we don't want mentions, we only want replies)
+      setSubRequests(fullSubRequests)
 
       subc = client.subscribeTimeline(
-        subRequests,
+        fullSubRequests,
         { limit: LIMIT },
         {
           onEvents: (events, isFinal) => {
