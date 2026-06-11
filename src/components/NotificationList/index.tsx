@@ -61,15 +61,11 @@ const NotificationList = forwardRef((_, ref) => {
       case 'reactions':
         filterKinds = [kinds.Reaction, kinds.Repost, ExtendedKind.POLL_RESPONSE]
         break
-      case 'zaps':
-        filterKinds = [kinds.Zap]
-        break
       default:
         filterKinds = [
           kinds.ShortTextNote,
           kinds.Repost,
           kinds.Reaction,
-          kinds.Zap,
           ExtendedKind.COMMENT,
           ExtendedKind.POLL_RESPONSE,
           ExtendedKind.VOICE_COMMENT,
@@ -85,7 +81,7 @@ const NotificationList = forwardRef((_, ref) => {
 
   // Filter events for mentions and all tabs
   useEffect(() => {
-    // Reactions and Zaps tabs don't need filtering
+    // Reactions tab doesn't need filtering
     if (notificationType !== 'mentions' && notificationType !== 'all') {
       setFilteredNotifications(events)
       return
@@ -112,7 +108,7 @@ const NotificationList = forwardRef((_, ref) => {
             })
           )
         } else {
-          // For reactions, reposts, zaps - always include in All tab
+          // For reactions, reposts - always include in All tab
           if (notificationType === 'all') {
             filtered.push(event)
           }
@@ -361,8 +357,7 @@ const NotificationList = forwardRef((_, ref) => {
         tabs={[
           { value: 'all', label: 'All' },
           { value: 'mentions', label: 'Mentions' },
-          { value: 'reactions', label: 'Reactions' },
-          { value: 'zaps', label: 'Zaps' }
+          { value: 'reactions', label: 'Reactions' }
         ]}
         onTabChange={(type) => {
           setShowCount(SHOW_COUNT)

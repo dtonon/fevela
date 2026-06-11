@@ -45,7 +45,7 @@ export const replyKinds = [
   ExtendedKind.POLL_RESPONSE
 ]
 
-export const reactionKinds = [kinds.Repost, kinds.Reaction, kinds.Zap]
+export const reactionKinds = [kinds.Repost, kinds.Reaction]
 
 // check if an event is a mention (explicit mention or direct reply)
 export async function isMention(event: NostrEvent, pubkey: string): Promise<boolean> {

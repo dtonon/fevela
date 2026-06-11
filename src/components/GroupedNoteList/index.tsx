@@ -190,7 +190,7 @@ const GroupedNoteList = forwardRef(
       }
     }, [settings.groupedSortByRelevance, noteGroups.length, pubkey])
 
-    // Subscribe to real-time interaction events (reactions, reposts, zaps)
+    // Subscribe to real-time interaction events (reactions, reposts)
     useEffect(() => {
       if (!settings.groupedSortByRelevance || noteGroups.length === 0 || !subRequests.length) return
 
@@ -210,7 +210,7 @@ const GroupedNoteList = forwardRef(
       const subc = client.subscribeTimeline(
         subRequests,
         {
-          kinds: [kinds.Reaction, kinds.Repost, kinds.Zap],
+          kinds: [kinds.Reaction, kinds.Repost],
           '#e': noteIdArray
         },
         {
@@ -762,6 +762,5 @@ export function calculateRelevanceScore(
 ): number {
   const reactionsCount = stats?.likes?.length ?? 0
   const repostsCount = stats?.reposts?.length ?? 0
-  const zappedSats = stats?.zaps?.reduce((sum, zap) => sum + zap.amount, 0) ?? 0
-  return reactionsCount + repostsCount * 3 + zappedSats / 10 + repliesCount * 4
+  return reactionsCount + repostsCount * 3 + repliesCount * 4
 }

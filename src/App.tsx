@@ -23,7 +23,6 @@ import { ThemeProvider } from '@/providers/ThemeProvider'
 import { TranslationServiceProvider } from '@/providers/TranslationServiceProvider'
 import { UserPreferencesProvider } from '@/providers/UserPreferencesProvider'
 import { UserTrustProvider } from '@/providers/UserTrustProvider'
-import { ZapProvider } from '@/providers/ZapProvider'
 import { PageManager } from './PageManager'
 
 export default function App(): JSX.Element {
@@ -37,7 +36,6 @@ export default function App(): JSX.Element {
                 <PendingProvider>
                   <NostrProvider>
                     <OutboxProvider>
-                      <ZapProvider>
                       <TranslationServiceProvider>
                         <FavoriteRelaysProvider>
                           <FollowListProvider>
@@ -63,7 +61,6 @@ export default function App(): JSX.Element {
                           </FollowListProvider>
                         </FavoriteRelaysProvider>
                       </TranslationServiceProvider>
-                    </ZapProvider>
                   </OutboxProvider>
                 </NostrProvider>
               </PendingProvider>
