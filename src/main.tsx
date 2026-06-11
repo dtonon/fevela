@@ -1,7 +1,6 @@
 import './i18n'
 import './index.css'
 import './polyfill'
-import './services/lightning.service'
 import './window'
 import { restart } from './services/outbox.service'
 
