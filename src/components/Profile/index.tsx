@@ -5,7 +5,6 @@ import NpubQrCode from '@/components/NpubQrCode'
 import ProfileAbout from '@/components/ProfileAbout'
 import { BannerWithLightbox } from '@/components/ProfileBanner'
 import ProfileOptions from '@/components/ProfileOptions'
-import ProfileZapButton from '@/components/ProfileZapButton'
 import PubkeyCopy from '@/components/PubkeyCopy'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -15,7 +14,7 @@ import { SecondaryPageLink, useSecondaryPage } from '@/PageManager'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import client from '@/services/client.service'
-import { Link, Zap } from 'lucide-react'
+import { Link } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import SearchInput from '../SearchInput'
@@ -25,7 +24,6 @@ import FollowedBy from './FollowedBy'
 import Followings from './Followings'
 import ProfileFeed from './ProfileFeed'
 import Relays from './Relays'
-import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { SimpleUsername } from '../Username'
 import { normalizeHttpUrl } from '@/lib/url'
 
@@ -117,7 +115,6 @@ export default function Profile({ id }: { id?: string }) {
 
   const { pubkey } = profile
   const { banner, about, website } = profile.metadata || {}
-  const address = getLightningAddressFromProfile(profile)
 
   return (
     <>
@@ -143,10 +140,7 @@ export default function Profile({ id }: { id?: string }) {
                   {t('Edit')}
                 </Button>
               ) : (
-                <>
-                  {!!address && <ProfileZapButton pubkey={pubkey} />}
-                  <FollowButton pubkey={pubkey} />
-                </>
+                <FollowButton pubkey={pubkey} />
               )}
             </div>
             <div className="pt-2">
@@ -161,12 +155,6 @@ export default function Profile({ id }: { id?: string }) {
                 )}
               </div>
               <Nip05 pubkey={pubkey} />
-              {address && (
-                <div className="text-sm text-yellow-400 flex gap-1 items-center select-text">
-                  <Zap className="size-4 shrink-0" />
-                  <div className="flex-1 max-w-fit w-0 truncate">{address}</div>
-                </div>
-              )}
               <div className="flex gap-1 mt-1">
                 <PubkeyCopy pubkey={pubkey} />
                 <NpubQrCode pubkey={pubkey} />

@@ -9,15 +9,12 @@ import LikeButton from './LikeButton'
 import ReplyButton from './ReplyButton'
 import RepostButton from './RepostButton'
 import SeenOnButton from './SeenOnButton'
-import TopZaps from './TopZaps'
-import ZapButton from './ZapButton'
 
 export default function NoteStats({
   event,
   className,
   classNames,
-  fetchIfNotExisting = false,
-  displayTopZaps = false
+  fetchIfNotExisting = false
 }: {
   event: Event
   className?: string
@@ -25,7 +22,6 @@ export default function NoteStats({
     buttonBar?: string
   }
   fetchIfNotExisting?: boolean
-  displayTopZaps?: boolean
 }) {
   const { isSmallScreen } = useScreenSize()
   const { pubkey } = useNostr()
@@ -40,7 +36,6 @@ export default function NoteStats({
   if (isSmallScreen) {
     return (
       <div className={cn('select-none overflow-visible', className)}>
-        {displayTopZaps && <TopZaps event={event} />}
         <div
           className={cn(
             'flex justify-between items-center h-5 [&_svg]:size-5',
@@ -52,7 +47,6 @@ export default function NoteStats({
           <ReplyButton event={event} />
           <RepostButton event={event} />
           <LikeButton event={event} />
-          <ZapButton event={event} />
           <BookmarkButton event={event} />
           <SeenOnButton event={event} />
         </div>
@@ -62,7 +56,6 @@ export default function NoteStats({
 
   return (
     <div className={cn('select-none overflow-visible', className)}>
-      {displayTopZaps && <TopZaps event={event} />}
       <div className="flex justify-between h-5 [&_svg]:size-4">
         <div
           className={cn('flex items-center', loading ? 'animate-pulse' : '')}
@@ -71,7 +64,6 @@ export default function NoteStats({
           <ReplyButton event={event} />
           <RepostButton event={event} />
           <LikeButton event={event} />
-          <ZapButton event={event} />
         </div>
         <div className="flex items-center" onClick={(e) => e.stopPropagation()}>
           <BookmarkButton event={event} />

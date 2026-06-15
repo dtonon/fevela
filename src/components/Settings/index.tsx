@@ -1,13 +1,11 @@
 import AboutInfoDialog from '@/components/AboutInfoDialog'
-import Donation from '@/components/Donation'
 import {
   toAppearanceSettings,
   toGeneralSettings,
   toMuteList,
   toPostSettings,
   toRelaySettings,
-  toTranslation,
-  toWallet
+  toTranslation
 } from '@/lib/link'
 import { cn } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
@@ -24,8 +22,7 @@ import {
   PencilLine,
   Server,
   Settings2,
-  VolumeX,
-  Wallet
+  VolumeX
 } from 'lucide-react'
 import { forwardRef, HTMLProps, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -66,15 +63,6 @@ export default function Settings() {
           <div className="flex items-center gap-4">
             <Languages />
             <div>{t('Translation')}</div>
-          </div>
-          <ChevronRight />
-        </SettingItem>
-      )}
-      {!!pubkey && (
-        <SettingItem className="clickable" onClick={() => push(toWallet())}>
-          <div className="flex items-center gap-4">
-            <Wallet />
-            <div>{t('Wallet')}</div>
           </div>
           <ChevronRight />
         </SettingItem>
@@ -148,9 +136,6 @@ export default function Settings() {
           </div>
         </SettingItem>
       </AboutInfoDialog>
-      <div className="px-4 mt-4">
-        <Donation />
-      </div>
     </div>
   )
 }

@@ -7,7 +7,6 @@ import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useFevelaTranslateAccount } from './FevelaTranslateAccountProvider'
 import RegenerateApiKeyButton from './RegenerateApiKeyButton'
-import TopUp from './TopUp'
 
 export function AccountInfo() {
   const { t } = useTranslation()
@@ -68,7 +67,6 @@ export function AccountInfo() {
           })}
         </p>
       </div>
-      <TopUp />
       <div className="h-40" />
     </div>
   )

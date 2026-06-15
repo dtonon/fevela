@@ -115,7 +115,7 @@ export default function ReplyNote({
           </div>
         </div>
       </Collapsible>
-      {show && <NoteStats className="ml-14 pl-1 mr-4 mt-2" event={event} displayTopZaps />}
+      {show && <NoteStats className="ml-14 pl-1 mr-4 mt-2" event={event} />}
     </div>
   )
 }

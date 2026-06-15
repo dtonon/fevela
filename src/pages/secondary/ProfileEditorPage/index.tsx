@@ -8,7 +8,6 @@ import { Textarea } from '@/components/ui/textarea'
 import SecondaryPageLayout from '@/layouts/SecondaryPageLayout'
 import { createProfileDraftEvent } from '@/lib/draft-event'
 import { username } from '@/lib/event-metadata'
-import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { generateImageByPubkey } from '@/lib/pubkey'
 import { isEmail } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
@@ -28,8 +27,6 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
   const [website, setWebsite] = useState<string>('')
   const [nip05, setNip05] = useState<string>('')
   const [nip05Error, setNip05Error] = useState<string>('')
-  const [lightningAddress, setLightningAddress] = useState<string>('')
-  const [lightningAddressError, setLightningAddressError] = useState<string>('')
   const [hasChanged, setHasChanged] = useState(false)
   const [saving, setSaving] = useState(false)
   const [uploadingBanner, setUploadingBanner] = useState(false)
@@ -47,7 +44,6 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
       setAbout(profile.metadata.about ?? '')
       setWebsite(profile.metadata.website ?? '')
       setNip05(profile.metadata.nip05 ?? '')
-      setLightningAddress(getLightningAddressFromProfile(profile) || '')
     } else {
       setBanner('')
       setAvatar('')
@@ -55,7 +51,6 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
       setAbout('')
       setWebsite('')
       setNip05('')
-      setLightningAddress('')
     }
   }, [profile])
 
@@ -76,19 +71,6 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
       nip05,
       banner,
       picture: avatar
-    }
-
-    if (lightningAddress) {
-      if (isEmail(lightningAddress)) {
-        newProfileContent.lud16 = lightningAddress
-      } else if (lightningAddress.startsWith('lnurl')) {
-        newProfileContent.lud06 = lightningAddress
-      } else {
-        setLightningAddressError(t('Invalid Lightning Address'))
-        return
-      }
-    } else {
-      delete newProfileContent.lud16
     }
 
     setSaving(true)
@@ -197,24 +179,6 @@ const ProfileEditorPage = forwardRef(({ index }: { index?: number }, ref) => {
             className={nip05Error ? 'border-destructive' : ''}
           />
           {nip05Error && <div className="text-xs text-destructive pl-3">{nip05Error}</div>}
-        </Item>
-        <Item>
-          <Label htmlFor="profile-lightning-address-input">
-            {t('Lightning Address (or LNURL)')}
-          </Label>
-          <Input
-            id="profile-lightning-address-input"
-            value={lightningAddress}
-            onChange={(e) => {
-              setLightningAddressError('')
-              setLightningAddress(e.target.value)
-              setHasChanged(true)
-            }}
-            className={lightningAddressError ? 'border-destructive' : ''}
-          />
-          {lightningAddressError && (
-            <div className="text-xs text-destructive pl-3">{lightningAddressError}</div>
-          )}
         </Item>
       </div>
     </SecondaryPageLayout>

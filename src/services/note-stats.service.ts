@@ -1,6 +1,4 @@
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
-import { getZapInfoFromEvent } from '@/lib/event-metadata'
-import { getLightningAddressFromProfile } from '@/lib/lightning'
 import { getActualId, tagNameEquals } from '@/lib/tag'
 import client from '@/services/client.service'
 import storage from '@/services/local-storage.service'
@@ -16,8 +14,6 @@ export type TNoteStats = {
   likes: { id: string; pubkey: string; created_at: number; emoji: TEmoji | string }[]
   repostPubkeySet: Set<string>
   reposts: { id: string; pubkey: string; created_at: number }[]
-  zapPrSet: Set<string>
-  zaps: { pr: string; pubkey: string; amount: number; created_at: number; comment?: string }[]
   updatedAt?: number
 }
 
@@ -116,24 +112,6 @@ class NoteStatsService {
       )
     }
 
-    if (getLightningAddressFromProfile(authorProfile)) {
-      filters.push({
-        '#e': [id],
-        kinds: [kinds.Zap],
-        limit: 500,
-        since
-      })
-
-      if (replaceableCoordinate) {
-        filters.push({
-          '#a': [replaceableCoordinate],
-          kinds: [kinds.Zap],
-          limit: 500,
-          since
-        })
-      }
-    }
-
     if (pubkey) {
       filters.push({
         '#e': [id],
@@ -149,24 +127,6 @@ class NoteStatsService {
           kinds: [kinds.Reaction, kinds.Repost],
           since
         })
-      }
-
-      if (getLightningAddressFromProfile(authorProfile)) {
-        filters.push({
-          '#e': [id],
-          '#P': [pubkey],
-          kinds: [kinds.Zap],
-          since
-        })
-
-        if (replaceableCoordinate) {
-          filters.push({
-            '#a': [replaceableCoordinate],
-            '#P': [pubkey],
-            kinds: [kinds.Zap],
-            since
-          })
-        }
       }
     }
 
@@ -225,29 +185,6 @@ class NoteStatsService {
     return this.noteStatsMap.get(id)
   }
 
-  addZap(
-    pubkey: string,
-    eventId: string,
-    pr: string,
-    amount: number,
-    comment?: string,
-    created_at: number = dayjs().unix(),
-    notify: boolean = true
-  ) {
-    const old = this.noteStatsMap.get(eventId) || {}
-    const zapPrSet = old.zapPrSet || new Set()
-    const zaps = old.zaps || []
-    if (zapPrSet.has(pr)) return
-
-    zapPrSet.add(pr)
-    zaps.push({ pr, pubkey, amount, comment, created_at })
-    this.noteStatsMap.set(eventId, { ...old, zapPrSet, zaps })
-    if (notify) {
-      this.notifyNoteStats(eventId)
-    }
-    return eventId
-  }
-
   updateNoteStatsByEvents(events: Event[]) {
     const updatedEventIdSet = new Set<string>()
     events.forEach((evt) => {
@@ -256,8 +193,6 @@ class NoteStatsService {
         updatedEventId = this.addLikeByEvent(evt)
       } else if (evt.kind === kinds.Repost) {
         updatedEventId = this.addRepostByEvent(evt)
-      } else if (evt.kind === kinds.Zap) {
-        updatedEventId = this.addZapByEvent(evt)
       }
       if (updatedEventId) {
         updatedEventIdSet.add(updatedEventId)
@@ -300,22 +235,6 @@ class NoteStatsService {
     return eventId
   }
 
-  private addZapByEvent(evt: Event) {
-    const info = getZapInfoFromEvent(evt)
-    if (!info) return
-    const { originalEventId, senderPubkey, invoice, amount, comment } = info
-    if (!originalEventId || !senderPubkey) return
-
-    return this.addZap(
-      senderPubkey,
-      originalEventId,
-      invoice,
-      amount,
-      comment,
-      evt.created_at,
-      false
-    )
-  }
 }
 
 const instance = new NoteStatsService()

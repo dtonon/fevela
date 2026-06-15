@@ -127,7 +127,7 @@ export type TPublishOptions = {
   minPow?: number
 }
 
-export type TNotificationType = 'all' | 'mentions' | 'reactions' | 'zaps'
+export type TNotificationType = 'all' | 'mentions' | 'reactions'
 
 export type TPageRef = { scrollToTop: (behavior?: ScrollBehavior) => void }
 
