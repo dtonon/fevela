@@ -1,6 +1,6 @@
 import { useSecondaryPage } from '@/PageManager'
-import { ExtendedKind, SUPPORTED_KINDS } from '@/constants'
-import { getParentBech32Id, isNsfwEvent } from '@/lib/event'
+import { ExtendedKind } from '@/constants'
+import { getEventThreadBech32Ids, isNsfwEvent } from '@/lib/event'
 import { toNote } from '@/lib/link'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
@@ -8,7 +8,7 @@ import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
 import { Sparkles } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useState } from 'react'
 import AudioPlayer from '../AudioPlayer'
 import ClientTag from '../ClientTag'
 import Content from '../Content'
@@ -25,6 +25,7 @@ import UserAvatar from '../UserAvatar'
 import Username from '../Username'
 import PendingUndoButton from '../PendingUndoButton'
 import CommunityDefinition from './CommunityDefinition'
+import GitEvent from './GitEvent'
 import GroupMetadata from './GroupMetadata'
 import Highlight from './Highlight'
 import IValue from './IValue'
@@ -38,6 +39,8 @@ import Poll from './Poll'
 import RelayReview from './RelayReview'
 import UnknownNote from './UnknownNote'
 import VideoNote from './VideoNote'
+import WebBookmark from './WebBookmark'
+import { npubEncode } from '@nostr/tools/nip19'
 
 export default function Note({
   event,
@@ -62,14 +65,11 @@ export default function Note({
 }) {
   const { push } = useSecondaryPage()
   const { isSmallScreen } = useScreenSize()
-  const parentEventId = useMemo(
-    () => (hideParentNotePreview ? undefined : getParentBech32Id(event)),
-    [event, hideParentNotePreview]
-  )
   const { defaultShowNsfw } = useContentPolicy()
   const [showNsfw, setShowNsfw] = useState(false)
   const { mutePubkeySet } = useMuteList()
   const [showMuted, setShowMuted] = useState(false)
+  const parentId = hideParentNotePreview ? undefined : getEventThreadBech32Ids(event).parentId
 
   let content: React.ReactNode
   if (simple) {
@@ -78,50 +78,89 @@ export default function Note({
         <ContentPreview event={event} />
       </div>
     )
-  } else if (
-    ![
-      ...SUPPORTED_KINDS,
-      kinds.CommunityDefinition,
-      kinds.LiveEvent,
-      ExtendedKind.GROUP_METADATA
-    ].includes(event.kind)
-  ) {
-    content = <UnknownNote className="mt-2" event={event} />
   } else if (mutePubkeySet.has(event.pubkey) && !showMuted) {
     content = <MutedNote show={() => setShowMuted(true)} />
   } else if (!defaultShowNsfw && isNsfwEvent(event) && !showNsfw) {
     content = <NsfwNote show={() => setShowNsfw(true)} />
-  } else if (event.kind === kinds.Highlights) {
-    content = <Highlight className="mt-2" event={event} />
-  } else if (event.kind === kinds.LongFormArticle) {
-    content = showFull ? (
-      <LongFormArticle className="mt-2" event={event} />
-    ) : (
-      <LongFormArticlePreview className="mt-2" event={event} />
-    )
-  } else if (event.kind === kinds.LiveEvent) {
-    content = <LiveEvent className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.GROUP_METADATA) {
-    content = <GroupMetadata className="mt-2" event={event} originalNoteId={originalNoteId} />
-  } else if (event.kind === kinds.CommunityDefinition) {
-    content = <CommunityDefinition className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.POLL) {
-    content = (
-      <>
-        <Content className="mt-2" event={event} />
-        <Poll className="mt-2" event={event} />
-      </>
-    )
-  } else if (event.kind === ExtendedKind.VOICE || event.kind === ExtendedKind.VOICE_COMMENT) {
-    content = <AudioPlayer className="mt-2" src={event.content} />
-  } else if (event.kind === ExtendedKind.PICTURE) {
-    content = <PictureNote className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.VIDEO || event.kind === ExtendedKind.SHORT_VIDEO) {
-    content = <VideoNote className="mt-2" event={event} />
-  } else if (event.kind === ExtendedKind.RELAY_REVIEW) {
-    content = <RelayReview className="mt-2" event={event} />
   } else {
-    content = <Content className="mt-2" event={event} />
+    switch (event.kind) {
+      case kinds.ShortTextNote:
+      case kinds.Comment:
+        content = <Content className="mt-2" event={event} />
+        break
+      case kinds.Highlights:
+        content = <Highlight className="mt-2" event={event} />
+        break
+      case kinds.LongFormArticle:
+        content = showFull ? (
+          <LongFormArticle className="mt-2" event={event} />
+        ) : (
+          <LongFormArticlePreview className="mt-2" event={event} />
+        )
+        break
+      case kinds.LiveEvent:
+        content = <LiveEvent className="mt-2" event={event} />
+        break
+      case ExtendedKind.GROUP_METADATA:
+        content = <GroupMetadata className="mt-2" event={event} originalNoteId={originalNoteId} />
+        break
+      case kinds.CommunityDefinition:
+        content = <CommunityDefinition className="mt-2" event={event} />
+        break
+      case ExtendedKind.POLL:
+        content = (
+          <>
+            <Content className="mt-2" event={event} />
+            <Poll className="mt-2" event={event} />
+          </>
+        )
+        break
+      case ExtendedKind.VOICE:
+      case ExtendedKind.VOICE_COMMENT:
+        content = <AudioPlayer className="mt-2" src={event.content} />
+        break
+      case ExtendedKind.PICTURE:
+        content = <PictureNote className="mt-2" event={event} />
+        break
+      case ExtendedKind.VIDEO:
+      case ExtendedKind.SHORT_VIDEO:
+        content = <VideoNote className="mt-2" event={event} />
+        break
+      case ExtendedKind.RELAY_REVIEW:
+        content = <RelayReview className="mt-2" event={event} />
+        break
+      case ExtendedKind.WEB_BOOKMARK:
+        content = <WebBookmark className="mt-2" event={event} />
+        break
+      case ExtendedKind.GIT_PATCH:
+      case ExtendedKind.GIT_PULL_REQUEST:
+      case ExtendedKind.GIT_PULL_REQUEST_UPDATE:
+      case ExtendedKind.GIT_ISSUE:
+      case ExtendedKind.GIT_STATUS_OPEN:
+      case ExtendedKind.GIT_STATUS_APPLIED:
+      case ExtendedKind.GIT_STATUS_CLOSED:
+      case ExtendedKind.GIT_STATUS_DRAFT:
+      case ExtendedKind.GIT_GRASP_LIST:
+      case ExtendedKind.GIT_REPOSITORY_ANNOUNCEMENT:
+      case ExtendedKind.GIT_REPOSITORY_STATE:
+        content = <GitEvent className="mt-2" event={event} />
+        break
+      case ExtendedKind.PUBLIC_MESSAGE:
+        const recipient = event.tags.find((t) => t[0] === 'p')
+        if (recipient) {
+          event.content = `nostr:${npubEncode(recipient[1])}` + event.content
+          content = (
+            <>
+              <div className="text-sm text-muted-foreground font-medium">Public Message</div>
+              <Content className="mt-2" event={event} />
+            </>
+          )
+        }
+        break
+      default:
+        content = <UnknownNote className="mt-2" event={event} />
+        break
+    }
   }
 
   return (
@@ -170,13 +209,13 @@ export default function Note({
         </div>
       )}
       <PendingUndoButton event={event} className="mt-1" />
-      {!simple && parentEventId && (
+      {!simple && parentId && (
         <ParentNotePreview
-          eventId={parentEventId}
+          eventId={parentId}
           className="mt-2"
           onClick={(e) => {
             e.stopPropagation()
-            push(toNote(parentEventId))
+            push(toNote(parentId))
           }}
         />
       )}

@@ -1,6 +1,6 @@
 import ParentNotePreview from '@/components/ParentNotePreview'
 import { NOTIFICATION_LIST_STYLE } from '@/constants'
-import { eventMentionsPubKeyInContent, getParentBech32Id } from '@/lib/event'
+import { eventMentionsPubKeyInContent, getEventThreadBech32Ids } from '@/lib/event'
 import { toNote } from '@/lib/link'
 import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
@@ -23,7 +23,10 @@ export function MentionNotification({
   const { pubkey } = useNostr()
   const { notificationListStyle } = useUserPreferences()
   const isMention = pubkey ? eventMentionsPubKeyInContent(notification, pubkey) : false
-  const parentEventId = useMemo(() => getParentBech32Id(notification), [notification])
+  const parentEventId = useMemo(
+    () => getEventThreadBech32Ids(notification).parentId,
+    [notification]
+  )
 
   return (
     <Notification

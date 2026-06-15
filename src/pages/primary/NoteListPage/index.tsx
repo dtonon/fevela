@@ -25,7 +25,7 @@ import { useTranslation } from 'react-i18next'
 import FeedButton from './FeedButton'
 import FollowingFeed from './FollowingFeed'
 import NormalFeed from '@/components/NormalFeed'
-import { SUPPORTED_KINDS } from '@/constants'
+import { FEED_KINDS } from '@/constants'
 
 const NoteListPage = forwardRef((_, ref) => {
   const { t } = useTranslation()
@@ -76,7 +76,7 @@ const NoteListPage = forwardRef((_, ref) => {
                 source: 'relays' as const,
                 urls: relayUrls,
                 filter: {
-                  kinds: SUPPORTED_KINDS
+                  kinds: FEED_KINDS
                 }
               }
             ]}

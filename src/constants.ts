@@ -47,18 +47,31 @@ export const ExtendedKind = {
   PICTURE: 20,
   VIDEO: 21,
   SHORT_VIDEO: 22,
+  PUBLIC_MESSAGE: 24,
   POLL: 1068,
   POLL_RESPONSE: 1018,
+  GIT_PATCH: 1617,
+  GIT_PULL_REQUEST: 1618,
+  GIT_PULL_REQUEST_UPDATE: 1619,
+  GIT_ISSUE: 1621,
+  GIT_STATUS_OPEN: 1630,
+  GIT_STATUS_APPLIED: 1631,
+  GIT_STATUS_CLOSED: 1632,
+  GIT_STATUS_DRAFT: 1633,
   COMMENT: 1111,
   VOICE: 1222,
   VOICE_COMMENT: 1244,
   FAVORITE_RELAYS: 10012,
+  GIT_GRASP_LIST: 10317,
   BLOSSOM_SERVER_LIST: 10063,
   RELAY_REVIEW: 31987,
-  GROUP_METADATA: 39000
+  GIT_REPOSITORY_ANNOUNCEMENT: 30617,
+  GIT_REPOSITORY_STATE: 30618,
+  GROUP_METADATA: 39000,
+  WEB_BOOKMARK: 39701
 }
 
-export const SUPPORTED_KINDS = [
+export const FEED_KINDS = [
   kinds.ShortTextNote,
   kinds.Repost,
   ExtendedKind.PICTURE,
@@ -69,8 +82,7 @@ export const SUPPORTED_KINDS = [
   ExtendedKind.VOICE,
   ExtendedKind.VOICE_COMMENT,
   kinds.Highlights,
-  kinds.LongFormArticle,
-  ExtendedKind.RELAY_REVIEW
+  kinds.LongFormArticle
 ]
 
 export const EMBEDDED_EVENT_REGEX = /nostr:(note1[a-z0-9]{58}|nevent1[a-z0-9]+|naddr1[a-z0-9]+)/g

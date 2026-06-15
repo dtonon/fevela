@@ -1,9 +1,9 @@
 import {
   ExtendedKind,
+  FEED_KINDS,
   LINK_PREVIEW_MODE,
   MEDIA_AUTO_LOAD_POLICY,
   NOTIFICATION_LIST_STYLE,
-  SUPPORTED_KINDS,
   StorageKey,
   TPrimaryColor
 } from '@/constants'
@@ -141,7 +141,7 @@ class LocalStorageService {
 
     const showKindsStr = window.localStorage.getItem(StorageKey.SHOW_KINDS)
     if (!showKindsStr) {
-      this.showKinds = SUPPORTED_KINDS
+      this.showKinds = FEED_KINDS
     } else {
       const showKindsVersionStr = window.localStorage.getItem(StorageKey.SHOW_KINDS_VERSION)
       const showKindsVersion = showKindsVersionStr ? parseInt(showKindsVersionStr) : 0

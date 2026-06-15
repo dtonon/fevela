@@ -9,6 +9,7 @@ import * as kinds from '@nostr/tools/kinds'
 import { useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import CommunityDefinitionPreview from './CommunityDefinitionPreview'
+import GitEventPreview from './GitEventPreview'
 import GroupMetadataPreview from './GroupMetadataPreview'
 import HighlightPreview from './HighlightPreview'
 import LiveEventPreview from './LiveEventPreview'
@@ -17,6 +18,7 @@ import NormalContentPreview from './NormalContentPreview'
 import PictureNotePreview from './PictureNotePreview'
 import PollPreview from './PollPreview'
 import VideoNotePreview from './VideoNotePreview'
+import WebBookmarkPreview from './WebBookmarkPreview'
 
 export default function ContentPreview({
   event,
@@ -77,48 +79,53 @@ export default function ContentPreview({
     )
   }
 
-  if (
-    [
-      kinds.ShortTextNote,
-      ExtendedKind.COMMENT,
-      ExtendedKind.VOICE,
-      ExtendedKind.VOICE_COMMENT,
-      ExtendedKind.RELAY_REVIEW
-    ].includes(event.kind)
-  ) {
-    return <NormalContentPreview event={event} className={className} />
-  }
+  switch (event.kind) {
+    case kinds.ShortTextNote:
+    case ExtendedKind.COMMENT:
+    case ExtendedKind.VOICE:
+    case ExtendedKind.VOICE_COMMENT:
+    case ExtendedKind.RELAY_REVIEW:
+      return <NormalContentPreview event={event} className={className} />
 
-  if (event.kind === kinds.Highlights) {
-    return <HighlightPreview event={event} className={className} />
-  }
+    case ExtendedKind.GIT_PATCH:
+    case ExtendedKind.GIT_PULL_REQUEST:
+    case ExtendedKind.GIT_PULL_REQUEST_UPDATE:
+    case ExtendedKind.GIT_ISSUE:
+    case ExtendedKind.GIT_STATUS_OPEN:
+    case ExtendedKind.GIT_STATUS_APPLIED:
+    case ExtendedKind.GIT_STATUS_CLOSED:
+    case ExtendedKind.GIT_STATUS_DRAFT:
+    case ExtendedKind.GIT_GRASP_LIST:
+    case ExtendedKind.GIT_REPOSITORY_ANNOUNCEMENT:
+    case ExtendedKind.GIT_REPOSITORY_STATE:
+      return <GitEventPreview event={event} className={className} />
 
-  if (event.kind === ExtendedKind.POLL) {
-    return <PollPreview event={event} className={className} />
-  }
+    case kinds.Highlights:
+      return <HighlightPreview event={event} className={className} />
 
-  if (event.kind === kinds.LongFormArticle) {
-    return <LongFormArticlePreview event={event} className={className} />
-  }
+    case ExtendedKind.POLL:
+      return <PollPreview event={event} className={className} />
 
-  if (event.kind === ExtendedKind.VIDEO || event.kind === ExtendedKind.SHORT_VIDEO) {
-    return <VideoNotePreview event={event} className={className} />
-  }
+    case kinds.LongFormArticle:
+      return <LongFormArticlePreview event={event} className={className} />
 
-  if (event.kind === ExtendedKind.PICTURE) {
-    return <PictureNotePreview event={event} className={className} />
-  }
+    case ExtendedKind.VIDEO || event.kind === ExtendedKind.SHORT_VIDEO:
+      return <VideoNotePreview event={event} className={className} />
 
-  if (event.kind === ExtendedKind.GROUP_METADATA) {
-    return <GroupMetadataPreview event={event} className={className} />
-  }
+    case ExtendedKind.PICTURE:
+      return <PictureNotePreview event={event} className={className} />
 
-  if (event.kind === kinds.CommunityDefinition) {
-    return <CommunityDefinitionPreview event={event} className={className} />
-  }
+    case ExtendedKind.GROUP_METADATA:
+      return <GroupMetadataPreview event={event} className={className} />
 
-  if (event.kind === kinds.LiveEvent) {
-    return <LiveEventPreview event={event} className={className} />
+    case ExtendedKind.WEB_BOOKMARK:
+      return <WebBookmarkPreview event={event} className={className} />
+
+    case kinds.CommunityDefinition:
+      return <CommunityDefinitionPreview event={event} className={className} />
+
+    case kinds.LiveEvent:
+      return <LiveEventPreview event={event} className={className} />
   }
 
   return <div className={className}>[{kindDescription || `Kind ${event.kind}`}]</div>

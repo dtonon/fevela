@@ -3,13 +3,13 @@ import client from '@/services/client.service'
 import { TImetaInfo } from '@/types'
 import { Event, NostrEvent, UnsignedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
+import { parse as parseNip10References } from '@nostr/tools/nip10'
+import { parse as parseNip22References } from '@nostr/tools/nip22'
 import { parse } from '@nostr/tools/nip27'
 import * as nip19 from '@nostr/tools/nip19'
 import { getPow } from '@nostr/tools/nip13'
 import { getEventHash } from '@nostr/tools/pure'
 import {
-  generateBech32IdFromATag,
-  generateBech32IdFromETag,
   getImetaInfoFromImetaTag,
   tagNameEquals
 } from './tag'
@@ -130,13 +130,63 @@ export function getParentTag(event?: Event): { type: 'e' | 'a'; tag: string[] } 
   return tag ? { type: 'e', tag } : undefined
 }
 
-export function getParentBech32Id(event?: Event) {
-  const parentTag = getParentTag(event)
-  if (!parentTag) return undefined
+function pointerToBech32Id(pointer: unknown) {
+  if (!pointer || typeof pointer !== 'object') return undefined
 
-  return parentTag.type === 'e'
-    ? generateBech32IdFromETag(parentTag.tag)
-    : generateBech32IdFromATag(parentTag.tag)
+  if ('id' in pointer && typeof pointer.id === 'string') {
+    const relays =
+      'relays' in pointer && Array.isArray(pointer.relays) && pointer.relays.length
+        ? pointer.relays
+        : undefined
+    const author = 'author' in pointer && typeof pointer.author === 'string' ? pointer.author : undefined
+
+    return nip19.neventEncode({ id: pointer.id, relays, author })
+  }
+
+  if (
+    'kind' in pointer &&
+    typeof pointer.kind === 'number' &&
+    'pubkey' in pointer &&
+    typeof pointer.pubkey === 'string' &&
+    'identifier' in pointer &&
+    typeof pointer.identifier === 'string'
+  ) {
+    const relays =
+      'relays' in pointer && Array.isArray(pointer.relays) && pointer.relays.length
+        ? pointer.relays
+        : undefined
+
+    return nip19.naddrEncode({
+      kind: pointer.kind,
+      pubkey: pointer.pubkey,
+      identifier: pointer.identifier,
+      relays
+    })
+  }
+
+  return undefined
+}
+
+export function getEventThreadBech32Ids(event?: Event) {
+  if (!event) return { parentId: undefined, rootId: undefined }
+
+  if (event.kind === kinds.ShortTextNote) {
+    const references = parseNip10References(event)
+    return {
+      parentId: pointerToBech32Id(references.reply),
+      rootId: pointerToBech32Id(references.root)
+    }
+  }
+
+  if ([ExtendedKind.COMMENT, ExtendedKind.VOICE_COMMENT].includes(event.kind)) {
+    const references = parseNip22References(event)
+    return {
+      parentId: pointerToBech32Id(references.reply),
+      rootId: pointerToBech32Id(references.root)
+    }
+  }
+
+  return { parentId: undefined, rootId: undefined }
 }
 
 export function getRootETag(event?: Event) {
@@ -171,54 +221,37 @@ export function getRootATag(event?: Event) {
   return event.tags.find(tagNameEquals('A'))
 }
 
-export function getRootEventHexId(event?: Event) {
-  const tag = getRootETag(event)
-  return tag?.[1]
-}
-
 export function getRootTag(event: Event): string[] | undefined {
   let fallback: string[] | undefined
-  for (let i = 0; i < event.tags.length; i++) {
-    const tag = event.tags[i]
-    if (tag.length < 2) continue
 
-    switch (tag[0]) {
-      case 'e':
-        if (!fallback) fallback = tag // fallback
-        if (tag[3] === 'root') {
+  if (event.kind === ExtendedKind.COMMENT || event.kind === ExtendedKind.VOICE_COMMENT) {
+    for (let i = 0; i < event.tags.length; i++) {
+      const tag = event.tags[i]
+      if (tag.length < 2) continue
+
+      switch (tag[0]) {
+        case 'e':
+          if (!fallback) fallback = tag // fallback
+          if (tag[3] === 'root') {
+            return tag
+          }
+          break
+        case 'E':
           return tag
-        }
-        break
-      case 'E':
-        return tag
-      case 'a':
-        if (!fallback) fallback = tag // fallback
-        break
-      case 'A':
-        return tag
-      case 'I':
-        return tag
-      case 'i':
-      case 'r':
-        break
+        case 'a':
+          if (!fallback) fallback = tag // fallback
+          break
+        case 'A':
+          return tag
+        case 'I':
+          return tag
+        case 'i':
+        case 'r':
+          break
+      }
     }
   }
   return fallback
-}
-
-export function getRootBech32Id(event?: Event) {
-  if (!event) return undefined
-
-  const rootTag = getRootTag(event)
-  if (!rootTag) return undefined
-
-  if (rootTag[0] === 'e' || rootTag[0] === 'E') {
-    return generateBech32IdFromETag(rootTag)
-  }
-  if (rootTag[0] === 'a' || rootTag[0] === 'A') {
-    return generateBech32IdFromATag(rootTag)
-  }
-  return undefined
 }
 
 // For internal identification of events

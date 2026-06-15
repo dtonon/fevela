@@ -4,7 +4,7 @@ import { ProfileListBySearch } from '../ProfileListBySearch'
 import Relay from '../Relay'
 import NoteList from '../NoteList'
 import { useMemo } from 'react'
-import { SUPPORTED_KINDS } from '@/constants'
+import { FEED_KINDS } from '@/constants'
 
 export default function SearchResult({ searchParams }: { searchParams: TSearchParams | null }) {
   const notesSubRequests = useMemo(
@@ -43,11 +43,11 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
             source: 'relays' as const,
             urls: window.fevela.universe.trending,
             filter: {
-              kinds: SUPPORTED_KINDS
+              kinds: FEED_KINDS
             }
           }
         ]}
-        showKinds={SUPPORTED_KINDS}
+        showKinds={FEED_KINDS}
       />
     )
   }
@@ -58,10 +58,10 @@ export default function SearchResult({ searchParams }: { searchParams: TSearchPa
     return <ProfileListBySearch search={searchParams.search} />
   }
   if (searchParams.type === 'notes') {
-    return <NoteList subRequests={notesSubRequests} showKinds={SUPPORTED_KINDS} />
+    return <NoteList subRequests={notesSubRequests} showKinds={FEED_KINDS} />
   }
   if (searchParams.type === 'hashtag') {
-    return <NoteList subRequests={hashtagSubRequests} showKinds={SUPPORTED_KINDS} />
+    return <NoteList subRequests={hashtagSubRequests} showKinds={FEED_KINDS} />
   }
   return <Relay url={searchParams.search} />
 }
