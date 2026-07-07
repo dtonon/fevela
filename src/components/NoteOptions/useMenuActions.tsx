@@ -60,6 +60,7 @@ interface UseMenuActionsProps {
   showSubMenuActions: (subMenu: SubMenuAction[], title: string) => void
   setIsRawEventDialogOpen: (open: boolean) => void
   setIsReportDialogOpen: (open: boolean) => void
+  setIsDiscardDialogOpen: (open: boolean) => void
   isSmallScreen: boolean
 }
 
@@ -70,6 +71,7 @@ export function useMenuActions({
   showSubMenuActions,
   setIsRawEventDialogOpen,
   setIsReportDialogOpen,
+  setIsDiscardDialogOpen,
   isSmallScreen
 }: UseMenuActionsProps) {
   const { t } = useTranslation()
@@ -381,6 +383,14 @@ export function useMenuActions({
           className: 'text-black focus:text-black dark:text-black dark:focus:text-black',
           separator: true
         })
+        actions.push({
+          icon: Trash2,
+          label: t('Discard note'),
+          onClick: () => {
+            closeDrawer()
+            setIsDiscardDialogOpen(true)
+          }
+        })
       }
 
       actions.push({
@@ -427,6 +437,7 @@ export function useMenuActions({
     openEditor,
     showSubMenuActions,
     setIsRawEventDialogOpen,
+    setIsDiscardDialogOpen,
     mutePrivately,
     mutePublicly,
     unmute,

@@ -21,21 +21,31 @@ import {
 import { toNote, toNoteList } from '@/lib/link'
 import { tagNameEquals } from '@/lib/tag'
 import { cn } from '@/lib/utils'
+import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { Ellipsis } from 'lucide-react'
 import { Event } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
-import { forwardRef, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import NotFound from './NotFound'
 
 const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref) => {
   const { t } = useTranslation()
+  const { pop, currentIndex } = useSecondaryPage()
+  const { isEventDeleted } = useDeletedEvent()
   const { event, isFetching } = useFetchEvent(id)
   const [repostTargetEvent, setRepostTargetEvent] = useState<Event | null>(null)
   const rootITag = useMemo(
     () => (event?.kind === ExtendedKind.COMMENT ? event.tags.find(tagNameEquals('I')) : undefined),
     [event]
   )
+
+  // Close the page if the displayed event gets discarded or deleted while on top
+  useEffect(() => {
+    if (event && isEventDeleted(event) && index === currentIndex) {
+      pop()
+    }
+  }, [event, isEventDeleted, index, currentIndex, pop])
 
   const { parentId: parentEventId, rootId: rootEventId } = getEventThreadBech32Ids(event)
   const { isFetching: isFetchingRootEvent, event: rootEvent } = useFetchEvent(rootEventId)

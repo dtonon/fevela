@@ -90,6 +90,8 @@ export default {
     Error: 'Error',
     'Edit note': 'Edit note',
     'Publish note': 'Publish note',
+    'Discard note': 'Discard note',
+    'Are you sure you want to discard this note?': 'Are you sure you want to discard this note?',
     'Not published': 'Not published',
     Discard: 'Discard',
     Discarded: 'Discarded',
