@@ -6,6 +6,7 @@ import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import { usePending } from '@/providers/PendingProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
 import { TFeedSubRequest } from '@/types'
@@ -66,6 +67,8 @@ const NoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
+    const { pendingIds } = usePending()
+    const pendingIdSet = useMemo(() => new Set(pendingIds), [pendingIds])
     const [events, setEvents] = useState<Event[]>([])
     const [newEvents, setNewEvents] = useState<Event[]>([])
     const [hasMore, setHasMore] = useState<boolean>(false)
@@ -80,6 +83,7 @@ const NoteList = forwardRef(
 
     const shouldHideEvent = useCallback(
       (evt: Event) => {
+        if (pendingIdSet.has(evt.id)) return true
         if (wordsInEvent(feedSettings.wordFilter, evt)) return true
         if (feedSettings.hideShortNotes && !isLongNote(evt)) return true
         if (pinnedEventIds && pinnedEventIds.includes(evt.id)) return true
@@ -110,6 +114,7 @@ const NoteList = forwardRef(
       [
         hideUntrustedNotes,
         mutePubkeySet,
+        pendingIdSet,
         pinnedEventIds,
         isEventDeleted,
         filterFn,

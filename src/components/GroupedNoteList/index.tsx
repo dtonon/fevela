@@ -13,6 +13,7 @@ import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useMuteList } from '@/providers/MuteListProvider'
 import { useNostr } from '@/providers/NostrProvider'
+import { usePending } from '@/providers/PendingProvider'
 import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
@@ -81,6 +82,8 @@ const GroupedNoteList = forwardRef(
     const { mutePubkeySet } = useMuteList()
     const { hideContentMentioningMutedUsers } = useContentPolicy()
     const { isEventDeleted } = useDeletedEvent()
+    const { pendingIds } = usePending()
+    const pendingIdSet = useMemo(() => new Set(pendingIds), [pendingIds])
     const { resetSettings, settings } = useFeed()
     const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
@@ -240,6 +243,7 @@ const GroupedNoteList = forwardRef(
     const shouldHideEvent = useCallback(
       (evt: Event) => {
         if (isEventDeleted(evt)) return true
+        if (pendingIdSet.has(evt.id)) return true
 
         if (settings.wordFilter.length && wordsInEvent(settings.wordFilter, evt)) return true
         if (settings.hideShortNotes && !isLongNote(evt)) return true
@@ -273,6 +277,7 @@ const GroupedNoteList = forwardRef(
         hideContentMentioningMutedUsers,
         isEventDeleted,
         mutePubkeySet,
+        pendingIdSet,
         settings
       ]
     )
