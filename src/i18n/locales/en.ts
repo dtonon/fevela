@@ -88,6 +88,8 @@ export default {
     'No pending items': 'No pending items',
     Draft: 'Draft',
     Error: 'Error',
+    'Edit note': 'Edit note',
+    'Publish note': 'Publish note',
     'Not published': 'Not published',
     Discard: 'Discard',
     Discarded: 'Discarded',

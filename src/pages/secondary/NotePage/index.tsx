@@ -2,6 +2,7 @@ import { useSecondaryPage } from '@/PageManager'
 import ContentPreview from '@/components/ContentPreview'
 import Note from '@/components/Note'
 import NoteInteractions from '@/components/NoteInteractions'
+import PendingNoteActions from '@/components/PendingNoteActions'
 import NoteStats from '@/components/NoteStats'
 import UserAvatar from '@/components/UserAvatar'
 import RepostNoteCard from '@/components/NoteCard/RepostNoteCard'
@@ -131,6 +132,7 @@ const NotePage = forwardRef(({ id, index }: { id?: string; index?: number }, ref
             eventBech32Id={parentEventId}
           />
         )}
+        <PendingNoteActions event={event} />
         <Note
           key={`note-${event.id}`}
           event={event}

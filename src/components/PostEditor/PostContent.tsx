@@ -9,7 +9,9 @@ import {
   deleteDraftEventCache
 } from '@/lib/draft-event'
 import { addPendingPublish, removePendingPublish, usePendingCountdown } from '@/lib/pendingPublish'
+import { toNote } from '@/lib/link'
 import { isTouchDevice } from '@/lib/utils'
+import { useSecondaryPage } from '@/PageManager'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
 import { useNostr } from '@/providers/NostrProvider'
 import { useReply } from '@/providers/ReplyProvider'
@@ -87,6 +89,7 @@ export default function PostContent({
   openFrom?: string[]
 }) {
   const { t } = useTranslation()
+  const { push } = useSecondaryPage()
   const { pubkey, signEvent, preparePublish, checkLogin } = useNostr()
   const { addReplies } = useReply()
   const { addDeletedEvent } = useDeletedEvent()
@@ -335,6 +338,9 @@ export default function PostContent({
         deleteDraftEventCache(draftEvent)
         addReplies([signedEvent])
         close()
+        if (editingEvent) {
+          push(toNote(signedEvent))
+        }
         toast.success(t('Saved for later'))
       } catch (error) {
         toast.error(
