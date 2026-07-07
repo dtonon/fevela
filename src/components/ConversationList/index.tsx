@@ -4,6 +4,7 @@ import { NOTIFICATION_LIST_STYLE } from '@/constants'
 import { compareEvents } from '@/lib/event'
 import { usePrimaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
+import { usePending } from '@/providers/PendingProvider'
 import { useUserPreferences } from '@/providers/UserPreferencesProvider'
 import client from '@/services/client.service'
 import noteStatsService from '@/services/note-stats.service'
@@ -30,6 +31,7 @@ const ConversationList = forwardRef((_, ref) => {
   const { current, display } = usePrimaryPage()
   const active = useMemo(() => current === 'conversations' && display, [current, display])
   const { pubkey } = useNostr()
+  const { pendingIds } = usePending()
   const { getNotificationsSeenAt } = useNotification()
   const { notificationListStyle } = useUserPreferences()
   const [refreshCount, setRefreshCount] = useState(0)
@@ -65,14 +67,17 @@ const ConversationList = forwardRef((_, ref) => {
     searchProfiles()
   }, [userFilter])
 
-  // Apply user filter (by author name or content)
+  // Apply user filter (by author name or content), excluding unpublished drafts
   const filteredConversations = useMemo(() => {
+    const pendingIdSet = new Set(pendingIds)
+    const publishedConversations = conversations.filter((event) => !pendingIdSet.has(event.id))
+
     if (!userFilter.trim()) {
-      return conversations
+      return publishedConversations
     }
 
     const filterLower = userFilter.toLowerCase()
-    return conversations.filter((event) => {
+    return publishedConversations.filter((event) => {
       // Check if author matches
       if (matchingPubkeys && matchingPubkeys.has(event.pubkey)) {
         return true
@@ -85,7 +90,7 @@ const ConversationList = forwardRef((_, ref) => {
 
       return false
     })
-  }, [conversations, userFilter, matchingPubkeys])
+  }, [conversations, userFilter, matchingPubkeys, pendingIds])
 
   useImperativeHandle(
     ref,
