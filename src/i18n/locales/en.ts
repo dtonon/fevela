@@ -86,6 +86,8 @@ export default {
     'Publishing...': 'Publishing...',
     Pending: 'Pending',
     'No pending items': 'No pending items',
+    Draft: 'Draft',
+    Error: 'Error',
     'Not published': 'Not published',
     Discard: 'Discard',
     Discarded: 'Discarded',

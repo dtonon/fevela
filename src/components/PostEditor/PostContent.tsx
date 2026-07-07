@@ -330,7 +330,7 @@ export default function PostContent({
           await discardPendingEvent(editingEvent.id)
         }
 
-        await savePendingEvent(signedEvent)
+        await savePendingEvent(signedEvent, 'draft')
         postEditorCache.clearPostCache({ defaultContent, parentEvent })
         deleteDraftEventCache(draftEvent)
         addReplies([signedEvent])

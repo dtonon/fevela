@@ -18,7 +18,7 @@ export type TPendingListRef = {
 const PendingList = forwardRef<TPendingListRef>((_, ref) => {
   const { t } = useTranslation()
   const { push } = useSecondaryPage()
-  const { pendingEvents, discardPendingEvent, savePendingEvent } = usePending()
+  const { pendingEvents, pendingReasons, discardPendingEvent, savePendingEvent } = usePending()
   const [isPublishingAll, setIsPublishingAll] = useState(false)
 
   async function publishAll() {
@@ -79,7 +79,10 @@ const PendingList = forwardRef<TPendingListRef>((_, ref) => {
             <UserAvatar userId={event.pubkey} size="small" />
             <ContentPreview className="truncate flex-1 w-0 text-muted-foreground" event={event} />
           </div>
-          <div className="text-muted-foreground shrink-0">
+          <div className="flex gap-2 items-center shrink-0 text-muted-foreground">
+            <span className="rounded-full bg-primary px-2 py-0.5 text-xs text-white">
+              {pendingReasons[event.id] === 'error' ? t('Error') : t('Draft')}
+            </span>
             <FormattedTimestamp timestamp={event.created_at} short />
           </div>
         </button>
