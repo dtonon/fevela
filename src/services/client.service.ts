@@ -353,17 +353,9 @@ class ClientService extends EventTarget {
         : new Promise<NostrEvent[]>((resolve) => {
             let eosed = false
 
-            // keep track of this just so we can refer to them for onClose
-            const urls: string[] = []
-
             let events: NostrEvent[] = []
             subc = pool.subscribeMap(
-              relayRequests.flatMap(({ urls, filter }) =>
-                urls.flatMap((url) => {
-                  if (!urls.includes(url)) urls.push(url)
-                  return { url, filter }
-                })
-              ),
+              relayRequests.flatMap(({ urls, filter }) => urls.map((url) => ({ url, filter }))),
               {
                 label: 'f-timeline',
                 onevent: (evt) => {
@@ -406,9 +398,8 @@ class ClientService extends EventTarget {
                 }) as any,
                 onclose(reasons) {
                   if (onClose) {
-                    for (let i = 0; i < reasons.length; i++) {
-                      const reason = reasons[i]
-                      onClose(urls[i], reason)
+                    for (const { url, reason } of reasons) {
+                      onClose(url, reason)
                     }
                   }
                   resolve(events)
@@ -701,7 +692,7 @@ class ClientService extends EventTarget {
             this.addEventToCache(event)
           }
         },
-        onclose(_: string[]) {
+        onclose() {
           resolve()
         }
       })

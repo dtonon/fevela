@@ -166,7 +166,7 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
               }
             },
             onclose: (reasons) => {
-              if (reasons.every((reason) => reason === 'closed by caller')) {
+              if (reasons.every(({ reason }) => reason === 'closed by caller')) {
                 return
               }
 
