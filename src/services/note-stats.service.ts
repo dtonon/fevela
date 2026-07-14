@@ -10,6 +10,7 @@ import { Event } from '@nostr/tools/wasm'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import { pool, purgatory } from '@nostr/gadgets/global'
+import { createLimiter, preferOpenConnections } from '@/services/pool.service'
 
 export type TNoteStats = {
   likeIdSet: Set<string>
@@ -54,6 +55,10 @@ export function parseReactionEmoji(evt: Event): TEmoji | string {
 
   return content
 }
+
+// One stats query per note, each fanning out to a few relays, adds up fast on a long
+// feed. Keep only a handful in flight so we don't spike the connection count.
+const limitStatsQueries = createLimiter(4)
 
 class NoteStatsService {
   static instance: NoteStatsService
@@ -170,26 +175,46 @@ class NoteStatsService {
       }
     }
 
+    const candidateRelays = preferOpenConnections(
+      relayList.read
+        .concat(storage.getReadRepliesFromInboxesOnly() ? [] : window.fevela.universe.bigRelayUrls)
+        .filter((r) => purgatory.allowConnectingToRelay(r, ['read', filters]))
+    ).slice(0, 3)
+
     const reactions: Event[] = []
-    await new Promise<void>((resolve) => {
-      const subc = pool.subscribeMap(
-        relayList.read
-          .concat(storage.getReadRepliesFromInboxesOnly() ? [] : window.fevela.universe.bigRelayUrls)
-          .filter((r) => purgatory.allowConnectingToRelay(r, ['read', filters]))
-          .slice(0, 3)
-          .flatMap((url) => filters.map((filter) => ({ url, filter }))),
-        {
-          label: 'f-stats',
-          onevent(evt) {
-            reactions.push(evt)
-          },
-          oneose() {
-            resolve()
-            subc.close()
-          }
-        }
+    if (candidateRelays.length) {
+      await limitStatsQueries(
+        () =>
+          new Promise<void>((resolve) => {
+            // never leave a slot held by a relay that answers neither EOSE nor CLOSE
+            const bail = setTimeout(() => {
+              subc.close()
+              resolve()
+            }, 8_000)
+            const done = () => {
+              clearTimeout(bail)
+              resolve()
+            }
+            const subc = pool.subscribeMap(
+              candidateRelays.flatMap((url) => filters.map((filter) => ({ url, filter }))),
+              {
+                label: 'f-stats',
+                maxWait: 5_000,
+                onevent(evt) {
+                  reactions.push(evt)
+                },
+                oneose() {
+                  done()
+                  subc.close()
+                },
+                onclose() {
+                  done()
+                }
+              }
+            )
+          })
       )
-    })
+    }
     this.updateNoteStatsByEvents(reactions)
 
     const updated = {

@@ -3,13 +3,13 @@ import './index.css'
 import './polyfill'
 import './services/lightning.service'
 import './window'
-import { restart } from './services/outbox.service'
+import { init as initOutbox, restart } from './services/outbox.service'
 
 import { createRoot } from 'react-dom/client'
 import { initNostrWasm } from 'nostr-wasm/gzipped'
 import { setNostrWasm, verifyEvent } from '@nostr/tools/wasm'
-import { AbstractSimplePool } from '@nostr/tools/abstract-pool'
-import { pool, setPool, setReplaceableStore } from '@nostr/gadgets/global'
+import { pool, purgatory, setPool, setReplaceableStore } from '@nostr/gadgets/global'
+import { BoundedPool } from './services/pool.service.ts'
 import App from './App.tsx'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 import { store } from './services/store.service.ts'
@@ -22,20 +22,29 @@ initNostrWasm()
   .then((nw) => {
     setNostrWasm(nw)
     setPool(
-      new AbstractSimplePool({
+      new BoundedPool({
         verifyEvent,
         enableReconnect: true,
-        maxWaitForConnection: 3000
+        maxWaitForConnection: 3000,
+        // without these the purgatory never learns which relays are dead, so we keep
+        // retrying them forever and burn connection slots on them
+        // cast: purgatory's signature refers to the DOM Event type, not NostrEvent
+        allowConnectingToRelay: purgatory.allowConnectingToRelay.bind(purgatory) as (
+          url: string
+        ) => boolean,
+        onRelayConnectionFailure: purgatory.onRelayConnectionFailure.bind(purgatory),
+        onRelayConnectionSuccess: purgatory.onRelayConnectionSuccess.bind(purgatory)
       }) as any
     )
     pool.trackRelays = true
     setReplaceableStore(store)
+    initOutbox()
 
     // try to prevent "Insufficient resources" errors
     setInterval(() => {
       const urls = pool.pruneIdleRelays()
       if (urls.length > 0) console.log(':: closed idle relays', urls)
-    }, 25_000)
+    }, 10_000)
 
     window.addEventListener('online', () => {
       console.log(':: network restored, restarting relay subscriptions')

@@ -148,59 +148,65 @@ class ClientService extends EventTarget {
   }
 
   async publishEvent(relayUrls: string[], event: NostrEvent) {
-    const uniqueRelayUrls = Array.from(new Set(relayUrls.map(normalizeUrl)))
+    const uniqueRelayUrls = Array.from(new Set(relayUrls.map(normalizeUrl))).filter(Boolean)
+    if (!uniqueRelayUrls.length) {
+      throw new Error('no relay to publish to')
+    }
+
     await new Promise<void>((resolve, reject) => {
       let successCount = 0
       let finishedCount = 0
       const errors: { url: string; error: any }[] = []
+
+      // every url must reach this exactly once, or the promise never settles and the
+      // caller waits forever
+      const finish = () => {
+        if (++finishedCount < uniqueRelayUrls.length) return
+        if (successCount > 0) {
+          this.emitNewEvent(event)
+          resolve()
+        } else {
+          reject(
+            new AggregateError(
+              errors.map(
+                ({ url, error }) =>
+                  new Error(`${url}: ${error instanceof Error ? error.message : String(error)}`)
+              )
+            )
+          )
+        }
+      }
+
       Promise.allSettled(
         uniqueRelayUrls.map(async (url) => {
-          // eslint-disable-next-line @typescript-eslint/no-this-alias
-          const that = this
-          const relay = await pool.ensureRelay(url)
-          relay.publishTimeout = 10_000 // 10s
-          return relay
-            .publish(event)
-            .then(() => {
+          try {
+            const relay = await pool.ensureRelay(url)
+            relay.publishTimeout = 10_000 // 10s
+            try {
+              await relay.publish(event)
               this.trackEventSeenOn(event.id, relay)
               successCount++
-            })
-            .catch((error) => {
+            } catch (error) {
               if (
                 error instanceof Error &&
                 error.message.startsWith('auth-required') &&
-                !!that.signer
+                !!this.signer
               ) {
-                return relay
-                  .auth(((authEvt: EventTemplate) => that.signer!.signEvent(authEvt)) as any)
-                  .then(() => relay.publish(event))
-                  .then(() => {
-                    this.trackEventSeenOn(event.id, relay)
-                    successCount++
-                  })
+                await relay.auth(((authEvt: EventTemplate) =>
+                  this.signer!.signEvent(authEvt)) as any)
+                await relay.publish(event)
+                this.trackEventSeenOn(event.id, relay)
+                successCount++
               } else {
                 errors.push({ url, error })
               }
-            })
-            .finally(() => {
-              if (++finishedCount >= uniqueRelayUrls.length) {
-                if (successCount > 0) {
-                  this.emitNewEvent(event)
-                  resolve()
-                } else {
-                  reject(
-                    new AggregateError(
-                      errors.map(
-                        ({ url, error }) =>
-                          new Error(
-                            `${url}: ${error instanceof Error ? error.message : String(error)}`
-                          )
-                      )
-                    )
-                  )
-                }
-              }
-            })
+            }
+          } catch (error) {
+            // connection failed, auth was refused, or we are over the connection budget
+            errors.push({ url, error })
+          } finally {
+            finish()
+          }
         })
       )
     })
