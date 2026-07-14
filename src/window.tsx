@@ -4,6 +4,7 @@ import { loadFollowsList, loadRelayList } from '@nostr/gadgets/lists'
 import { pool } from '@nostr/gadgets/global'
 import { store } from './services/store.service'
 import { current, outbox } from './services/outbox.service'
+import { MAX_CONNECTIONS } from './services/pool.service'
 import client from './services/client.service'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
@@ -87,7 +88,7 @@ window.fevela = {
     }))
 
     console.log(
-      `relay connections: ${connected}/${relays.length} connected, ${withSubs} with active subs`
+      `relay connections: ${connected}/${relays.length} connected (cap ${MAX_CONNECTIONS}), ${withSubs} with active subs`
     )
     console.table(subsPerRelay)
   },

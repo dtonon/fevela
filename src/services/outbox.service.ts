@@ -5,7 +5,13 @@ import { NostrEvent } from '@nostr/tools/core'
 import { store } from './store.service'
 
 export let outbox: OutboxManager
-setTimeout(() => {
+
+// Must be called after setPool(), otherwise the manager captures whatever pool was
+// installed at import time and runs the live feed - by far our biggest subscription - on
+// a second, unmanaged pool.
+export function init() {
+  if (outbox) return
+
   outbox = new OutboxManager([{ kinds: FEED_KINDS }], store, {
     pool,
     label: 'fevela',
@@ -25,7 +31,7 @@ setTimeout(() => {
     defaultRelaysForConfusedPeople: window.fevela.universe.bigRelayUrls,
     storeRelaysSeenOn: true
   })
-}, 0)
+}
 
 export const status: { syncing: true; pubkey: string } | { syncing: undefined | false } = {
   syncing: undefined
