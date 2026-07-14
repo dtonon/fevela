@@ -224,6 +224,10 @@ export function getRootATag(event?: Event) {
 export function getRootTag(event: Event): string[] | undefined {
   let fallback: string[] | undefined
 
+  if (event.kind === kinds.ShortTextNote) {
+    return getRootETag(event)
+  }
+
   if (event.kind === ExtendedKind.COMMENT || event.kind === ExtendedKind.VOICE_COMMENT) {
     for (let i = 0; i < event.tags.length; i++) {
       const tag = event.tags[i]
