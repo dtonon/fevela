@@ -18,6 +18,7 @@ import { useGroupedNotesReadStatus } from '@/hooks/useGroupedNotesReadStatus'
 import { useReply } from '@/providers/ReplyProvider'
 import client from '@/services/client.service'
 import noteStatsService, { TNoteStats } from '@/services/note-stats.service'
+import replyStatusService from '@/services/reply-status.service'
 import { TFeedSubRequest } from '@/types'
 import { Event, NostrEvent } from '@nostr/tools/wasm'
 import { mergeReverseSortedLists } from '@nostr/tools/utils'
@@ -30,7 +31,8 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
-  useState
+  useState,
+  useSyncExternalStore
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
@@ -85,6 +87,10 @@ const GroupedNoteList = forwardRef(
     const { pendingIds } = usePending()
     const pendingIdSet = useMemo(() => new Set(pendingIds), [pendingIds])
     const { resetSettings, settings } = useFeed()
+    const replyStatusVersion = useSyncExternalStore(
+      replyStatusService.subscribe,
+      replyStatusService.getVersion
+    )
     const { markLastNoteRead, markAllNotesRead, getReadStatus, getUnreadCount, markAsUnread } =
       useGroupedNotesReadStatus()
     const { repliesMap } = useReply()
@@ -278,7 +284,8 @@ const GroupedNoteList = forwardRef(
         isEventDeleted,
         mutePubkeySet,
         pendingIdSet,
-        settings
+        settings,
+        replyStatusVersion
       ]
     )
 

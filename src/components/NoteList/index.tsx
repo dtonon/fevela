@@ -1,6 +1,12 @@
 import NewNotesButton from '@/components/NewNotesButton'
 import { Button } from '@/components/ui/button'
-import { isFirstLevelReply, isLongNote, isMentioningMutedUsers, isReplyNoteEvent, wordsInEvent } from '@/lib/event'
+import {
+  isFirstLevelReply,
+  isLongNote,
+  isMentioningMutedUsers,
+  isReplyNoteEvent,
+  wordsInEvent
+} from '@/lib/event'
 import { batchDebounce, isTouchDevice } from '@/lib/utils'
 import { useContentPolicy } from '@/providers/ContentPolicyProvider'
 import { useDeletedEvent } from '@/providers/DeletedEventProvider'
@@ -9,6 +15,7 @@ import { useNostr } from '@/providers/NostrProvider'
 import { usePending } from '@/providers/PendingProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
 import client from '@/services/client.service'
+import replyStatusService from '@/services/reply-status.service'
 import { TFeedSubRequest } from '@/types'
 import dayjs from 'dayjs'
 import { Event, NostrEvent, verifyEvent } from '@nostr/tools/wasm'
@@ -22,7 +29,8 @@ import {
   useImperativeHandle,
   useMemo,
   useRef,
-  useState
+  useState,
+  useSyncExternalStore
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import PullToRefresh from 'react-simple-pull-to-refresh'
@@ -77,6 +85,10 @@ const NoteList = forwardRef(
     const [showCount, setShowCount] = useState(SHOW_COUNT)
     const [isFilteredView, setIsFilteredView] = useState(!!sinceTimestamp)
     const { settings: feedSettings } = useFeed()
+    const replyStatusVersion = useSyncExternalStore(
+      replyStatusService.subscribe,
+      replyStatusService.getVersion
+    )
     const supportTouch = useMemo(() => isTouchDevice(), [])
     const bottomRef = useRef<HTMLDivElement | null>(null)
     const topRef = useRef<HTMLDivElement | null>(null)
@@ -121,7 +133,8 @@ const NoteList = forwardRef(
         feedSettings.wordFilter,
         feedSettings.hideShortNotes,
         feedSettings.includeReplies,
-        feedSettings.showOnlyFirstLevelReplies
+        feedSettings.showOnlyFirstLevelReplies,
+        replyStatusVersion
       ]
     )
 

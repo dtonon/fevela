@@ -1,5 +1,6 @@
 import { ExtendedKind } from '@/constants'
 import client from '@/services/client.service'
+import replyStatusService from '@/services/reply-status.service'
 import { TImetaInfo } from '@/types'
 import { Event, NostrEvent, UnsignedEvent } from '@nostr/tools/wasm'
 import * as kinds from '@nostr/tools/kinds'
@@ -43,9 +44,21 @@ export function isFirstLevelReply(event: Event) {
   // If there's no parent tag, consider it first-level
   if (!parentTag) return true
 
-  // First-level reply: parent and root point to the same event/addressable
+  // Nested reply: parent and root point to different events/addressables
   // Compare tag values (index 1 contains event ID or addressable coordinate)
-  return parentTag.tag[1] === rootTag[1]
+  if (parentTag.tag[1] !== rootTag[1]) return false
+
+  // Some clients use NIP-22 comments to reply to kind:1 notes, scoping the
+  // root to the commented note itself; if that note is a reply, this is nested
+  if (
+    (event.kind === ExtendedKind.COMMENT || event.kind === ExtendedKind.VOICE_COMMENT) &&
+    event.tags.find(tagNameEquals('K'))?.[1] === '1' &&
+    (rootTag[0] === 'E' || rootTag[0] === 'e')
+  ) {
+    return replyStatusService.isReply(rootTag[1]) !== true
+  }
+
+  return true
 }
 
 export function isReplaceableEvent(kind: number) {
