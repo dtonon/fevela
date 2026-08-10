@@ -1,7 +1,5 @@
 import { useSecondaryPage } from '@/PageManager'
 import { getReplaceableCoordinateFromEvent, isReplaceableEvent } from '@/lib/event'
-import { getZapInfoFromEvent } from '@/lib/event-metadata'
-import { formatAmount } from '@/lib/lightning'
 import { toProfile } from '@/lib/link'
 import { useScreenSize } from '@/providers/ScreenSizeProvider'
 import { useUserTrust } from '@/providers/UserTrustProvider'
@@ -11,10 +9,9 @@ import { TEmoji, TFeedSubRequest } from '@/types'
 import { Filter } from '@nostr/tools/filter'
 import * as kinds from '@nostr/tools/kinds'
 import { Event } from '@nostr/tools/wasm'
-import { Repeat, Zap } from 'lucide-react'
+import { Repeat } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import Content from '../Content'
 import Emoji from '../Emoji'
 import { FormattedTimestamp } from '../FormattedTimestamp'
 import Nip05 from '../Nip05'
@@ -37,14 +34,6 @@ type TReactionItem =
       id: string
       pubkey: string
       created_at: number
-    }
-  | {
-      type: 'zap'
-      id: string
-      pubkey: string
-      created_at: number
-      amount: number
-      comment?: string
     }
 
 export default function ReactionList({
@@ -94,20 +83,6 @@ export default function ReactionList({
 
           break
         }
-
-        case kinds.Zap: {
-          const info = getZapInfoFromEvent(evt)
-          if (info && info.senderPubkey) {
-            items.push({
-              type: 'zap',
-              id: info.invoice,
-              pubkey: info.senderPubkey,
-              created_at: evt.created_at,
-              amount: info.amount,
-              comment: info.comment
-            })
-          }
-        }
       }
     }
 
@@ -140,7 +115,7 @@ export default function ReactionList({
       const filters: Filter[] = [
         {
           '#e': [event.id],
-          kinds: [kinds.Reaction, kinds.Repost, kinds.Zap],
+          kinds: [kinds.Reaction, kinds.Repost],
           limit: LIMIT
         }
       ]
@@ -148,7 +123,7 @@ export default function ReactionList({
       if (replaceableCoordinate) {
         filters.push({
           '#a': [replaceableCoordinate],
-          kinds: [kinds.Reaction, kinds.Repost, kinds.Zap],
+          kinds: [kinds.Reaction, kinds.Repost],
           limit: LIMIT
         })
       }
@@ -285,40 +260,7 @@ export default function ReactionList({
           )
         }
 
-        return (
-          <div
-            key={item.id}
-            className="px-4 py-3 border-b transition-colors clickable flex gap-2"
-            onClick={() => push(toProfile(item.pubkey))}
-          >
-            <div className="w-8 flex flex-col items-center mt-0.5">
-              <Zap className="text-yellow-400 size-5" />
-              <div className="text-sm font-semibold text-yellow-400">
-                {formatAmount(item.amount)}
-              </div>
-            </div>
-
-            <div className="flex space-x-2 items-start">
-              <UserAvatar userId={item.pubkey} size="medium" className="shrink-0 mt-0.5" />
-              <div className="flex-1">
-                <Username
-                  userId={item.pubkey}
-                  className="text-sm font-semibold text-muted-foreground hover:text-foreground max-w-fit truncate"
-                  skeletonClassName="h-3"
-                />
-                <div className="flex items-center gap-1 text-sm text-muted-foreground">
-                  <Nip05 pubkey={item.pubkey} append="·" />
-                  <FormattedTimestamp
-                    timestamp={item.created_at}
-                    className="shrink-0"
-                    short={isSmallScreen}
-                  />
-                </div>
-                <Content className="mt-2" content={item.comment} />
-              </div>
-            </div>
-          </div>
-        )
+        return null
       })}
 
       <div ref={bottomRef} />

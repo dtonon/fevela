@@ -1,7 +1,6 @@
 import './i18n'
 import './index.css'
 import './polyfill'
-import './services/lightning.service'
 import './window'
 import { init as initOutbox, restart } from './services/outbox.service'
 

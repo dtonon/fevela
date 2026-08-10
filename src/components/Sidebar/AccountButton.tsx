@@ -7,11 +7,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger
 } from '@/components/ui/dropdown-menu'
-import { toWallet } from '@/lib/link'
 import { cn } from '@/lib/utils'
 import { useSecondaryPage } from '@/PageManager'
 import { useNostr } from '@/providers/NostrProvider'
-import { LogIn, LogOut, Plus, Wallet } from 'lucide-react'
+import { LogIn, LogOut, Plus } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import LoginDialog from '../LoginDialog'
@@ -59,10 +58,6 @@ function ProfileButton({ collapse }: { collapse: boolean }) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent side="top" className="w-72">
-        <DropdownMenuItem onClick={() => push(toWallet())}>
-          <Wallet />
-          {t('Wallet')}
-        </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuLabel>{t('Switch account')}</DropdownMenuLabel>
         {accounts.map((act) => (

@@ -288,12 +288,6 @@ export function NostrProvider({ children }: { children: React.ReactNode }) {
         kinds: [kinds.Reaction, kinds.Repost],
         limit: 100
       })
-      const zaps = await client.fetchEvents(relayList.write.slice(0, 4), {
-        '#P': [pubkey],
-        kinds: [kinds.Zap],
-        limit: 100
-      })
-      events.push(...zaps)
       noteStatsService.updateNoteStatsByEvents(events)
     })()
   }, [account])

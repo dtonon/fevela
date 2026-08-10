@@ -17,11 +17,9 @@ import PendingPage from './pages/secondary/PendingPage'
 import RelayPage from './pages/secondary/RelayPage'
 import RelayReviewsPage from './pages/secondary/RelayReviewsPage'
 import RelaySettingsPage from './pages/secondary/RelaySettingsPage'
-import RizfulPage from './pages/secondary/RizfulPage'
 import SearchPage from './pages/secondary/SearchPage'
 import SettingsPage from './pages/secondary/SettingsPage'
 import TranslationPage from './pages/secondary/TranslationPage'
-import WalletPage from './pages/secondary/WalletPage'
 
 const ROUTES = [
   { path: '/notes', element: <NoteListPage /> },
@@ -36,14 +34,12 @@ const ROUTES = [
   { path: '/search', element: <SearchPage /> },
   { path: '/settings', element: <SettingsPage /> },
   { path: '/settings/relays', element: <RelaySettingsPage /> },
-  { path: '/settings/wallet', element: <WalletPage /> },
   { path: '/settings/posts', element: <PostSettingsPage /> },
   { path: '/settings/general', element: <GeneralSettingsPage /> },
   { path: '/settings/appearance', element: <AppearanceSettingsPage /> },
   { path: '/settings/translation', element: <TranslationPage /> },
   { path: '/profile-editor', element: <ProfileEditorPage /> },
   { path: '/mutes', element: <MuteListPage /> },
-  { path: '/rizful', element: <RizfulPage /> },
   { path: '/bookmarks', element: <BookmarkPage /> },
   { path: '/pending', element: <PendingPage /> }
 ]

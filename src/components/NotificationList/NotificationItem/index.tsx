@@ -11,8 +11,6 @@ import { MentionNotification } from './MentionNotification'
 import { PollResponseNotification } from './PollResponseNotification'
 import { ReactionNotification } from './ReactionNotification'
 import { RepostNotification } from './RepostNotification'
-import { ZapNotification } from './ZapNotification'
-
 export function NotificationItem({
   notification,
   isNew = false
@@ -54,9 +52,6 @@ export function NotificationItem({
   }
   if (notification.kind === kinds.Repost) {
     return <RepostNotification notification={notification} isNew={isNew} />
-  }
-  if (notification.kind === kinds.Zap) {
-    return <ZapNotification notification={notification} isNew={isNew} />
   }
   if (notification.kind === ExtendedKind.POLL_RESPONSE) {
     return <PollResponseNotification notification={notification} isNew={isNew} />

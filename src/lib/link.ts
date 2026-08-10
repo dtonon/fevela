@@ -105,7 +105,6 @@ export const toSettings = () => '/settings'
 export const toRelaySettings = (tag?: 'mailbox' | 'favorite-relays') => {
   return '/settings/relays' + (tag ? '#' + tag : '')
 }
-export const toWallet = () => '/settings/wallet'
 export const toPostSettings = () => '/settings/posts'
 export const toGeneralSettings = () => '/settings/general'
 export const toAppearanceSettings = () => '/settings/appearance'
@@ -114,7 +113,6 @@ export const toProfileEditor = () => '/profile-editor'
 export const toRelay = (url: string) => `/relays/${encodeURIComponent(url)}`
 export const toRelayReviews = (url: string) => `/relays/${encodeURIComponent(url)}/reviews`
 export const toMuteList = () => '/mutes'
-export const toRizful = () => '/rizful'
 export const toBookmarks = () => '/bookmarks'
 export const toPending = () => '/pending'
 export const toNjump = (id: string) => `https://njump.me/${id}`

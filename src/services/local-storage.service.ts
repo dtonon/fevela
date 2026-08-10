@@ -30,9 +30,6 @@ class LocalStorageService {
   private accounts: TAccount[] = []
   private currentAccount: TAccount | null = null
   private lastReadNotificationTimeMap: Record<string, number> = {}
-  private defaultZapSats: number = 21
-  private defaultZapComment: string = 'Zap!'
-  private quickZap: boolean = false
   private accountFeedInfoMap: Record<string, TFeedInfo | undefined> = {}
 
   private autoplay: boolean = true
@@ -94,16 +91,6 @@ class LocalStorageService {
     } else {
       this.relaySets = JSON.parse(relaySetsStr)
     }
-
-    const defaultZapSatsStr = window.localStorage.getItem(StorageKey.DEFAULT_ZAP_SATS)
-    if (defaultZapSatsStr) {
-      const num = parseInt(defaultZapSatsStr)
-      if (!isNaN(num)) {
-        this.defaultZapSats = num
-      }
-    }
-    this.defaultZapComment = window.localStorage.getItem(StorageKey.DEFAULT_ZAP_COMMENT) ?? 'Zap!'
-    this.quickZap = window.localStorage.getItem(StorageKey.QUICK_ZAP) === 'true'
 
     const accountFeedInfoMapStr =
       window.localStorage.getItem(StorageKey.ACCOUNT_FEED_INFO_MAP) ?? '{}'
@@ -281,33 +268,6 @@ class LocalStorageService {
     }
     this.currentAccount = act
     window.localStorage.setItem(StorageKey.CURRENT_ACCOUNT, JSON.stringify(act))
-  }
-
-  getDefaultZapSats() {
-    return this.defaultZapSats
-  }
-
-  setDefaultZapSats(sats: number) {
-    this.defaultZapSats = sats
-    window.localStorage.setItem(StorageKey.DEFAULT_ZAP_SATS, sats.toString())
-  }
-
-  getDefaultZapComment() {
-    return this.defaultZapComment
-  }
-
-  setDefaultZapComment(comment: string) {
-    this.defaultZapComment = comment
-    window.localStorage.setItem(StorageKey.DEFAULT_ZAP_COMMENT, comment)
-  }
-
-  getQuickZap() {
-    return this.quickZap
-  }
-
-  setQuickZap(quickZap: boolean) {
-    this.quickZap = quickZap
-    window.localStorage.setItem(StorageKey.QUICK_ZAP, quickZap.toString())
   }
 
   getLastReadNotificationTime(pubkey: string) {
