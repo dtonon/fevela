@@ -163,6 +163,7 @@ const NoteList = forwardRef(
         } catch (_err) {
           continue
         }
+        if (!eventFromContent || typeof eventFromContent !== 'object') continue
 
         // before we verify anything let's check if we have already seen this
         let reposters = repostersMap.get(eventFromContent.id)
@@ -170,8 +171,8 @@ const NoteList = forwardRef(
           // we haven't seen it:
           reposters = []
 
-          if (shouldHideEvent(eventFromContent)) continue
           if (!verifyEvent(eventFromContent)) continue
+          if (shouldHideEvent(eventFromContent)) continue
 
           const targetSeenOn = client.getSeenEventRelays(eventFromContent.id)
           if (targetSeenOn.length === 0) {
