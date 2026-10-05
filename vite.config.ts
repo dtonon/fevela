@@ -1,7 +1,7 @@
 import react from '@vitejs/plugin-react'
 import { execSync } from 'child_process'
 import path from 'path'
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import { VitePWA } from 'vite-plugin-pwa'
 import packageJson from './package.json'
 
@@ -23,6 +23,19 @@ const getAppVersion = () => {
   }
 }
 
+// Upgrade http/ws subresources from user content so browsers don't flag mixed content
+const upgradeInsecureRequests = (): Plugin => ({
+  name: 'upgrade-insecure-requests',
+  apply: 'build',
+  transformIndexHtml: () => [
+    {
+      tag: 'meta',
+      attrs: { 'http-equiv': 'Content-Security-Policy', content: 'upgrade-insecure-requests' },
+      injectTo: 'head-prepend'
+    }
+  ]
+})
+
 // https://vite.dev/config/
 export default defineConfig({
   server: {
@@ -42,6 +55,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    upgradeInsecureRequests(),
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
