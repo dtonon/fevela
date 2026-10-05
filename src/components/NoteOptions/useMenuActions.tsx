@@ -15,6 +15,7 @@ import {
   CloudUpload,
   Code,
   Copy,
+  CopyPlus,
   FilePen,
   Link,
   Pin,
@@ -57,6 +58,7 @@ interface UseMenuActionsProps {
   event: Event
   closeDrawer: () => void
   openEditor: () => void
+  openDuplicateEditor: () => void
   showSubMenuActions: (subMenu: SubMenuAction[], title: string) => void
   setIsRawEventDialogOpen: (open: boolean) => void
   setIsReportDialogOpen: (open: boolean) => void
@@ -68,6 +70,7 @@ export function useMenuActions({
   event,
   closeDrawer,
   openEditor,
+  openDuplicateEditor,
   showSubMenuActions,
   setIsRawEventDialogOpen,
   setIsReportDialogOpen,
@@ -314,6 +317,16 @@ export function useMenuActions({
           await (pinned ? unpin(event) : pin(event))
         }
       })
+      if (!isPending) {
+        actions.push({
+          icon: CopyPlus,
+          label: t('Duplicate'),
+          onClick: () => {
+            closeDrawer()
+            openDuplicateEditor()
+          }
+        })
+      }
     }
 
     if (pubkey && event.pubkey !== pubkey) {
@@ -435,6 +448,7 @@ export function useMenuActions({
     feedSettings.grouped,
     closeDrawer,
     openEditor,
+    openDuplicateEditor,
     showSubMenuActions,
     setIsRawEventDialogOpen,
     setIsDiscardDialogOpen,

@@ -21,6 +21,7 @@ export default function NoteOptions({ event, className }: { event: Event; classN
   const [subMenuTitle, setSubMenuTitle] = useState('')
   const [isEditorOpen, setIsEditorOpen] = useState(false)
   const [editingEvent, setEditingEvent] = useState<Event | undefined>()
+  const [editorContent, setEditorContent] = useState<string | undefined>()
 
   const closeDrawer = () => {
     setIsDrawerOpen(false)
@@ -39,6 +40,14 @@ export default function NoteOptions({ event, className }: { event: Event; classN
 
   const openEditor = () => {
     setEditingEvent(event)
+    setEditorContent(event.content)
+    setIsEditorOpen(true)
+  }
+
+  // Opens a fresh editor prefilled with the note content, publishing creates a new note
+  const openDuplicateEditor = () => {
+    setEditingEvent(undefined)
+    setEditorContent(event.content)
     setIsEditorOpen(true)
   }
 
@@ -46,6 +55,7 @@ export default function NoteOptions({ event, className }: { event: Event; classN
     setIsEditorOpen(open)
     if (!open) {
       setEditingEvent(undefined)
+      setEditorContent(undefined)
     }
   }
 
@@ -53,6 +63,7 @@ export default function NoteOptions({ event, className }: { event: Event; classN
     event,
     closeDrawer,
     openEditor,
+    openDuplicateEditor,
     showSubMenuActions,
     setIsRawEventDialogOpen,
     setIsReportDialogOpen,
@@ -103,7 +114,7 @@ export default function NoteOptions({ event, className }: { event: Event; classN
         setOpen={setIsDiscardDialogOpen}
       />
       <PostEditor
-        defaultContent={editingEvent?.content}
+        defaultContent={editorContent}
         editingEvent={editingEvent}
         open={isEditorOpen}
         setOpen={closeEditor}

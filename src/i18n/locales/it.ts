@@ -133,6 +133,7 @@ export default {
     'This is a private key. Do not share it with anyone. Keep it safe and secure. You will not be able to recover it if you lose it.':
       'Questa è una chiave privata. Non condividetela con nessuno. Conservatela al sicuro. Non sarà possibile recuperarla in caso di smarrimento.',
     Edit: 'Modifica',
+    Duplicate: 'Duplica',
     Save: 'Salva',
     'Display Name': 'Nome Visualizzato',
     Bio: 'Bio',

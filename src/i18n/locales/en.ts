@@ -156,6 +156,7 @@ export default {
     'This is a private key. Do not share it with anyone. Keep it safe and secure. You will not be able to recover it if you lose it.':
       'This is a private key. Do not share it with anyone. Keep it safe and secure. You will not be able to recover it if you lose it.',
     Edit: 'Edit',
+    Duplicate: 'Duplicate',
     Save: 'Save',
     'Display Name': 'Display Name',
     Bio: 'Bio',
